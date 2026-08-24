@@ -1,0 +1,810 @@
+<div class="room-page">
+
+
+  <!-- ==========================================
+       HEADER
+       ========================================== -->
+
+  <div class="page-header">
+
+    <div>
+
+      <h1>
+        Room Management
+      </h1>
+
+      <p>
+        Upload and manage classroom and laboratory master data.
+      </p>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       UPLOAD CARD
+       ========================================== -->
+
+  <div class="upload-card">
+
+    <h2>
+      Upload Room CSV
+    </h2>
+
+    <p class="description">
+
+      CSV must contain:
+
+      <strong>
+        room_id, room_name, room_type, capacity, department
+      </strong>
+
+    </p>
+
+
+    <div class="file-area">
+
+      <input
+        type="file"
+        accept=".csv,.xls,.xlsx"
+        id="roomFile"
+        (change)="onFileSelected($event)"
+      />
+
+
+      <label
+        for="roomFile"
+        class="file-label">
+
+        Choose CSV File
+
+      </label>
+
+
+      <div class="file-name">
+
+        {{ fileName }}
+
+      </div>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="preview-button"
+
+      [disabled]="
+        !selectedFile ||
+        isPreviewing
+      "
+
+      (click)="preview()">
+
+      {{
+        isPreviewing
+          ? 'Reading CSV...'
+          : 'Preview CSV'
+      }}
+
+    </button>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       SUMMARY
+       ========================================== -->
+
+  <div
+    class="summary"
+    *ngIf="totalRows > 0">
+
+
+    <div class="summary-card">
+
+      <span>
+        Total Rows
+      </span>
+
+      <strong>
+        {{ totalRows }}
+      </strong>
+
+    </div>
+
+
+    <div class="summary-card success">
+
+      <span>
+        Valid Rows
+      </span>
+
+      <strong>
+        {{ validRows }}
+      </strong>
+
+    </div>
+
+
+    <div
+      class="summary-card"
+      [class.error-card]="errorCount > 0">
+
+      <span>
+        Errors
+      </span>
+
+      <strong>
+        {{ errorCount }}
+      </strong>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       ERRORS
+       ========================================== -->
+
+  <div
+    class="errors-card"
+    *ngIf="errors.length > 0">
+
+    <h3>
+      Validation Errors
+    </h3>
+
+
+    <div
+      class="error-row"
+      *ngFor="let error of errors">
+
+      <strong>
+        Row {{ error.row }}
+      </strong>
+
+      <span>
+        {{ error.message }}
+      </span>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       PREVIEW
+       ========================================== -->
+
+  <div
+    class="preview-card"
+    *ngIf="previewData.length > 0">
+
+
+    <div class="preview-header">
+
+      <div>
+
+        <h2>
+          Preview
+        </h2>
+
+        <p>
+          Review room data before importing.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="import-button"
+
+        [disabled]="
+          errorCount > 0 ||
+          isImporting
+        "
+
+        (click)="importData()">
+
+        {{
+          isImporting
+            ? 'Importing...'
+            : 'Import ' + validRows + ' Records'
+        }}
+
+      </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Room ID
+            </th>
+
+            <th>
+              Room Name
+            </th>
+
+            <th>
+              Type
+            </th>
+
+            <th>
+              Capacity
+            </th>
+
+            <th>
+              Department
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let room of paginatedPreviewData
+            ">
+
+            <td>
+              {{ room.room_id }}
+            </td>
+
+            <td>
+              {{ room.room_name }}
+            </td>
+
+            <td>
+
+              <span class="type-badge">
+
+                {{ room.room_type }}
+
+              </span>
+
+            </td>
+
+            <td>
+              {{ room.capacity }}
+            </td>
+
+            <td>
+
+              <span
+                class="department-badge">
+
+                {{ room.department }}
+
+              </span>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <div
+      class="pagination"
+      *ngIf="previewTotalPages > 1">
+
+
+      <button
+        type="button"
+        (click)="previousPreviewPage()"
+        [disabled]="previewCurrentPage === 1">
+
+        ← Previous
+
+      </button>
+
+
+      <span>
+
+        Page
+        {{ previewCurrentPage }}
+        of
+        {{ previewTotalPages }}
+
+      </span>
+
+
+      <button
+        type="button"
+        (click)="nextPreviewPage()"
+        [disabled]="
+          previewCurrentPage === previewTotalPages
+        ">
+
+        Next →
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       IMPORT RESULT
+       ========================================== -->
+
+  <div
+    class="import-result"
+    *ngIf="importResult">
+
+    <h3>
+      Import Completed
+    </h3>
+
+    <p>
+      Room data has been processed successfully.
+    </p>
+
+
+    <div class="import-result-stats">
+
+      <div class="result-stat">
+
+        <span>
+          Total
+        </span>
+
+        <strong>
+          {{ importResult.total }}
+        </strong>
+
+      </div>
+
+
+      <div class="result-stat inserted">
+
+        <span>
+          New Rooms
+        </span>
+
+        <strong>
+          {{ importResult.inserted }}
+        </strong>
+
+      </div>
+
+
+      <div class="result-stat updated">
+
+        <span>
+          Updated
+        </span>
+
+        <strong>
+          {{ importResult.updated }}
+        </strong>
+
+      </div>
+
+
+      <div class="result-stat unchanged">
+
+        <span>
+          Unchanged
+        </span>
+
+        <strong>
+          {{ importResult.unchanged }}
+        </strong>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       ROOM MANAGEMENT
+       ========================================== -->
+
+  <div class="room-list">
+
+
+    <div class="list-header">
+
+      <div>
+
+        <h2>
+          Rooms
+        </h2>
+
+        <p>
+          {{ filteredRooms.length }}
+          rooms found
+        </p>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ========================================
+         FILTERS
+         ======================================== -->
+
+    <div class="filters">
+
+
+      <!-- DEPARTMENT -->
+
+      <div class="filter-group">
+
+        <label>
+          Department
+        </label>
+
+        <select
+          [(ngModel)]="selectedDepartment"
+          (change)="applyFilters()">
+
+          <option value="ALL">
+            All Departments
+          </option>
+
+          <option
+            *ngFor="
+              let department of departments
+            "
+            [value]="department">
+
+            {{ department }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+
+      <!-- ROOM TYPE -->
+
+      <div class="filter-group">
+
+        <label>
+          Room Type
+        </label>
+
+        <select
+          [(ngModel)]="selectedRoomType"
+          (change)="applyFilters()">
+
+          <option value="ALL">
+            All Types
+          </option>
+
+          <option value="L">
+            L - Lecture
+          </option>
+
+          <option value="T">
+            T - Tutorial
+          </option>
+
+          <option value="P">
+            P - Practical
+          </option>
+
+        </select>
+
+      </div>
+
+
+
+      <!-- STATUS -->
+
+      <div class="filter-group">
+
+        <label>
+          Availability
+        </label>
+
+        <select
+          [(ngModel)]="selectedStatus"
+          (change)="applyFilters()">
+
+          <option value="ALL">
+            All Rooms
+          </option>
+
+          <option value="VACANT">
+            Vacant
+          </option>
+
+          <option value="OCCUPIED">
+            Occupied
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ========================================
+         ROOM TABLE
+         ======================================== -->
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Room ID
+            </th>
+
+            <th>
+              Room
+            </th>
+
+            <th>
+              Type
+            </th>
+
+            <th>
+              Capacity
+            </th>
+
+            <th>
+              Department
+            </th>
+
+            <th>
+              Status
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let room of paginatedRooms
+            ">
+
+
+            <td>
+              {{ room.room_id }}
+            </td>
+
+
+            <td class="room-name">
+
+              {{ room.room_name }}
+
+            </td>
+
+
+            <td>
+
+              <span class="type-badge">
+
+                {{ room.room_type }}
+
+              </span>
+
+              <small>
+
+                {{
+                  getRoomTypeLabel(
+                    room.room_type
+                  )
+                }}
+
+              </small>
+
+            </td>
+
+
+            <td>
+              {{ room.capacity }}
+            </td>
+
+
+            <td>
+
+              <span
+                class="department-badge">
+
+                {{ room.department }}
+
+              </span>
+
+            </td>
+
+
+            <td>
+
+              <span
+                class="status-badge"
+
+                [class.vacant]="
+                  getRoomStatus(room) === 'VACANT'
+                "
+
+                [class.occupied]="
+                  getRoomStatus(room) === 'OCCUPIED'
+                ">
+
+                {{
+                  getRoomStatus(room)
+                }}
+
+              </span>
+
+            </td>
+
+          </tr>
+
+
+          <tr
+            *ngIf="filteredRooms.length === 0">
+
+            <td
+              colspan="6"
+              class="no-data">
+
+              No rooms found.
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- ========================================
+         PAGINATION
+         ======================================== -->
+
+    <div
+      class="pagination"
+      *ngIf="roomTotalPages > 1">
+
+
+      <button
+        type="button"
+        (click)="previousRoomPage()"
+        [disabled]="roomCurrentPage === 1">
+
+        ← Previous
+
+      </button>
+
+
+      <span>
+
+        Page
+        {{ roomCurrentPage }}
+        of
+        {{ roomTotalPages }}
+
+      </span>
+
+
+      <button
+        type="button"
+        (click)="nextRoomPage()"
+        [disabled]="
+          roomCurrentPage === roomTotalPages
+        ">
+
+        Next →
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       TOAST
+       ========================================== -->
+
+  <div
+    class="toast"
+
+    [class.success]="
+      toastType === 'success'
+    "
+
+    [class.error]="
+      toastType === 'error'
+    "
+
+    *ngIf="showToast">
+
+
+    <div class="toast-icon">
+
+      {{
+        toastType === 'success'
+          ? '✓'
+          : '!'
+      }}
+
+    </div>
+
+
+    <div class="toast-content">
+
+      <strong>
+
+        {{
+          toastType === 'success'
+            ? 'Success'
+            : 'Error'
+        }}
+
+      </strong>
+
+
+      <span>
+        {{ toastMessage }}
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="toast-close"
+      (click)="showToast = false">
+
+      ×
+
+    </button>
+
+  </div>
+
+
+</div>

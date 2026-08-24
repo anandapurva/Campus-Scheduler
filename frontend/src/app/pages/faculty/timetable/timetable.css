@@ -1,0 +1,884 @@
+/* =====================================================
+   PAGE
+   ===================================================== */
+
+.timetable-page {
+  width: 100%;
+  min-height: 100vh;
+
+  padding: 28px;
+
+  box-sizing: border-box;
+
+  background:
+    linear-gradient(
+      135deg,
+      #eef4ff 0%,
+      #f8fafc 45%,
+      #eef5ff 100%
+    );
+
+  font-family:
+    "Inter",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  color: #0b2a4a;
+}
+
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+.timetable-header {
+  position: relative;
+
+  width: 100%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #3b73e8
+    );
+
+  color: white;
+
+  border-radius: 18px 18px 0 0;
+
+  padding: 22px 20px 18px;
+
+  box-sizing: border-box;
+
+  text-align: center;
+
+  box-shadow:
+    0 8px 25px rgba(37, 99, 235, 0.20);
+
+  overflow: hidden;
+}
+
+
+/* decorative glow */
+
+.timetable-header::before {
+  content: "";
+
+  position: absolute;
+
+  width: 180px;
+  height: 180px;
+
+  right: -60px;
+  top: -100px;
+
+  background: rgba(37, 99, 235, 0.35);
+
+  border-radius: 50%;
+}
+
+
+.timetable-header::after {
+  content: "";
+
+  position: absolute;
+
+  width: 130px;
+  height: 130px;
+
+  left: -50px;
+  bottom: -90px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  border-radius: 50%;
+}
+
+
+/* title */
+
+.timetable-header h1 {
+  position: relative;
+
+  z-index: 2;
+
+  margin: 0;
+
+  font-family:
+    "Inter",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  font-size: 23px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.3px;
+
+  color: white;
+}
+
+
+/* subtitle */
+
+.header-subtitle {
+  position: relative;
+
+  z-index: 2;
+
+  margin-top: 7px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  letter-spacing: 3px;
+
+  text-transform: uppercase;
+
+  color: #b9d7ff;
+}
+
+
+/* =====================================================
+   TABLE WRAPPER
+   ===================================================== */
+
+.timetable-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+
+  background: white;
+
+  border-left:
+    1px solid #cbd9eb;
+
+  border-right:
+    1px solid #cbd9eb;
+
+  border-bottom:
+    1px solid #cbd9eb;
+
+  box-sizing: border-box;
+
+  box-shadow:
+    0 12px 35px rgba(11, 42, 74, 0.10);
+}
+
+
+/* =====================================================
+   TABLE
+   ===================================================== */
+
+.timetable {
+  width: 100%;
+
+  min-width: 1200px;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+
+  background: white;
+
+  font-family:
+    "Inter",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+}
+
+
+/* =====================================================
+   HEADER CELLS
+   ===================================================== */
+
+.timetable th {
+  border: 1px solid #d5e2f2;
+
+  background: #eff6ff;
+
+  color: #174a86;
+
+  text-align: center;
+
+  vertical-align: middle;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  padding: 10px 5px;
+
+  height: 42px;
+}
+
+
+/* DAY HEADER */
+
+.day-header {
+  width: 70px;
+
+  background:
+    #d9e7f8 !important;
+
+  color: #0b2a4a !important;
+
+  font-size: 11px !important;
+
+  letter-spacing: 1px;
+}
+
+
+/* TIME HEADER */
+
+.time-header {
+  width:
+    calc(
+      (100% - 70px) / 10
+    );
+
+  white-space: nowrap;
+}
+
+
+/* =====================================================
+   BODY
+   ===================================================== */
+
+.timetable tbody tr {
+  height: 105px;
+}
+
+
+/* =====================================================
+   DAY CELL
+   ===================================================== */
+
+.day-cell {
+  width: 70px;
+
+  border:
+    1px solid #c7d7eb;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f0f6ff,
+      #e5effb
+    );
+
+  padding: 0;
+
+  text-align: center;
+
+  vertical-align: middle;
+
+  box-shadow:
+    inset -3px 0 0 #2563eb;
+}
+
+
+.vertical-day {
+  writing-mode: vertical-rl;
+
+  transform: rotate(180deg);
+
+  margin: auto;
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+
+  color: #124d82;
+}
+
+
+/* =====================================================
+   SCHEDULE CELL
+   ===================================================== */
+
+.schedule-cell {
+  height: 105px;
+
+  border:
+    1px solid #d7e2ef;
+
+  padding: 5px;
+
+  text-align: center;
+
+  vertical-align: middle;
+
+  position: relative;
+
+  cursor: pointer;
+
+  background: #ffffff;
+
+  transition:
+    all 0.18s ease;
+}
+
+
+/* editable hover */
+
+.schedule-cell:not(.view-only):hover {
+  background: #f4f8ff;
+
+  box-shadow:
+    inset 0 0 0 2px #8db8f5;
+
+  transform:
+    scale(1.005);
+
+  z-index: 2;
+}
+
+
+/* view only */
+
+.schedule-cell.view-only {
+  cursor: default;
+}
+
+
+/* =====================================================
+   EMPTY CELL
+   ===================================================== */
+
+.empty-cell {
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: transparent;
+
+  font-size: 24px;
+
+  font-weight: 300;
+
+  transition:
+    all 0.15s ease;
+}
+
+
+.schedule-cell:not(.view-only):hover
+.empty-cell {
+  color: #2563eb;
+}
+
+
+/* =====================================================
+   CLASS CELL
+   ===================================================== */
+
+.schedule-cell.has-class {
+  background:
+    linear-gradient(
+      135deg,
+      #f8fbff,
+      #eef5ff
+    );
+}
+
+/* =====================================================
+   CLASS CONTENT
+   ===================================================== */
+
+.class-content {
+  width: 100%;
+
+  height: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 4px;
+
+  overflow: hidden;
+
+  line-height: 1.15;
+}
+
+
+/* =====================================================
+   SUBJECT CODE
+   ===================================================== */
+
+.subject-code {
+  font-size: 11px;
+
+  font-weight: 800;
+
+  color: #0b2a4a;
+
+  word-break: break-word;
+}
+
+
+/* =====================================================
+   SUBJECT NAME
+   ===================================================== */
+
+.subject-name {
+  font-size: 9px;
+
+  font-weight: 500;
+
+  color: #46627f;
+
+  line-height: 1.2;
+
+  word-break: break-word;
+
+  max-width: 100%;
+}
+
+
+/* =====================================================
+   LECTURE TYPE
+   ===================================================== */
+
+.lecture-type {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 24px;
+
+  padding: 2px 7px;
+
+  border-radius: 20px;
+
+  background: #dbeafe;
+
+  color: #1d4ed8;
+
+  font-size: 8px;
+
+  font-weight: 800;
+}
+
+
+/* =====================================================
+   BATCH
+   ===================================================== */
+
+.batch-info {
+  font-size: 8px;
+
+  color: #52708e;
+
+  max-width: 100%;
+
+  word-break: break-word;
+}
+
+
+/* =====================================================
+   ROOM
+   ===================================================== */
+
+.room-info {
+  font-size: 8px;
+
+  font-weight: 700;
+
+  color: #163e63;
+
+  word-break: break-word;
+}
+
+
+/* =====================================================
+   TEACHER
+   ===================================================== */
+
+.teacher-info-small {
+  font-size: 8px;
+
+  color: #2563eb;
+
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   LUNCH
+   ===================================================== */
+
+.schedule-cell.lunch-slot {
+  padding: 6px;
+
+  background: #f3f6ff !important;
+}
+
+.lunch-cell {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: linear-gradient(
+    135deg,
+    #e8efff,
+    #dbe7ff
+  );
+
+  border: 1px solid #9bbcff;
+
+  position: relative;
+
+  overflow: hidden;
+}
+
+.lunch-cell::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 5px;
+
+  background: #2563eb;
+}
+
+.lunch-text {
+  font-family:
+    "Segoe UI",
+    Inter,
+    Arial,
+    sans-serif;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 2px;
+
+  color: #2563eb;
+}
+
+
+/* =====================================================
+   DAY SEPARATION
+   ===================================================== */
+
+.timetable tbody tr {
+  border-bottom:
+    2px solid #c5d5e8;
+}
+
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+
+.timetable-footer {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 14px;
+
+  align-items: center;
+
+  background: white;
+
+  border:
+    1px solid #cbd9eb;
+
+  border-top: none;
+
+  border-radius:
+    0 0 16px 16px;
+
+  padding:
+    14px 18px;
+
+  font-family:
+    "Inter",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  font-size: 11px;
+
+  color: #536b84;
+
+  box-shadow:
+    0 12px 35px
+    rgba(11, 42, 74, 0.08);
+}
+
+
+/* footer status */
+
+.edit-status,
+.view-status {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding:
+    5px 10px;
+
+  border-radius: 20px;
+
+  font-weight: 700;
+}
+
+
+.edit-status {
+  background: #dcfce7;
+
+  color: #15803d;
+}
+
+
+.view-status {
+  background: #eef2f7;
+
+  color: #64748b;
+}
+
+
+/* lunch info */
+
+.lunch-info {
+  margin-left: auto;
+
+  padding:
+    6px 12px;
+
+  border-radius: 20px;
+
+  background: #fff4d6;
+
+  color: #9a5b00;
+
+  font-weight: 700;
+
+  border:
+    1px solid #f3d28a;
+}
+
+
+/* =====================================================
+   MODAL
+   ===================================================== */
+
+.modal-backdrop {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  background:
+    rgba(7, 25, 45, 0.62);
+
+  backdrop-filter:
+    blur(5px);
+
+  box-sizing: border-box;
+}
+
+
+.editor-modal {
+  width: 100%;
+
+  max-width: 680px;
+
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  background: white;
+
+  border-radius: 18px;
+
+  box-shadow:
+    0 25px 70px
+    rgba(0, 0, 0, 0.30);
+
+  border:
+    1px solid #d6e2f0;
+
+  overflow-x: hidden;
+}
+
+
+/* =====================================================
+   MODAL HEADER
+   ===================================================== */
+
+.modal-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  padding:
+    20px 24px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0b2a4a,
+      #164f83
+    );
+
+  color: white;
+
+  border-bottom:
+    1px solid #d8e4f2;
+}
+
+
+.modal-header h2 {
+  margin:
+    0 0 5px;
+
+  font-family:
+    "Inter",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  font-size: 19px;
+
+  font-weight: 800;
+
+  color: white;
+}
+
+
+.modal-header p {
+  margin: 0;
+
+  color: #c7ddf5;
+
+  font-size: 12px;
+}
+
+
+.close-button {
+  width: 34px;
+
+  height: 34px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 255, 255, 0.12);
+
+  font-size: 24px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  color: white;
+
+  transition:
+    all 0.15s ease;
+}
+
+
+.close-button:hover {
+  background:
+    rgba(255, 255, 255, 0.22);
+
+  transform:
+    rotate(90deg);
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 900px) {
+
+  .timetable-page {
+    padding: 12px;
+  }
+
+
+  .timetable-header {
+    border-radius:
+      14px 14px 0 0;
+
+    padding:
+      18px 12px;
+  }
+
+
+  .timetable-header h1 {
+    font-size: 17px;
+  }
+
+
+  .header-subtitle {
+    font-size: 9px;
+
+    letter-spacing: 2px;
+  }
+
+
+  .timetable {
+    min-width: 1100px;
+  }
+
+
+  .timetable-footer {
+    gap: 10px;
+  }
+
+
+  .lunch-info {
+    margin-left: 0;
+  }
+
+}

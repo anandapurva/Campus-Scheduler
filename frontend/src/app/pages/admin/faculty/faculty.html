@@ -1,0 +1,907 @@
+<div class="faculty-page">
+
+  <!-- ================= HEADER ================= -->
+
+  <div class="page-header">
+
+    <div>
+
+      <h1>
+        Faculty Management
+      </h1>
+
+      <p>
+        Upload and manage faculty master data.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ================= UPLOAD CARD ================= -->
+
+  <div class="upload-card">
+
+    <h2>
+      Upload Faculty CSV
+    </h2>
+
+    <p class="description">
+
+      Your CSV must contain these columns:
+
+      <strong>
+        faculty_id, name, abbreviation, department
+      </strong>
+
+    </p>
+
+
+    <!-- FILE INPUT -->
+
+    <div class="file-area">
+
+      <input
+        type="file"
+        accept=".csv"
+        id="facultyFile"
+        (change)="onFileSelected($event)"
+      />
+
+
+      <label
+        for="facultyFile"
+        class="file-label">
+
+        Choose CSV File
+
+      </label>
+
+
+      <div class="file-name">
+
+        {{ fileName }}
+
+      </div>
+
+    </div>
+
+
+    <!-- PREVIEW BUTTON -->
+
+    <button
+      type="button"
+      class="preview-button"
+      [disabled]="!selectedFile || isPreviewing"
+      (click)="preview()">
+
+      {{ isPreviewing ? 'Reading CSV...' : 'Preview CSV' }}
+
+    </button>
+
+  </div>
+
+
+
+  <!-- ================= VALIDATION SUMMARY ================= -->
+
+  <div
+    class="summary"
+    *ngIf="totalRows > 0">
+
+
+    <!-- Total Rows -->
+
+    <div class="summary-card">
+
+      <span>
+        Total Rows
+      </span>
+
+      <strong>
+        {{ totalRows }}
+      </strong>
+
+    </div>
+
+
+    <!-- Valid Rows -->
+
+    <div class="summary-card success">
+
+      <span>
+        Valid Rows
+      </span>
+
+      <strong>
+        {{ validRows }}
+      </strong>
+
+    </div>
+
+
+    <!-- Errors -->
+
+    <div
+      class="summary-card"
+      [class.error-card]="errorCount > 0">
+
+      <span>
+        Errors
+      </span>
+
+      <strong>
+        {{ errorCount }}
+      </strong>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================= ERRORS ================= -->
+
+  <div
+    class="errors-card"
+    *ngIf="errors.length > 0">
+
+
+    <h3>
+      Validation Errors
+    </h3>
+
+
+    <div
+      class="error-row"
+      *ngFor="let error of errors">
+
+      <strong>
+        Row {{ error.row }}
+      </strong>
+
+      <span>
+        {{ error.message }}
+      </span>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================= IMPORT RESULT ================= -->
+
+  <div
+    class="import-result"
+    *ngIf="importResult">
+
+
+    <div class="import-result-header">
+
+      <div>
+
+        <h3>
+          Import Completed
+        </h3>
+
+        <p>
+          Faculty data has been processed successfully.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="import-result-stats">
+
+
+      <!-- TOTAL -->
+
+      <div class="result-stat">
+
+        <span>
+          Total Processed
+        </span>
+
+        <strong>
+          {{ importResult.total }}
+        </strong>
+
+      </div>
+
+
+      <!-- INSERTED -->
+
+      <div class="result-stat inserted">
+
+        <span>
+          New Faculty
+        </span>
+
+        <strong>
+          {{ importResult.inserted }}
+        </strong>
+
+      </div>
+
+
+      <!-- UPDATED -->
+
+      <div class="result-stat updated">
+
+        <span>
+          Updated
+        </span>
+
+        <strong>
+          {{ importResult.updated }}
+        </strong>
+
+      </div>
+
+
+      <!-- UNCHANGED -->
+
+      <div class="result-stat unchanged">
+
+        <span>
+          Already Up To Date
+        </span>
+
+        <strong>
+          {{ importResult.unchanged }}
+        </strong>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================= PREVIEW TABLE ================= -->
+
+  <div
+    class="preview-card"
+    *ngIf="previewData.length > 0">
+
+
+    <!-- Preview Header -->
+
+    <div class="preview-header">
+
+
+      <div>
+
+        <h2>
+          Preview
+        </h2>
+
+        <p>
+          Review the data before importing.
+        </p>
+
+      </div>
+
+
+      <!-- Import Button -->
+
+      <button
+        type="button"
+        class="import-button"
+        [disabled]="
+          errorCount > 0 ||
+          isImporting
+        "
+        (click)="importData()">
+
+
+        <span *ngIf="!isImporting">
+
+          Import {{ validRows }} Records
+
+        </span>
+
+
+        <span *ngIf="isImporting">
+
+          Importing...
+
+        </span>
+
+      </button>
+
+    </div>
+
+
+
+    <!-- Preview Table -->
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Faculty ID
+            </th>
+
+            <th>
+              Name
+            </th>
+
+            <th>
+              Abbreviation
+            </th>
+
+            <th>
+              Department
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+
+          <tr
+            *ngFor="
+              let row of paginatedPreviewData;
+              let i = index
+            ">
+
+
+            <!-- Faculty ID -->
+
+            <td>
+              {{ row.faculty_id }}
+            </td>
+
+
+            <!-- Name -->
+
+            <td>
+              {{ row.name }}
+            </td>
+
+
+            <!-- Abbreviation -->
+
+            <td>
+
+              <span class="badge">
+
+                {{ row.abbreviation }}
+
+              </span>
+
+            </td>
+
+
+            <!-- Department -->
+
+            <td>
+              {{ row.department }}
+            </td>
+
+
+          </tr>
+
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- Preview Pagination -->
+
+    <div
+      class="pagination"
+      *ngIf="previewTotalPages > 1">
+
+
+      <button
+        type="button"
+        (click)="previousPreviewPage()"
+        [disabled]="previewCurrentPage === 1">
+
+        ← Previous
+
+      </button>
+
+
+      <span>
+
+        Page
+        {{ previewCurrentPage }}
+        of
+        {{ previewTotalPages }}
+
+      </span>
+
+
+      <button
+        type="button"
+        (click)="nextPreviewPage()"
+        [disabled]="
+          previewCurrentPage === previewTotalPages
+        ">
+
+        Next →
+
+      </button>
+
+
+    </div>
+
+
+  </div>
+
+
+
+  <!-- ================= EXISTING FACULTY ================= -->
+
+  <div
+    class="faculty-list"
+    *ngIf="faculty.length > 0">
+
+
+    <!-- Header -->
+
+<div class="list-header">
+
+  <div>
+
+    <span class="section-label">
+      FACULTY MASTER
+    </span>
+
+    <h2>
+      Faculty
+    </h2>
+
+    <p>
+      {{ filteredFaculty.length }}
+      faculty records
+    </p>
+
+  </div>
+
+
+  <div class="faculty-actions">
+
+    <!-- SEARCH -->
+
+    <div class="search-box">
+
+      <span class="search-icon">
+        🔍
+      </span>
+
+      <input
+        type="text"
+        [(ngModel)]="facultySearch"
+        placeholder="Search name, abbreviation or ID"
+        (input)="facultyCurrentPage = 1"
+      />
+
+      <button
+        *ngIf="facultySearch"
+        type="button"
+        class="clear-search"
+        (click)="facultySearch = ''; facultyCurrentPage = 1">
+
+        ×
+
+      </button>
+
+    </div>
+
+
+    <!-- ADD -->
+
+    <button
+      type="button"
+      class="add-button"
+      (click)="addFaculty()">
+
+      + Add Faculty
+
+    </button>
+
+  </div>
+
+</div>
+
+
+
+    <!-- Faculty Table -->
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+         <tr>
+
+  <th>
+    Faculty ID
+  </th>
+
+  <th>
+    Name
+  </th>
+
+  <th>
+    Abbreviation
+  </th>
+
+  <th>
+    Department
+  </th>
+
+  <th>
+    Actions
+  </th>
+
+</tr>
+
+        </thead>
+
+
+        <tbody>
+
+
+          <tr
+            *ngFor="
+              let person of paginatedFaculty;
+              let i = index
+            ">
+
+
+            <!-- Faculty ID -->
+
+            <td>
+              {{ person.faculty_id }}
+            </td>
+
+
+            <!-- Name -->
+
+            <td>
+              {{ person.name }}
+            </td>
+
+
+            <!-- Abbreviation -->
+
+            <td>
+
+              <span class="badge">
+
+                {{ person.abbreviation }}
+
+              </span>
+
+            </td>
+
+
+            <!-- Department -->
+
+            <td>
+              {{ person.department }}
+            </td>
+
+            <td>
+
+  <div class="action-buttons">
+
+    <button
+      type="button"
+      class="edit-button"
+      (click)="editFaculty(person)">
+
+      Edit
+
+    </button>
+
+    <button
+      type="button"
+      class="delete-button"
+      (click)="deleteFaculty(person)">
+
+      Delete
+
+    </button>
+
+  </div>
+
+</td>
+
+
+          </tr>
+
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- Faculty Pagination -->
+
+    <div
+      class="pagination"
+      *ngIf="facultyTotalPages > 1">
+
+
+      <button
+        type="button"
+        (click)="previousFacultyPage()"
+        [disabled]="facultyCurrentPage === 1">
+
+        ← Previous
+
+      </button>
+
+
+      <span>
+
+        Page
+        {{ facultyCurrentPage }}
+        of
+        {{ facultyTotalPages }}
+
+      </span>
+
+
+      <button
+        type="button"
+        (click)="nextFacultyPage()"
+        [disabled]="
+          facultyCurrentPage === facultyTotalPages
+        ">
+
+        Next →
+
+      </button>
+
+
+    </div>
+
+
+  </div>
+
+
+  <!-- ================= ADD / EDIT FACULTY MODAL ================= -->
+
+<div
+  class="modal-backdrop"
+  *ngIf="showFacultyForm">
+
+  <div class="faculty-modal">
+
+    <!-- HEADER -->
+
+    <div class="modal-header">
+
+      <div>
+
+        <span class="section-label">
+          FACULTY MASTER
+        </span>
+
+        <h2>
+
+          {{
+            isEditing
+              ? 'Edit Faculty'
+              : 'Add Faculty'
+          }}
+
+        </h2>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        (click)="closeFacultyForm()">
+
+        ×
+
+      </button>
+
+    </div>
+
+
+    <!-- FORM -->
+
+    <div class="modal-body">
+
+      <!-- FACULTY ID -->
+
+      <div class="form-group">
+
+        <label>
+          Faculty ID
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="facultyForm.faculty_id"
+          placeholder="e.g. F001"
+          [disabled]="isEditing"
+        />
+
+      </div>
+
+
+      <!-- NAME -->
+
+      <div class="form-group">
+
+        <label>
+          Faculty Name
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="facultyForm.name"
+          placeholder="Enter faculty name"
+        />
+
+      </div>
+
+
+      <!-- ABBREVIATION -->
+
+      <div class="form-group">
+
+        <label>
+          Abbreviation
+        </label>
+
+        <input
+          type="text"
+          [(ngModel)]="facultyForm.abbreviation"
+          placeholder="e.g. ABC"
+        />
+
+      </div>
+
+
+      <!-- DEPARTMENT -->
+
+      <div class="form-group">
+
+  <label>
+    Department
+  </label>
+
+  <select
+    [(ngModel)]="facultyForm.department">
+
+    <option value="">
+      Select Department
+    </option>
+
+    <option
+      *ngFor="let department of departments"
+      [value]="department.abbreviation">
+
+      {{ department.name }}
+
+    </option>
+
+  </select>
+
+</div>
+
+    </div>
+
+
+    <!-- ACTIONS -->
+
+    <div class="modal-actions">
+
+      <button
+        type="button"
+        class="cancel-button"
+        (click)="closeFacultyForm()">
+
+        Cancel
+
+      </button>
+
+
+      <button
+        type="button"
+        class="save-button"
+        (click)="saveFaculty()">
+
+        {{
+          isEditing
+            ? 'Save Changes'
+            : 'Add Faculty'
+        }}
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+  <!-- ================= TOAST ================= -->
+
+  <div
+    class="toast"
+    [class.success]="toastType === 'success'"
+    [class.error]="toastType === 'error'"
+    *ngIf="showToast">
+
+
+    <div class="toast-icon">
+
+      <span *ngIf="toastType === 'success'">
+        ✓
+      </span>
+
+      <span *ngIf="toastType === 'error'">
+        !
+      </span>
+
+    </div>
+
+
+    <div class="toast-content">
+
+      <strong>
+
+        {{ toastType === 'success'
+          ? 'Success'
+          : 'Error'
+        }}
+
+      </strong>
+
+
+      <span>
+        {{ toastMessage }}
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="toast-close"
+      (click)="showToast = false">
+
+      ×
+
+    </button>
+
+
+  </div>
+
+
+</div>

@@ -1,0 +1,1115 @@
+<div class="subject-page">
+
+  <!-- ==================================================
+       HEADER
+       ================================================== -->
+
+  <div class="page-header">
+
+    <div>
+
+      <span class="page-label">
+        ACADEMIC DATA
+      </span>
+
+      <h1>
+        Subject Management
+      </h1>
+
+      <p>
+        Upload, add and manage subjects for each
+        program, department and semester.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       ACADEMIC SELECTION
+       ================================================== -->
+
+  <div class="selection-card">
+
+    <div class="card-title">
+
+      <div>
+
+        <h2>
+          Select Academic Context
+        </h2>
+
+        <p>
+          Choose where these subjects belong.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="selection-grid">
+
+
+      <!-- PROGRAM -->
+
+      <div class="form-group">
+
+        <label>
+          Program
+        </label>
+
+        <select
+          [(ngModel)]="selectedProgram"
+          (change)="onProgramChange()">
+
+          <option value="">
+            Select Program
+          </option>
+
+          <option
+            *ngFor="let program of programs"
+            [value]="
+              program.program_name ||
+              program.value
+            ">
+
+            {{
+              program.label ||
+              program.program_name
+            }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- DEPARTMENT -->
+
+      <div class="form-group">
+
+        <label>
+          Department
+        </label>
+
+        <select
+          [(ngModel)]="selectedDepartment"
+          (change)="onDepartmentChange()"
+          [disabled]="!selectedProgram">
+
+          <option value="">
+            Select Department
+          </option>
+
+          <option
+            *ngFor="let department of departments"
+            [value]="
+              department.name ||
+              department.department
+            ">
+
+            {{
+              department.name ||
+              department.department
+            }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <!-- SEMESTER -->
+
+      <div class="form-group">
+
+        <label>
+          Semester
+        </label>
+
+        <select
+        [(ngModel)]="selectedSemester"
+        (change)="onSemesterChange()">
+
+        <option [ngValue]="null">
+            Select Semester
+        </option>
+
+        <option
+            *ngFor="let semester of semesters"
+            [ngValue]="semester.id">
+
+            {{ semester.semester_name }}
+
+        </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       CSV UPLOAD
+       ================================================== -->
+
+  <div
+    class="upload-card"
+    *ngIf="
+      selectedProgram &&
+      selectedDepartment &&
+      selectedSemester
+    ">
+
+    <div class="upload-header">
+
+      <div>
+
+        <span class="section-label">
+          BULK IMPORT
+        </span>
+
+        <h2>
+          Upload Subject CSV
+        </h2>
+
+        <p>
+          Import multiple subjects at once.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="csv-info">
+
+      <strong>
+        Required CSV columns
+      </strong>
+
+      <span>
+        course_code, subject_name, course_type,
+        elective_group, L, T, P, credits
+      </span>
+
+    </div>
+
+
+    <!-- FILE -->
+
+    <div class="file-area">
+
+      <input
+        type="file"
+        id="subjectFile"
+        accept=".csv"
+        (change)="onFileSelected($event)"
+      />
+
+      <label
+        for="subjectFile"
+        class="file-label">
+
+        Choose CSV File
+
+      </label>
+
+      <span class="file-name">
+        {{ fileName }}
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="preview-button"
+      [disabled]="
+        !selectedFile ||
+        isPreviewing
+      "
+      (click)="preview()">
+
+      {{
+        isPreviewing
+          ? 'Reading CSV...'
+          : 'Preview CSV'
+      }}
+
+    </button>
+
+  </div>
+
+
+  <!-- ==================================================
+       CSV SUMMARY
+       ================================================== -->
+
+  <div
+    class="summary"
+    *ngIf="totalRows > 0">
+
+    <div class="summary-card">
+
+      <span>
+        Total Rows
+      </span>
+
+      <strong>
+        {{ totalRows }}
+      </strong>
+
+    </div>
+
+
+    <div class="summary-card success">
+
+      <span>
+        Valid
+      </span>
+
+      <strong>
+        {{ validRows }}
+      </strong>
+
+    </div>
+
+
+    <div
+      class="summary-card"
+      [class.error-card]="
+        errorCount > 0
+      ">
+
+      <span>
+        Errors
+      </span>
+
+      <strong>
+        {{ errorCount }}
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       CSV ERRORS
+       ================================================== -->
+
+  <div
+    class="errors-card"
+    *ngIf="errors.length > 0">
+
+    <h3>
+      Validation Errors
+    </h3>
+
+    <div
+      class="error-row"
+      *ngFor="let error of errors">
+
+      <strong>
+        Row {{ error.row }}
+      </strong>
+
+      <span>
+        {{ error.message }}
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+     IMPORT RESULT
+     ================================================== -->
+
+<div
+  class="import-result"
+  *ngIf="importResult">
+
+  <div class="import-result-header">
+
+    <div>
+
+      <h3>
+        Import Completed
+      </h3>
+
+      <p>
+        Subject data has been processed successfully.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div class="import-result-stats">
+
+
+    <!-- TOTAL -->
+
+    <div class="result-stat">
+
+      <span>
+        Total Processed
+      </span>
+
+      <strong>
+        {{ importResult.total }}
+      </strong>
+
+    </div>
+
+
+    <!-- INSERTED -->
+
+    <div class="result-stat inserted">
+
+      <span>
+        New Subjects
+      </span>
+
+      <strong>
+        {{ importResult.inserted }}
+      </strong>
+
+    </div>
+
+
+    <!-- UPDATED -->
+
+    <div class="result-stat updated">
+
+      <span>
+        Updated
+      </span>
+
+      <strong>
+        {{ importResult.updated }}
+      </strong>
+
+    </div>
+
+
+    <!-- UNCHANGED -->
+
+    <div class="result-stat unchanged">
+
+      <span>
+        Already Up To Date
+      </span>
+
+      <strong>
+        {{ importResult.unchanged }}
+      </strong>
+
+    </div>
+
+  </div>
+
+</div>
+
+  <!-- ==================================================
+       CSV PREVIEW
+       ================================================== -->
+
+  <div
+    class="preview-card"
+    *ngIf="previewData.length > 0">
+
+    <div class="preview-header">
+
+      <div>
+
+        <span class="section-label">
+          CSV PREVIEW
+        </span>
+
+        <h2>
+          Review Subjects
+        </h2>
+
+      </div>
+
+
+
+     
+      <button
+        type="button"
+        class="import-button"
+        [disabled]="
+          errorCount > 0 ||
+          isImporting
+        "
+        (click)="importSubjects()">
+
+        {{
+          isImporting
+            ? 'Importing...'
+            : 'Import ' +
+              validRows +
+              ' Subjects'
+        }}
+
+      </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>#</th>
+
+            <th>Course Code</th>
+
+            <th>Subject Name</th>
+
+            <th>Type</th>
+
+            <th>Elective Group</th>
+
+            <th>L</th>
+
+            <th>T</th>
+
+            <th>P</th>
+
+            <th>Credits</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let subject of previewData;
+              let i = index
+            ">
+
+            <td>
+              {{ i + 1 }}
+            </td>
+
+            <td>
+              <strong>
+                {{ subject.course_code }}
+              </strong>
+            </td>
+
+            <td>
+              {{ subject.subject_name }}
+            </td>
+
+            <td>
+              <span class="type-badge">
+                {{ subject.course_type }}
+              </span>
+            </td>
+
+            <td>
+              {{ subject.elective_group || '—' }}
+            </td>
+
+            <td>
+              {{ subject.L }}
+            </td>
+
+            <td>
+              {{ subject.T }}
+            </td>
+
+            <td>
+              {{ subject.P }}
+            </td>
+
+            <td>
+              {{ subject.credits }}
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       EXISTING SUBJECTS
+       ================================================== -->
+
+  <div
+    class="subjects-card"
+    *ngIf="
+      selectedProgram &&
+      selectedDepartment &&
+      selectedSemester
+    ">
+
+
+    <div class="subjects-header">
+
+      <div>
+
+        <span class="section-label">
+          SUBJECT MASTER
+        </span>
+
+        <h2>
+          Subjects
+        </h2>
+
+        <p>
+          {{ filteredSubjects.length }}
+          subjects found.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="add-button"
+        (click)="addSubject()">
+
+        + Add Subject
+
+      </button>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="search-row">
+
+      <div class="search-box">
+
+        <span>
+          🔍
+        </span>
+
+        <input
+          type="text"
+          [(ngModel)]="searchText"
+          (input)="onSearch()"
+          placeholder="Search by course code or subject name..."
+        />
+
+      </div>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div
+      class="table-wrapper"
+      *ngIf="
+        filteredSubjects.length > 0
+      ">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Course Code</th>
+
+            <th>Subject Name</th>
+
+            <th>Type</th>
+
+            <th>Elective Group</th>
+
+            <th>L</th>
+
+            <th>T</th>
+
+            <th>P</th>
+
+            <th>Credits</th>
+
+            <th>Actions</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let subject of filteredSubjects
+            ">
+
+            <td>
+
+              <strong>
+                {{ subject.course_code }}
+              </strong>
+
+            </td>
+
+
+            <td>
+              {{ subject.subject_name }}
+            </td>
+
+
+            <td>
+
+              <span class="type-badge">
+
+                {{
+                  subject.course_type ||
+                  '—'
+                }}
+
+              </span>
+
+            </td>
+
+
+            <td>
+
+              {{
+                subject.elective_group ||
+                '—'
+              }}
+
+            </td>
+
+
+            <td>
+              {{ subject.lecture_hours }}
+            </td>
+
+            <td>
+              {{ subject.tutorial_hours }}
+            </td>
+
+            <td>
+              {{ subject.practical_hours }}
+            </td>
+
+            <td>
+              {{ subject.credits }}
+            </td>
+
+
+            <td>
+
+              <div class="action-buttons">
+
+                <button
+                  type="button"
+                  class="edit-button"
+                  (click)="
+                    editSubject(subject)
+                  ">
+
+                  Edit
+
+                </button>
+
+
+                <button
+                  type="button"
+                  class="delete-button"
+                  (click)="
+                    deleteSubject(subject)
+                  ">
+
+                  Delete
+
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- EMPTY -->
+
+    <div
+      class="empty-state"
+      *ngIf="
+        filteredSubjects.length === 0
+      ">
+
+      <div class="empty-icon">
+        📚
+      </div>
+
+      <h3>
+        No subjects found
+      </h3>
+
+      <p>
+        Add a subject manually or upload
+        a CSV file.
+      </p>
+
+      <button
+        type="button"
+        class="add-button"
+        (click)="addSubject()">
+
+        + Add Subject
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==================================================
+       ADD / EDIT MODAL
+       ================================================== -->
+
+  <div
+    class="modal-backdrop"
+    *ngIf="showSubjectForm">
+
+    <div class="subject-modal">
+
+
+      <!-- HEADER -->
+
+      <div class="modal-header">
+
+        <div>
+
+          <span class="section-label">
+            SUBJECT MASTER
+          </span>
+
+          <h2>
+
+            {{
+              isEditing
+                ? 'Edit Subject'
+                : 'Add Subject'
+            }}
+
+          </h2>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="close-button"
+          (click)="
+            closeSubjectForm()
+          ">
+
+          ×
+
+        </button>
+
+      </div>
+
+
+      <!-- FORM -->
+
+      <div class="modal-body">
+
+
+        <!-- COURSE CODE -->
+
+        <div class="form-group">
+
+          <label>
+            Course Code
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="
+              subjectForm.course_code
+            "
+            placeholder="e.g. CS701"
+          />
+
+        </div>
+
+
+        <!-- SUBJECT NAME -->
+
+        <div class="form-group">
+
+          <label>
+            Subject Name
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="
+              subjectForm.subject_name
+            "
+            placeholder="Enter subject name"
+          />
+
+        </div>
+
+
+        <!-- COURSE TYPE -->
+
+        <div class="form-group">
+
+          <label>
+            Course Type
+          </label>
+
+          <select
+            [(ngModel)]="
+              subjectForm.course_type
+            ">
+
+            <option value="">
+              Select Course Type
+            </option>
+
+            <option
+              *ngFor="
+                let type of courseTypes
+              "
+              [value]="type.value">
+
+              {{ type.label }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- ELECTIVE GROUP -->
+
+        <div class="form-group">
+
+          <label>
+            Elective Group
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="
+              subjectForm.elective_group
+            "
+            placeholder="e.g. E1"
+          />
+
+          <small>
+            Leave blank if this is not an elective.
+          </small>
+
+        </div>
+
+
+        <!-- L T P -->
+
+        <div class="ltp-grid">
+
+
+          <div class="form-group">
+
+            <label>
+              L
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="
+                subjectForm.L
+              "
+            />
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              T
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="
+                subjectForm.T
+              "
+            />
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              P
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="
+                subjectForm.P
+              "
+            />
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              Credits
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="
+                subjectForm.credits
+              "
+            />
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ACTIONS -->
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="cancel-button"
+          (click)="
+            closeSubjectForm()
+          ">
+
+          Cancel
+
+        </button>
+
+
+        <button
+          type="button"
+          class="save-button"
+          (click)="saveSubject()">
+
+          {{
+            isEditing
+              ? 'Save Changes'
+              : 'Add Subject'
+          }}
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+<!-- ==================================================
+     TOAST
+     ================================================== -->
+
+<div
+  class="toast"
+  [class.success]="toastType === 'success'"
+  [class.error]="toastType === 'error'"
+  *ngIf="showToast">
+
+  <div class="toast-icon">
+
+    <span *ngIf="toastType === 'success'">
+      ✓
+    </span>
+
+    <span *ngIf="toastType === 'error'">
+      !
+    </span>
+
+  </div>
+
+
+  <div class="toast-content">
+
+    <strong>
+
+      {{
+        toastType === 'success'
+          ? 'Success'
+          : 'Error'
+      }}
+
+    </strong>
+
+
+    <span>
+      {{ toastMessage }}
+    </span>
+
+  </div>
+
+
+  <button
+    type="button"
+    class="toast-close"
+    (click)="showToast = false">
+
+    ×
+
+  </button>
+
+</div>
+
+</div>
