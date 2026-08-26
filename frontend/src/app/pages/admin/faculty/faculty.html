@@ -764,7 +764,36 @@
           type="text"
           [(ngModel)]="facultyForm.name"
           placeholder="Enter faculty name"
+          (input)="onFacultyNameChange()"
+
         />
+        @if (abbreviationSuggestions.length > 0) {
+
+  <div class="abbreviation-suggestions">
+
+    <small>Suggested abbreviations:</small>
+
+    <div class="suggestion-buttons">
+
+      @for (
+        abbreviation of abbreviationSuggestions;
+        track abbreviation
+      ) {
+
+        <button
+          type="button"
+          (click)="selectAbbreviation(abbreviation)"
+        >
+          {{ abbreviation }}
+        </button>
+
+      }
+
+    </div>
+
+  </div>
+
+}
 
       </div>
 

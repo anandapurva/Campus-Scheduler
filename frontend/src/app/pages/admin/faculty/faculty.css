@@ -1402,3 +1402,43 @@ table td:last-child {
   gap: 8px;
   white-space: nowrap;
 }
+
+/* ==========================================
+   ABBREVIATION SUGGESTIONS
+   ========================================== */
+
+.abbreviation-suggestions {
+  margin-top: 8px;
+}
+
+.abbreviation-suggestions small {
+  display: block;
+  margin-bottom: 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.suggestion-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion-buttons button {
+  padding: 7px 13px;
+  border: none;
+  border-radius: 6px;
+
+  background: #f1f4f8;
+  color: #475569;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suggestion-buttons button:hover {
+  background: #e2e8f0;
+}

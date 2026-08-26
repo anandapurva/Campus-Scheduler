@@ -80,7 +80,6 @@ router.get(
     facultyController.getFaculty
 );
 
-// --------------------------------------
 // ADD FACULTY
 // --------------------------------------
 

@@ -35,6 +35,11 @@ export class Faculty implements OnInit {
   faculty: any[] = [];
   departments: any[] = [];
   // ==========================================
+// ABBREVIATION SUGGESTIONS
+// ==========================================
+
+abbreviationSuggestions: string[] = [];
+  // ==========================================
   // ADD / EDIT FACULTY
   // ==========================================
 
@@ -531,10 +536,179 @@ loadDepartments(): void {
 
 
   // ==========================================
-  // SAVE FACULTY
-  // ==========================================
+// FACULTY NAME → ABBREVIATION SUGGESTIONS
+// ==========================================
 
-  saveFaculty(): void {
+onFacultyNameChange(): void {
+
+  const name = this.facultyForm.name?.trim();
+
+  // If name is empty, clear suggestions
+  if (!name) {
+    this.abbreviationSuggestions = [];
+    return;
+  }
+
+  // Convert name to uppercase and split into words
+  let parts = name
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter((word: string) => word.length > 0);
+
+  // Remove titles
+  const titles = [
+    'DR',
+    'MR',
+    'MS',
+    'MRS',
+    'PROF',
+    'PROFESSOR'
+  ];
+
+  if (
+    parts.length > 0 &&
+    titles.includes(parts[0])
+  ) {
+    parts.shift();
+  }
+
+  // Nothing left after removing title
+  if (parts.length === 0) {
+    this.abbreviationSuggestions = [];
+    return;
+  }
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+
+  // ------------------------------------------
+  // GENERATE CANDIDATES
+  // ------------------------------------------
+
+  const candidates: string[] = [];
+
+  // Amit Kumar → AK
+  if (parts.length >= 2) {
+    candidates.push(
+      firstName[0] + parts[1][0]
+    );
+  }
+
+  // Amit Kumar Sharma → AKS
+  if (parts.length >= 3) {
+    candidates.push(
+      firstName[0] +
+      parts[1][0] +
+      parts[2][0]
+    );
+  }
+
+  // Amit Sharma → AS
+  if (parts.length >= 2) {
+    candidates.push(
+      firstName[0] + lastName[0]
+    );
+  }
+
+  // Amit → AM
+  if (firstName.length >= 2) {
+    candidates.push(
+      firstName.substring(0, 2)
+    );
+  }
+
+  // Amit Sharma → AMS
+  if (
+    firstName.length >= 2 &&
+    parts.length >= 2
+  ) {
+    candidates.push(
+      firstName.substring(0, 2) +
+      lastName[0]
+    );
+  }
+
+  // Amit Sharma → ASH
+  if (lastName.length >= 2) {
+    candidates.push(
+      firstName[0] +
+      lastName.substring(0, 2)
+    );
+  }
+
+  // Remove duplicate suggestions
+  const uniqueCandidates = [
+    ...new Set(candidates)
+  ];
+
+  // ------------------------------------------
+  // FIND ALREADY USED ABBREVIATIONS
+  // ------------------------------------------
+
+  const usedAbbreviations = new Set(
+    this.faculty
+      .filter(person => {
+
+        // While editing, allow the current
+        // faculty's own abbreviation
+        if (
+          this.isEditing &&
+          person.id === this.facultyForm.id
+        ) {
+          return false;
+        }
+
+        return true;
+      })
+      .map(person =>
+        String(
+          person.abbreviation || ''
+        )
+          .trim()
+          .toUpperCase()
+      )
+      .filter(abbreviation =>
+        abbreviation.length > 0
+      )
+  );
+
+  // ------------------------------------------
+  // REMOVE ALREADY USED ABBREVIATIONS
+  // ------------------------------------------
+
+  this.abbreviationSuggestions =
+    uniqueCandidates
+      .filter(abbreviation =>
+        abbreviation.length >= 2 &&
+        abbreviation.length <= 3 &&
+        !usedAbbreviations.has(abbreviation)
+      )
+      .slice(0, 4);
+}
+
+
+// ==========================================
+// SELECT ABBREVIATION
+// ==========================================
+
+selectAbbreviation(
+  abbreviation: string
+): void {
+
+  this.facultyForm.abbreviation =
+    abbreviation;
+
+  this.abbreviationSuggestions = [];
+}
+
+
+// ==========================================
+// SAVE FACULTY
+// ==========================================
+
+saveFaculty(): void {
 
     // -------------------------------
     // VALIDATION
