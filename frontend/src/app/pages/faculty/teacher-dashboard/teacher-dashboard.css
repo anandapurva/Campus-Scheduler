@@ -1,0 +1,1552 @@
+/* =========================================================
+   GLOBAL DASHBOARD
+========================================================= */
+
+.teacher-dashboard {
+  min-height: 100vh;
+
+  padding: 32px 48px 60px;
+
+  box-sizing: border-box;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f5f8fc 0%,
+      #f8fafc 55%,
+      #eef5ff 100%
+    );
+
+  font-family:
+    "Segoe UI",
+    Inter,
+    Arial,
+    sans-serif;
+
+  color: #172b4d;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.dashboard-header {
+  max-width: 1200px;
+
+  margin: 0 auto 32px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.brand-section {
+  display: flex;
+
+  align-items: center;
+
+  gap: 18px;
+}
+
+.logo-wrapper {
+  width: 72px;
+  height: 72px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 6px 20px rgba(30, 64, 175, 0.07);
+
+  overflow: hidden;
+}
+
+.jiit-logo {
+  width: 60px;
+  height: 60px;
+
+  object-fit: contain;
+}
+
+
+.page-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  letter-spacing: 1.7px;
+
+  color: #52708f;
+}
+
+.welcome-text h1 {
+  margin: 0;
+
+  font-size: 29px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  color: #102a43;
+
+  letter-spacing: -0.4px;
+}
+
+.welcome-text p {
+  margin: 7px 0 0;
+
+  font-size: 14px;
+
+  color: #627d98;
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.teacher-profile {
+  display: flex;
+
+  align-items: center;
+
+  gap: 11px;
+
+  padding: 8px 15px 8px 8px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 5px 18px rgba(31, 67, 104, 0.06);
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1d4ed8,
+      #2563eb
+    );
+
+  color: #ffffff;
+
+  font-size: 16px;
+
+  font-weight: 700;
+}
+
+.profile-text strong {
+  display: block;
+
+  font-size: 14px;
+
+  color: #172b4d;
+}
+
+.profile-text span {
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: 12px;
+
+  color: #627d98;
+}
+
+.profile-text small {
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  margin-top: 5px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+.profile-text small i {
+  width: 6px;
+  height: 6px;
+
+  display: inline-block;
+
+  border-radius: 50%;
+}
+
+.edit-access {
+  color: #16805c;
+}
+
+.edit-access i {
+  background: #20a464;
+}
+
+.view-access {
+  color: #64748b;
+}
+
+.view-access i {
+  background: #64748b;
+}
+
+
+/* =========================================================
+   SECTION COMMON
+========================================================= */
+
+.quick-section,
+.dashboard-card,
+.management-card {
+  max-width: 1200px;
+
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-heading {
+  margin-bottom: 15px;
+}
+
+.section-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+
+  color: #7188a0;
+}
+
+.blue-label {
+  color: #2563eb;
+}
+
+.section-heading h2 {
+  margin: 0;
+
+  font-size: 19px;
+
+  font-weight: 700;
+
+  color: #102a43;
+}
+
+
+/* =========================================================
+   QUICK ACCESS
+========================================================= */
+
+.quick-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 17px;
+
+  margin-bottom: 26px;
+}
+
+.quick-card {
+  display: flex;
+
+  gap: 17px;
+
+  padding: 21px 23px;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 15px;
+
+  box-shadow:
+    0 5px 18px rgba(31, 67, 104, 0.05);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.quick-card:hover {
+  transform: translateY(-3px);
+
+  border-color: #bfd1e5;
+
+  box-shadow:
+    0 10px 25px rgba(31, 67, 104, 0.09);
+}
+
+.quick-icon {
+  width: 46px;
+  height: 46px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  font-size: 20px;
+
+  font-weight: 600;
+}
+
+.blue-icon {
+  background: #eaf2ff;
+
+  color: #2563eb;
+}
+
+.orange-icon {
+  background: #fff4e5;
+
+  color: #d97706;
+
+  font-size: 26px;
+}
+
+.quick-content h3 {
+  margin: 0;
+
+  font-size: 16px;
+
+  font-weight: 650;
+
+  color: #172b4d;
+}
+
+.quick-content p {
+  margin: 5px 0 8px;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+
+  color: #718096;
+}
+
+.quick-link {
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: #2563eb;
+
+  font-size: 12px;
+
+  font-weight: 650;
+
+  cursor: pointer;
+}
+
+.quick-link span {
+  margin-left: 5px;
+
+  transition: margin-left 0.15s ease;
+}
+
+.quick-card:hover .quick-link span {
+  margin-left: 8px;
+}
+
+
+/* =========================================================
+   MAIN DASHBOARD CARDS
+========================================================= */
+
+.dashboard-card {
+  margin-bottom: 20px;
+
+  padding: 27px 30px;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5ef;
+
+  border-radius: 17px;
+
+  box-shadow:
+    0 6px 22px rgba(31, 67, 104, 0.05);
+}
+
+
+/* =========================================================
+   CARD HEADER
+========================================================= */
+
+.card-header {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  padding-bottom: 21px;
+
+  border-bottom: 1px solid #edf2f7;
+}
+
+.card-header h2,
+.teacher-search-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+
+  font-weight: 700;
+
+  color: #102a43;
+}
+
+.card-header p,
+.teacher-search-header p {
+  margin: 5px 0 0;
+
+  font-size: 13px;
+
+  color: #718096;
+}
+
+
+/* =========================================================
+   SEMESTER SELECTOR
+========================================================= */
+
+.week-selector {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 8px 11px;
+
+  border: 1px solid #dbe4ee;
+
+  border-radius: 9px;
+
+  background: #f8fafc;
+}
+
+.week-selector span {
+  font-size: 13px;
+}
+
+.week-selector select {
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: #334e68;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.form-row {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr auto;
+
+  gap: 17px;
+
+  align-items: end;
+
+  margin-top: 22px;
+}
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 12px;
+
+  font-weight: 650;
+
+  color: #334e68;
+}
+
+.form-group select {
+  width: 100%;
+  height: 46px;
+
+  padding: 0 13px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #cbd5e1;
+
+  border-radius: 9px;
+
+  background: #fbfdff;
+
+  color: #172b4d;
+
+  font-size: 13px;
+
+  outline: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form-group select:hover {
+  border-color: #94a3b8;
+}
+
+.form-group select:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+
+/* =========================================================
+   PRIMARY BUTTON
+========================================================= */
+
+.primary-button {
+  height: 46px;
+
+  padding: 0 21px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1d4ed8,
+      #2563eb
+    );
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 650;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 13px rgba(37, 99, 235, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px rgba(37, 99, 235, 0.25);
+}
+
+.primary-button span {
+  margin-left: 7px;
+}
+
+.primary-button:disabled {
+  background: #cbd5e1;
+
+  box-shadow: none;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   FIND TEACHER
+========================================================= */
+
+.teacher-search {
+  padding: 23px 30px;
+}
+
+.teacher-search-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  margin-bottom: 18px;
+}
+
+.search-title-icon {
+  width: 43px;
+  height: 43px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #eef2ff;
+
+  font-size: 18px;
+}
+
+.teacher-search-box {
+  display: flex;
+
+  align-items: center;
+
+  height: 46px;
+
+  padding-left: 13px;
+
+  border: 1px solid #cbd5e1;
+
+  border-radius: 9px;
+
+  background: #fbfdff;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.teacher-search-box:focus-within {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.search-symbol {
+  font-size: 15px;
+
+  opacity: 0.65;
+}
+
+.teacher-search-box input {
+  flex: 1;
+
+  height: 100%;
+
+  padding: 0 11px;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: #172b4d;
+
+  font-size: 13px;
+}
+
+.teacher-search-box input::placeholder {
+  color: #94a3b8;
+}
+
+.search-teacher-button {
+  height: 36px;
+
+  margin-right: 5px;
+
+  padding: 0 17px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: #172b4d;
+
+  color: #ffffff;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.search-teacher-button:hover {
+  background: #102a43;
+}
+
+
+/* =========================================================
+   MANAGEMENT
+========================================================= */
+
+/* =========================================================
+   TIMETABLE MANAGEMENT
+========================================================= */
+
+.management-card {
+  max-width: 1200px;
+
+  margin: 0 auto;
+
+  padding: 26px 30px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d7e3f0;
+
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f4f8ff 0%,
+      #ffffff 65%
+    );
+
+  box-shadow:
+    0 6px 22px rgba(31, 67, 104, 0.05);
+}
+
+
+/* HEADER */
+
+.management-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  padding-bottom: 20px;
+
+  border-bottom: 1px solid #e5edf6;
+}
+
+
+.management-icon {
+  width: 44px;
+  height: 44px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: #e7f0ff;
+
+  color: #2563eb;
+
+  font-size: 19px;
+
+  font-weight: 700;
+}
+
+
+.management-label {
+  color: #2563eb;
+
+  margin-bottom: 3px;
+}
+
+
+.management-header h2 {
+  margin: 0;
+
+  font-size: 19px;
+
+  font-weight: 700;
+
+  color: #102a43;
+}
+
+
+.management-header p {
+  margin: 5px 0 0;
+
+  font-size: 13px;
+
+  color: #718096;
+}
+
+
+/* FORM */
+
+.management-form {
+  display: grid;
+
+  grid-template-columns:
+    1fr
+    1fr
+    1fr
+    auto;
+
+  gap: 17px;
+
+  align-items: end;
+
+  margin-top: 22px;
+}
+
+
+/* FORM GROUP */
+
+.management-form .form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 12px;
+
+  font-weight: 650;
+
+  color: #334e68;
+}
+
+
+.management-form .form-group select {
+  width: 100%;
+
+  height: 46px;
+
+  padding: 0 13px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #cbd5e1;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #172b4d;
+
+  font-size: 13px;
+
+  outline: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.management-form .form-group select:hover {
+  border-color: #94a3b8;
+}
+
+
+.management-form .form-group select:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+
+/* BUTTON */
+
+.management-button {
+  height: 46px;
+
+  padding: 0 20px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1d4ed8,
+      #2563eb
+    );
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 650;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 13px rgba(37, 99, 235, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.management-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px rgba(37, 99, 235, 0.25);
+}
+
+
+.management-button span {
+  margin-left: 7px;
+}
+
+
+.management-button:disabled {
+  background: #cbd5e1;
+
+  box-shadow: none;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MANAGEMENT RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .management-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .management-button-wrapper {
+    grid-column: 1 / -1;
+  }
+
+  .management-button {
+    width: 100%;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .management-card {
+    padding: 22px 18px;
+  }
+
+  .management-form {
+    grid-template-columns: 1fr;
+  }
+
+  .management-button-wrapper {
+    grid-column: auto;
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .teacher-dashboard {
+    padding: 25px 22px 45px;
+  }
+
+  .dashboard-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 18px;
+  }
+
+  .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .search-button-wrapper {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 600px) {
+
+  .teacher-dashboard {
+    padding: 18px 14px 35px;
+  }
+
+  .brand-section {
+    align-items: flex-start;
+
+    gap: 12px;
+  }
+
+  .logo-wrapper {
+    width: 58px;
+    height: 58px;
+
+    border-radius: 12px;
+  }
+
+  .jiit-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .welcome-text h1 {
+    font-size: 23px;
+  }
+
+  .welcome-text p {
+    font-size: 12px;
+  }
+
+  .teacher-profile {
+    width: 100%;
+
+    box-sizing: border-box;
+  }
+
+  .dashboard-card {
+    padding: 22px 18px;
+  }
+
+  .card-header {
+    flex-direction: column;
+
+    gap: 15px;
+  }
+
+  .week-selector {
+    width: 100%;
+
+    box-sizing: border-box;
+  }
+
+  .week-selector select {
+    flex: 1;
+  }
+
+  .teacher-search-box {
+    height: auto;
+
+    min-height: 46px;
+  }
+
+  .search-teacher-button {
+    padding: 0 12px;
+  }
+
+}
+
+/* =====================================================
+   LUNCH SETUP
+   ===================================================== */
+
+.lunch-setup {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+
+.lunch-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+
+.lunch-icon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #fff7ed;
+
+  font-size: 22px;
+}
+
+
+.lunch-title h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+
+.lunch-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+
+/* =====================================================
+   LUNCH OPTIONS
+   ===================================================== */
+
+.lunch-options {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 14px;
+
+  margin-bottom: 20px;
+}
+
+
+.lunch-option {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 16px;
+
+  border: 1px solid #cbd5e1;
+
+  border-radius: 12px;
+
+  background: white;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+
+.lunch-option:hover {
+  border-color: #2563eb;
+}
+
+
+.lunch-option input {
+  width: 18px;
+  height: 18px;
+
+  accent-color: #2563eb;
+}
+
+
+.lunch-option-content {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+
+.lunch-option-content strong {
+  color: #0f172a;
+}
+
+
+.lunch-option-content span {
+  font-size: 12px;
+
+  color: #64748b;
+}
+
+
+/* =====================================================
+   LOCK BUTTON
+   ===================================================== */
+
+.lock-lunch-button {
+  width: 100%;
+
+  border: none;
+
+  padding: 14px 20px;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+
+.lock-lunch-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+
+.lock-lunch-button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+.button-arrow {
+  font-size: 18px;
+}
+
+
+/* =====================================================
+   WARNING
+   ===================================================== */
+
+.lunch-warning {
+  margin-top: 14px;
+
+  padding: 12px 14px;
+
+  border-radius: 8px;
+
+  background: #fffbeb;
+
+  color: #92400e;
+
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   LOCKED LUNCH
+   ===================================================== */
+
+.lunch-locked-card {
+  margin-top: 24px;
+
+  padding: 22px;
+
+  border-radius: 14px;
+
+  border: 1px solid #bbf7d0;
+
+  background: #f0fdf4;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 16px;
+}
+
+
+.locked-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #dcfce7;
+
+  font-size: 22px;
+}
+
+
+.locked-content {
+  flex: 1;
+}
+
+
+.locked-label {
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  color: #15803d;
+}
+
+
+.locked-content h3 {
+  margin: 5px 0;
+
+  font-size: 20px;
+
+  color: #166534;
+}
+
+
+.locked-content p {
+  margin: 0;
+
+  font-size: 13px;
+
+  color: #4b5563;
+}
+
+
+.locked-status {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 7px 12px;
+
+  border-radius: 20px;
+
+  background: #dcfce7;
+
+  color: #15803d;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+}
+
+
+/* =====================================================
+   OPEN TIMETABLE
+   ===================================================== */
+
+.open-timetable-wrapper {
+  margin-top: 18px;
+
+  display: flex;
+
+  justify-content: flex-end;
+}
+
+
+/* =====================================================
+   LOADING
+   ===================================================== */
+
+.lunch-loading {
+  margin-top: 20px;
+
+  padding: 16px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  border-radius: 10px;
+
+  background: #eff6ff;
+
+  color: #1d4ed8;
+
+  font-size: 14px;
+}
+
+
+.loading-spinner {
+  width: 17px;
+  height: 17px;
+
+  border: 2px solid #bfdbfe;
+
+  border-top-color: #2563eb;
+
+  border-radius: 50%;
+
+  animation: spin 0.7s linear infinite;
+}
+
+
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+
+
+/* =====================================================
+   INFO
+   ===================================================== */
+
+.management-info {
+  margin-top: 20px;
+
+  padding: 16px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  border-radius: 10px;
+
+  background: #f8fafc;
+
+  color: #64748b;
+}
+
+
+.management-info p {
+  margin: 0;
+
+  font-size: 14px;
+}
+
+
+.info-icon {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #e0f2fe;
+
+  color: #0369a1;
+
+  font-weight: 700;
+}
+
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 768px) {
+
+  .lunch-options {
+    grid-template-columns: 1fr;
+  }
+
+
+  .lunch-locked-card {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+
+  .locked-status {
+    align-self: flex-start;
+  }
+
+}

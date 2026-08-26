@@ -1,0 +1,736 @@
+<div class="admin-layout">
+
+  <!-- ================= SIDEBAR ================= -->
+
+  <aside class="sidebar">
+
+    <!-- Logo -->
+
+    <div class="logo">
+
+      <h2>
+        Campus Scheduler
+      </h2>
+
+    </div>
+
+
+    <!-- Navigation -->
+
+    <nav>
+
+      <!-- Dashboard -->
+
+      <a
+        routerLink="/admin/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+
+        Dashboard
+
+      </a>
+
+
+      <!-- ================= ACADEMICS ================= -->
+
+      <div class="nav-section">
+
+        <span class="nav-title">
+          ACADEMICS
+        </span>
+
+      </div>
+
+
+      <a
+        routerLink="/admin/departments"
+        routerLinkActive="active">
+
+        Departments
+
+      </a>
+
+
+      <a
+        routerLink="/admin/programs"
+        routerLinkActive="active">
+
+        Programs
+
+      </a>
+
+
+      <a
+        routerLink="/admin/faculty"
+        routerLinkActive="active">
+
+        Faculty
+
+      </a>
+
+
+      <a
+        routerLink="/admin/subjects"
+        routerLinkActive="active">
+
+        Subjects
+
+      </a>
+
+
+      <a
+        routerLink="/admin/batches"
+        routerLinkActive="active">
+
+        Batches
+
+      </a>
+
+
+      <a
+        routerLink="/admin/rooms"
+        routerLinkActive="active">
+
+        Rooms
+
+      </a>
+
+
+      <a
+        routerLink="/admin/enrollments"
+        routerLinkActive="active">
+
+        Enrollments
+
+      </a>
+
+
+      <!-- ================= SCHEDULING ================= -->
+
+      <div class="nav-section">
+
+        <span class="nav-title">
+          SCHEDULING
+        </span>
+
+      </div>
+
+
+      <a
+        routerLink="/admin/timetables"
+        routerLinkActive="active">
+
+        Timetables
+
+      </a>
+
+
+      <a
+        routerLink="/admin/conflicts"
+        routerLinkActive="active">
+
+        Conflicts
+
+      </a>
+
+
+      <!-- ================= REQUESTS ================= -->
+
+      <div class="nav-section">
+
+        <span class="nav-title">
+          REQUESTS
+        </span>
+
+      </div>
+
+
+      <a
+        routerLink="/admin/extra-class-requests"
+        routerLinkActive="active">
+
+        Extra Class Requests
+
+      </a>
+
+
+      <!-- ================= SYSTEM ================= -->
+
+      <div class="nav-section">
+
+        <span class="nav-title">
+          SYSTEM
+        </span>
+
+      </div>
+
+
+      <a
+        routerLink="/admin/users"
+        routerLinkActive="active">
+
+        Users
+
+      </a>
+
+
+      <a
+        routerLink="/admin/settings"
+        routerLinkActive="active">
+
+        Settings
+
+      </a>
+
+    </nav>
+
+
+    <!-- Logout -->
+
+    <button class="logout">
+
+      Logout
+
+    </button>
+
+  </aside>
+
+
+
+  <!-- ================= MAIN CONTENT ================= -->
+
+  <main class="main-content">
+
+
+    <!-- ================= TOPBAR ================= -->
+
+    <header class="topbar">
+
+
+      <div>
+
+        <h1>
+          Welcome Admin
+        </h1>
+
+        <p>
+          Campus Schedule Management System
+        </p>
+
+      </div>
+
+
+      <!-- Admin Profile -->
+
+      <div class="admin-profile">
+
+        <span class="avatar">
+          A
+        </span>
+
+
+        <div>
+
+          <strong>
+            Admin
+          </strong>
+
+          <small>
+            Administrator
+          </small>
+
+        </div>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- ================= DASHBOARD CONTENT ================= -->
+
+    <section class="dashboard-content">
+
+
+      <!-- Welcome -->
+
+
+
+
+      <!-- ================= OVERVIEW ================= -->
+
+      <h2 class="section-title">
+        Overview
+      </h2>
+
+
+      <div class="cards">
+
+
+        <!-- Faculty -->
+
+        <div class="card">
+
+          <div class="card-icon">
+            👨‍🏫
+          </div>
+
+
+          <div>
+
+            <p>
+              Faculty
+            </p>
+
+            <h2>
+              {{ facultyCount }}
+            </h2>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- Programs -->
+
+        <div class="card">
+
+          <div class="card-icon">
+            🎓
+          </div>
+
+
+          <div>
+
+            <p>
+              Programs
+            </p>
+
+            <h2>
+              {{ programCount }}
+            </h2>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- Batches -->
+
+        <div class="card">
+
+          <div class="card-icon">
+            👥
+          </div>
+
+
+          <div>
+
+            <p>
+              Batches
+            </p>
+
+            <h2>
+              {{ batchCount }}
+            </h2>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- Rooms -->
+
+        <div class="card">
+
+          <div class="card-icon">
+            🏫
+          </div>
+
+
+          <div>
+
+            <p>
+              Rooms
+            </p>
+
+            <h2>
+              {{ roomCount }}
+            </h2>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ================= DEPARTMENTS ================= -->
+
+      <div class="panel departments-panel">
+
+
+        <!-- Department Header -->
+
+        <div class="panel-header">
+
+
+          <div>
+
+            <h3>
+              Departments
+            </h3>
+
+            <p>
+              View faculty and batches by department.
+            </p>
+
+          </div>
+
+
+          <button
+            routerLink="/admin/departments"
+            class="view-all-button">
+
+            View All
+
+          </button>
+
+        </div>
+
+
+
+        <!-- Department Cards -->
+
+        <div class="department-grid">
+
+
+          <!-- ================= CSE ================= -->
+
+          <div class="department-card">
+
+
+            <div class="department-header">
+
+              <h3>
+                CSE
+              </h3>
+
+              <span>
+                Computer Science & Engineering
+              </span>
+
+            </div>
+
+
+            <div class="department-stats">
+
+
+              <div>
+
+                <strong>
+                  48
+                </strong>
+
+                <span>
+                  Faculty
+                </span>
+
+              </div>
+
+
+              <div>
+
+                <strong>
+                  12
+                </strong>
+
+                <span>
+                  Batches
+                </span>
+
+              </div>
+
+
+            </div>
+
+
+            <button
+              routerLink="/admin/departments/cse"
+              class="department-button">
+
+              View Department →
+
+            </button>
+
+          </div>
+
+
+
+          <!-- ================= ECE ================= -->
+
+          <div class="department-card">
+
+
+            <div class="department-header">
+
+              <h3>
+                ECE
+              </h3>
+
+              <span>
+                Electronics & Communication
+              </span>
+
+            </div>
+
+
+            <div class="department-stats">
+
+
+              <div>
+
+                <strong>
+                  45
+                </strong>
+
+                <span>
+                  Faculty
+                </span>
+
+              </div>
+
+
+              <div>
+
+                <strong>
+                  8
+                </strong>
+
+                <span>
+                  Batches
+                </span>
+
+              </div>
+
+
+            </div>
+
+
+            <button
+              routerLink="/admin/departments/ece"
+              class="department-button">
+
+              View Department →
+
+            </button>
+
+          </div>
+
+
+
+          <!-- ================= MECHANICAL ================= -->
+
+          <div class="department-card">
+
+
+            <div class="department-header">
+
+              <h3>
+                Mechanical
+              </h3>
+
+              <span>
+                Mechanical Engineering
+              </span>
+
+            </div>
+
+
+            <div class="department-stats">
+
+
+              <div>
+
+                <strong>
+                  38
+                </strong>
+
+                <span>
+                  Faculty
+                </span>
+
+              </div>
+
+
+              <div>
+
+                <strong>
+                  8
+                </strong>
+
+                <span>
+                  Batches
+                </span>
+
+              </div>
+
+
+            </div>
+
+
+            <button
+              routerLink="/admin/departments/mechanical"
+              class="department-button">
+
+              View Department →
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- ================= BOTTOM SECTION ================= -->
+
+      <div class="dashboard-grid">
+
+
+        <!-- ================= EXTRA CLASS REQUESTS ================= -->
+
+        <div class="panel">
+
+
+          <h3>
+            Extra Class Requests
+          </h3>
+
+
+          <div class="request-summary">
+
+
+            <strong>
+              5
+            </strong>
+
+
+            <span>
+              Pending Requests
+            </span>
+
+
+          </div>
+
+
+          <button
+            routerLink="/admin/extra-class-requests"
+            class="review-button">
+
+            Review Requests
+
+          </button>
+
+
+        </div>
+
+
+
+        <!-- ================= RECENT ACTIVITY ================= -->
+
+        <div class="panel">
+
+
+          <h3>
+            Recent Activity
+          </h3>
+
+
+          <!-- Activity 1 -->
+
+          <div class="activity">
+
+
+            <p>
+
+              <strong>
+                Timetable
+              </strong>
+
+              updated
+
+            </p>
+
+
+            <span>
+              Today
+            </span>
+
+          </div>
+
+
+
+          <!-- Activity 2 -->
+
+          <div class="activity">
+
+
+            <p>
+
+              <strong>
+                Extra class
+              </strong>
+
+              approved
+
+            </p>
+
+
+            <span>
+              Today
+            </span>
+
+          </div>
+
+
+
+          <!-- Activity 3 -->
+
+          <div class="activity">
+
+
+            <p>
+
+              <strong>
+                Room allocation
+              </strong>
+
+              changed
+
+            </p>
+
+
+            <span>
+              Yesterday
+            </span>
+
+          </div>
+
+
+        </div>
+
+      </div>
+
+
+    </section>
+
+  </main>
+
+</div>

@@ -1,0 +1,446 @@
+<div class="timetable-page">
+
+  <!-- =====================================================
+       TIMETABLE HEADER
+       ===================================================== -->
+
+  <div class="timetable-header">
+
+    <h1>
+      {{ program }} -
+      {{ department }} -
+      {{ semester }} SEMESTER
+    </h1>
+
+    <div class="header-subtitle">
+      CAMPUS SCHEDULE
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       TIMETABLE
+       ===================================================== -->
+
+  <div class="timetable-wrapper">
+
+    <table class="timetable">
+
+      <!-- =================================================
+           HEADER
+           ================================================= -->
+
+      <thead>
+
+        <tr>
+
+          <!-- DAY -->
+
+          <th class="day-header">
+            DAY
+          </th>
+
+
+          <!-- TIME SLOTS -->
+
+          <th
+            *ngFor="let slot of timeSlots"
+            class="time-header">
+
+            {{ slot.label }}
+
+          </th>
+
+        </tr>
+
+      </thead>
+
+
+      <!-- =================================================
+           BODY
+           ================================================= -->
+
+      <tbody>
+
+        <tr
+          *ngFor="
+            let day of days;
+            let dayIndex = index
+          ">
+
+
+          <!-- =================================================
+               DAY NAME
+               ================================================= -->
+
+          <td class="day-cell">
+
+            <div class="vertical-day">
+
+              {{ day | uppercase }}
+
+            </div>
+
+          </td>
+
+
+          <!-- =================================================
+               TIME SLOTS
+               ================================================= -->
+
+          <td
+            *ngFor="
+              let slot of timeSlots;
+              let slotIndex = index
+            "
+
+            class="schedule-cell"
+
+            [class.has-class]="
+              timetable[dayIndex][slotIndex].data
+            "
+
+            [class.lunch-slot]="
+              isLunchSlot(
+                timetable[dayIndex][slotIndex].slot
+              )
+            "
+
+            [class.view-only]="!canEdit"
+
+
+            (click)="
+              !isLunchSlot(
+                timetable[dayIndex][slotIndex].slot
+              )
+              && openCell(
+                timetable[dayIndex][slotIndex]
+              )
+            "
+          >
+
+
+            <!-- =================================================
+                 LUNCH
+                 ================================================= -->
+
+            <div
+              *ngIf="
+                isLunchSlot(
+                  timetable[dayIndex][slotIndex].slot
+                )
+              "
+
+              class="lunch-cell"
+            >
+
+              <div class="lunch-text">
+
+                LUNCH
+
+              </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 EMPTY CELL
+                 ================================================= -->
+
+            <div
+              *ngIf="
+                !isLunchSlot(
+                  timetable[dayIndex][slotIndex].slot
+                )
+                &&
+                !timetable[dayIndex][slotIndex].data
+              "
+
+              class="empty-cell"
+            >
+
+              <span *ngIf="canEdit">
+                +
+              </span>
+
+            </div>
+
+
+            <!-- =================================================
+                 CLASS CONTENT
+                 ================================================= -->
+
+            <div
+              *ngIf="
+                !isLunchSlot(
+                  timetable[dayIndex][slotIndex].slot
+                )
+                &&
+                timetable[dayIndex][slotIndex].data
+              "
+
+              class="class-content"
+            >
+
+
+              <!-- ===============================================
+                   SUBJECT CODE
+                   =============================================== -->
+
+              <div class="subject-code">
+
+                {{
+                  timetable[dayIndex][slotIndex]
+                    .data.subjectCode
+                }}
+
+              </div>
+
+
+              <!-- ===============================================
+                   SUBJECT NAME
+                   =============================================== -->
+
+              <div class="subject-name">
+
+                {{
+                  timetable[dayIndex][slotIndex]
+                    .data.subjectName
+                }}
+
+              </div>
+
+
+              <!-- ===============================================
+                   LECTURE TYPE
+                   =============================================== -->
+
+              <div class="lecture-type">
+
+                {{
+                  timetable[dayIndex][slotIndex]
+                    .data.lectureType
+                }}
+
+              </div>
+
+
+              <!-- ===============================================
+                   BATCHES
+                   =============================================== -->
+
+              <div
+                class="batch-info"
+
+                *ngIf="
+                  timetable[dayIndex][slotIndex]
+                    .data.batches?.length
+                "
+              >
+
+                <ng-container
+                  *ngFor="
+                    let batch of
+                    timetable[dayIndex][slotIndex]
+                      .data.batches
+                  "
+                >
+
+                  {{ batch.name }}
+
+                </ng-container>
+
+              </div>
+
+
+              <!-- ===============================================
+                   ROOM
+                   =============================================== -->
+
+              <div class="room-info">
+
+                {{
+                  timetable[dayIndex][slotIndex]
+                    .data.room
+                }}
+
+              </div>
+
+
+              <!-- ===============================================
+                   TEACHER
+                   =============================================== -->
+
+              <div
+                class="teacher-info-small"
+
+                *ngIf="
+                  timetable[dayIndex][slotIndex]
+                    .data.teachers?.length
+                "
+              >
+
+                <ng-container
+                  *ngFor="
+                    let teacher of
+                    timetable[dayIndex][slotIndex]
+                      .data.teachers
+                  "
+                >
+
+                  {{ teacher.abbreviation }}
+
+                </ng-container>
+
+              </div>
+
+
+            </div>
+
+
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <!-- =====================================================
+       FOOTER / LEGEND
+       ===================================================== -->
+
+  <div class="timetable-footer">
+
+
+    <span>
+      <strong>L</strong> = Lecture
+    </span>
+
+
+    <span>
+      <strong>T</strong> = Tutorial
+    </span>
+
+
+    <span>
+      <strong>P</strong> = Practical
+    </span>
+
+
+    <span>
+      Faculty: {{ teacherName }}
+    </span>
+
+
+    <span
+      [class.edit-status]="canEdit"
+      [class.view-status]="!canEdit"
+    >
+
+      {{ canEdit ? 'Edit Access' : 'View Only' }}
+
+    </span>
+
+
+    <!-- LUNCH INFORMATION -->
+
+    <span
+      *ngIf="lunchStart && lunchEnd"
+      class="lunch-info"
+    >
+
+      Lunch:
+      {{ lunchStart }}
+      -
+      {{ lunchEnd }}
+
+    </span>
+
+
+  </div>
+
+
+  <!-- =====================================================
+       CLASS EDITOR MODAL
+       ===================================================== -->
+
+  <div
+    class="modal-backdrop"
+    *ngIf="showEditor"
+  >
+
+
+    <div class="editor-modal">
+
+
+      <!-- =================================================
+           MODAL HEADER
+           ================================================= -->
+
+      <div class="modal-header">
+
+
+        <div>
+
+          <h2>
+            Add Class
+          </h2>
+
+
+          <p>
+
+            {{ selectedCell?.day }}
+
+            &nbsp; | &nbsp;
+
+            {{ selectedCell?.slot?.label }}
+
+          </p>
+
+        </div>
+
+
+        <!-- CLOSE -->
+
+        <button
+          type="button"
+
+          class="close-button"
+
+          (click)="closeEditor()"
+        >
+
+          ×
+
+        </button>
+
+
+      </div>
+
+
+      <!-- =================================================
+           CLASS EDITOR
+           ================================================= -->
+
+      <app-class-editor
+          [selectedCell]="selectedCell"
+
+          [department]="department"
+
+          (save)="saveCell($event)"
+
+          (cancel)="closeEditor()">
+
+    </app-class-editor>
+
+
+    </div>
+
+  </div>
+
+</div>

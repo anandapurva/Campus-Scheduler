@@ -1,0 +1,716 @@
+<div class="teacher-dashboard">
+
+  <!-- ================= HEADER ================= -->
+
+  <header class="dashboard-header">
+
+    <div class="brand-section">
+
+      <div class="logo-wrapper">
+        <img
+          src="/Logo-jiit.png"
+          alt="JIIT Logo"
+          class="jiit-logo"
+        />
+      </div>
+
+      <div class="welcome-text">
+
+        <span class="page-label">
+          TEACHER PORTAL
+        </span>
+
+        <h1>
+          Welcome back, {{ teacherName }}!
+        </h1>
+
+        <p>
+          Manage your academic schedule and timetable.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="teacher-profile">
+
+      <div class="avatar">
+        {{ teacherName.charAt(0).toUpperCase() }}
+      </div>
+
+      <div class="profile-text">
+
+        <strong>
+          {{ teacherName }}
+        </strong>
+
+        <span>
+          {{ department }}
+        </span>
+
+        <small
+          [class.edit-access]="canEdit"
+          [class.view-access]="!canEdit">
+
+          <i></i>
+
+          {{ canEdit ? 'Edit Access' : 'View Only' }}
+
+        </small>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <!-- ================= QUICK ACCESS ================= -->
+
+  <section class="quick-section">
+
+    <div class="section-heading">
+
+      <div>
+        <span class="section-label">
+          QUICK ACCESS
+        </span>
+
+        <h2>
+          What would you like to do?
+        </h2>
+      </div>
+
+    </div>
+
+
+    <div class="quick-grid">
+
+
+      <!-- MY TIMETABLE -->
+
+      <div
+        class="quick-card timetable-card"
+        (click)="viewMyTimetable()">
+
+        <div class="quick-icon blue-icon">
+          📅
+        </div>
+
+        <div class="quick-content">
+
+          <h3>
+            My Timetable
+          </h3>
+
+          <p>
+            View your personal teaching schedule.
+          </p>
+
+          <button
+            type="button"
+            class="quick-link">
+
+            View Timetable
+            <span>→</span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- EXTRA CLASS -->
+
+      <div
+        class="quick-card extra-card"
+        (click)="requestExtraClass()">
+
+        <div class="quick-icon orange-icon">
+          +
+        </div>
+
+        <div class="quick-content">
+
+          <h3>
+            Request Extra Class
+          </h3>
+
+          <p>
+            Submit a request for an additional class.
+          </p>
+
+          <button
+            type="button"
+            class="quick-link">
+
+            Request Class
+            <span>→</span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= SEARCH TIMETABLE ================= -->
+
+  <section class="dashboard-card timetable-search">
+
+    <div class="card-header">
+
+      <div>
+
+        <span class="section-label blue-label">
+          TIMETABLE
+        </span>
+
+        <h2>
+          View Timetable
+        </h2>
+
+        <p>
+          Select a program and semester to view the timetable.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="form-row">
+
+
+      <!-- PROGRAM -->
+
+<div class="form-group">
+
+  <label>
+    Program
+  </label>
+
+ <div class="form-group">
+
+  <label for="program">
+    Program
+  </label>
+
+  <select
+    id="program"
+    [(ngModel)]="selectedProgram"
+    (ngModelChange)="onProgramChange()">
+
+
+    <option value="" disabled hidden>
+      Select Program
+    </option>
+
+    <option
+      *ngFor="let program of programs"
+      [ngValue]="program.id">
+
+      {{ program.program_name }}
+
+    </option>
+
+  </select>
+
+</div>
+
+</div>
+
+
+      <!-- SEMESTER -->
+
+<div class="form-group">
+
+  <label>
+    Semester
+  </label>
+
+  <div class="select-wrapper">
+
+    <select
+      [(ngModel)]="selectedSemester"
+      (ngModelChange)="onSemesterSelected($event)"
+      [disabled]="!selectedProgram">
+
+      <option [ngValue]="null" disabled  hidden>
+        Select Semester
+      </option>
+
+     <option
+  *ngFor="let semester of semesters"
+  [ngValue]="semester.emester_number">
+
+  {{ semester.semester_name }}
+
+</option>
+
+    </select>
+
+  </div>
+
+</div>
+
+
+      <!-- BUTTON -->
+
+      <div class="search-button-wrapper">
+
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="
+            !selectedProgram ||
+            !selectedSemester
+          "
+          (click)="viewTimetable()">
+
+          View Timetable
+
+          <span>
+            →
+          </span>
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= FIND TEACHER ================= -->
+
+  <section class="dashboard-card teacher-search">
+
+    <div class="teacher-search-header">
+
+      <div class="search-title-icon">
+        🔍
+      </div>
+
+      <div>
+
+        <span class="section-label">
+          FACULTY SEARCH
+        </span>
+
+        <h2>
+          Find a Faculty's Timetable
+        </h2>
+
+        <p>
+          View another faculty member's timetable.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="teacher-search-box">
+
+      <span class="search-symbol">
+        🔍
+      </span>
+
+      <input
+        type="text"
+        placeholder="Search teacher by name..."
+        [(ngModel)]="teacherSearch"
+      />
+
+      <button
+        type="button"
+        class="search-teacher-button"
+        (click)="searchTeacher()">
+
+        Search
+
+      </button>
+
+    </div>
+
+  </section>
+
+
+
+ <!-- ================= TIMETABLE MANAGEMENT ================= -->
+
+<!-- ================= TIMETABLE MANAGEMENT ================= -->
+
+<section
+  class="management-card"
+  *ngIf="canEdit">
+
+  <!-- ================= HEADER ================= -->
+
+  <div class="management-header">
+
+    <div class="management-icon">
+      ✦
+    </div>
+
+    <div>
+
+      <span class="section-label management-label">
+        EDIT ACCESS
+      </span>
+
+      <h2>
+        Create Department Timetable
+      </h2>
+
+      <p>
+        Select the program and semester, then lock a
+        1-hour lunch break before creating the timetable.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ================= MANAGEMENT FORM ================= -->
+
+  <div class="management-form">
+
+
+    <!-- ==========================================
+         PROGRAM
+         ========================================== -->
+
+   <div class="form-group">
+
+  <label for="program">
+    Program
+  </label>
+
+  <select
+    id="program"
+    [(ngModel)]="selectedProgram"
+    (ngModelChange)="onProgramChange()">
+
+
+    <option value="" disabled hidden>
+      Select Program
+    </option>
+
+    <option
+      *ngFor="let program of programs"
+      [ngValue]="program.id">
+
+      {{ program.program_name }}
+
+    </option>
+
+  </select>
+
+</div>
+
+
+    <!-- ==========================================
+         SEMESTER
+         ========================================== -->
+
+    <div class="form-group">
+
+      <label>
+        Semester
+      </label>
+
+      <select
+  [(ngModel)]="selectedSemester"
+  (ngModelChange)="onSemesterSelected($event)"
+  [disabled]="!selectedProgram">
+
+  <option value="" disabled hidden>
+    Select Semester
+  </option>
+
+  <option
+    *ngFor="let semester of semesters"
+    [value]="semester.semester_number">
+
+    {{ semester.semester_name }}
+
+  </option>
+
+</select>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LOADING LUNCH CONFIGURATION
+       ===================================================== -->
+
+<div
+  class="lunch-loading"
+  *ngIf="
+    checkingLunch &&
+    selectedProgram &&
+    selectedSemester
+  ">
+
+  <span class="loading-spinner"></span>
+
+  <span>
+    Checking lunch configuration...
+  </span>
+
+</div>
+
+
+  <!-- =====================================================
+       LUNCH NOT LOCKED
+       ===================================================== -->
+
+  <div
+    class="lunch-setup"
+    *ngIf="
+      !lunchLocked &&
+      !lunchLoading &&
+      selectedProgram &&
+      selectedSemester
+    ">
+
+
+    <div class="lunch-title">
+
+      <div class="lunch-icon">
+        🍴
+      </div>
+
+      <div>
+
+        <h3>
+          Select Lunch Break
+        </h3>
+
+        <p>
+          Lunch must be exactly 1 hour and can be
+          locked only once.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= LUNCH OPTIONS ================= -->
+
+    <div class="lunch-options">
+
+      <label
+        class="lunch-option"
+        *ngFor="let lunch of lunchOptions">
+
+        <input
+          type="radio"
+          name="lunchBreak"
+          [value]="lunch.value"
+          [(ngModel)]="selectedLunch"
+        />
+
+        <div class="lunch-option-content">
+
+          <strong>
+            {{ lunch.label }}
+          </strong>
+
+          <span>
+            1 hour break
+          </span>
+
+        </div>
+
+      </label>
+
+    </div>
+
+
+    <!-- ================= LOCK BUTTON ================= -->
+
+    <button
+  type="button"
+  class="lock-lunch-button"
+
+  [disabled]="
+    !selectedLunch ||
+    !selectedProgram ||
+    !selectedSemester ||
+    lunchLoading
+  "
+
+  (click)="lockLunchAndContinue()">
+
+  <span *ngIf="!lunchLoading">
+
+    🔒 Lock Lunch & Continue
+
+  </span>
+
+  <span *ngIf="lunchLoading">
+
+    Saving Lunch...
+
+  </span>
+
+  <span
+    *ngIf="!lunchLoading"
+    class="button-arrow">
+
+    →
+
+  </span>
+
+</button>
+
+
+    <div class="lunch-warning">
+
+      ⚠️
+      Once lunch is locked, it cannot be changed
+      for this department, program and semester.
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LUNCH LOCKED
+       ===================================================== -->
+
+  <div
+    class="lunch-locked-card"
+    *ngIf="
+      lunchLocked &&
+      selectedProgram &&
+      selectedSemester
+    ">
+
+
+    <div class="locked-icon">
+
+      🔒
+
+    </div>
+
+
+    <div class="locked-content">
+
+      <span class="locked-label">
+
+        LUNCH BREAK LOCKED
+
+      </span>
+
+
+      <h3>
+
+        {{ getLunchDisplay() }}
+
+      </h3>
+
+
+      <p>
+
+        Lunch break has already been locked for
+
+        <strong>
+          {{ getSelectedProgramName() }}
+        </strong>
+
+        -
+
+        <strong>
+          Semester {{ getSelectedSemesterName() }}
+        </strong>
+
+      </p>
+
+    </div>
+
+
+    <div class="locked-status">
+
+      <span class="status-dot"></span>
+
+      Locked
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       OPEN TIMETABLE
+       ===================================================== -->
+
+  <div
+    class="open-timetable-wrapper"
+
+    *ngIf="
+      lunchLocked &&
+      selectedProgram &&
+      selectedSemester
+    ">
+
+    <button
+      type="button"
+      class="management-button"
+
+      (click)="createTimetable()">
+
+      Create Timetable
+
+      <span>
+        →
+      </span>
+
+    </button>
+
+  </div>
+
+
+  <!-- =====================================================
+       NO PROGRAM / SEMESTER SELECTED
+       ===================================================== -->
+
+  <div
+    class="management-info"
+
+    *ngIf="
+      !selectedProgram ||
+      !selectedSemester
+    ">
+
+    <div class="info-icon">
+      ℹ
+    </div>
+
+    <p>
+      Select a program and semester to configure
+      the department timetable.
+    </p>
+
+  </div>
+
+</section>
+
+
+</div>

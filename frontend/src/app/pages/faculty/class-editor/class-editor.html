@@ -1,0 +1,551 @@
+<div class="class-editor">
+
+
+  <!-- ======================================
+       LECTURE TYPE
+       ====================================== -->
+
+  <div class="form-section">
+
+    <label>
+      Lecture Type
+    </label>
+
+    <div class="lecture-types">
+
+      <label
+        *ngFor="
+          let type of lectureTypes
+        "
+        class="type-option">
+
+        <input
+          type="radio"
+          name="lectureType"
+
+          [value]="type.code"
+
+          [(ngModel)]="lectureType"
+
+          (change)="
+            onLectureTypeChange()
+          "
+        />
+
+        <span>
+
+          {{ type.code }}
+
+          -
+
+          {{ type.name }}
+
+        </span>
+
+      </label>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================
+       BATCHES
+       ====================================== -->
+
+  <div class="form-section">
+
+    <label>
+      Batches
+    </label>
+
+    <div class="checkbox-list">
+
+      <label
+        *ngFor="
+          let batch of batches
+        "
+        class="checkbox-option">
+
+        <input
+          type="checkbox"
+
+          [(ngModel)]="batch.selected"
+
+          (change)="
+            onBatchChange()
+          "
+        />
+
+        <span>
+          {{ batch.name }}
+        </span>
+
+        <small>
+          {{ batch.students }} students
+        </small>
+
+      </label>
+
+    </div>
+
+
+    <!-- STUDENT COUNT -->
+
+    <div
+      class="student-count"
+      *ngIf="totalStudents > 0">
+
+      Total students:
+
+      <strong>
+        {{ totalStudents }}
+      </strong>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================
+       SUBJECT
+       ====================================== -->
+
+  <div class="form-section">
+
+    <label>
+      Subject
+    </label>
+
+    <select
+      [(ngModel)]="selectedSubject">
+
+      <option
+        [ngValue]="null">
+
+        Select Subject
+
+      </option>
+
+      <option
+        *ngFor="
+          let subject of subjects
+        "
+        [ngValue]="subject">
+
+        {{ subject.code }}
+
+        -
+
+        {{ subject.name }}
+
+      </option>
+
+    </select>
+
+  </div>
+
+<!-- ======================================
+     ROOM
+     ====================================== -->
+
+<div class="form-section">
+
+  <div class="room-heading">
+
+    <label>
+      Room
+    </label>
+
+    <span *ngIf="totalStudents > 0">
+      Showing rooms for
+      <strong>{{ totalStudents }}</strong>
+      students
+    </span>
+
+  </div>
+
+
+  <!-- LOADING -->
+
+  <div
+    class="loading-message"
+    *ngIf="loadingRooms">
+
+    Loading rooms...
+
+  </div>
+
+
+  <!-- ROOM DROPDOWN -->
+
+  <div
+    class="room-dropdown"
+    *ngIf="!loadingRooms && availableRooms.length > 0">
+
+    <!-- SELECTED ROOM -->
+
+    <button
+      type="button"
+      class="room-select"
+      (click)="roomDropdownOpen = !roomDropdownOpen">
+
+      <ng-container *ngIf="selectedRoom; else noRoomSelected">
+
+        <span class="room-type-badge">
+          {{ selectedRoom.room_type }}
+        </span>
+
+        <span class="room-selected-content">
+
+          <strong>
+            {{ selectedRoom.room_id }}
+          </strong>
+
+          <span>
+            · Capacity: {{ selectedRoom.capacity }}
+          </span>
+
+        </span>
+
+      </ng-container>
+
+      <ng-template #noRoomSelected>
+
+        <span class="room-placeholder">
+          Select Room
+        </span>
+
+      </ng-template>
+
+      <span class="dropdown-arrow">
+        ▾
+      </span>
+
+    </button>
+
+
+    <!-- DROPDOWN PANEL -->
+
+    <div
+      class="room-dropdown-panel"
+      *ngIf="roomDropdownOpen">
+
+      <!-- SEARCH -->
+
+      <div class="room-search">
+
+        <input
+          type="text"
+          placeholder="Search room..."
+          [(ngModel)]="roomSearch"
+          (input)="filterRoomsBySearch()"
+        />
+
+      </div>
+
+
+      <!-- ROOMS -->
+
+      <div class="room-list">
+
+        <label
+          *ngFor="let room of filteredRooms"
+          class="room-option"
+          [class.disabled-room]="
+            totalStudents > 0 &&
+            room.capacity < totalStudents
+          ">
+
+          <input
+            type="radio"
+            name="room"
+            [value]="room"
+            [checked]="selectedRoom?.id === room.id"
+            [disabled]="
+              totalStudents > 0 &&
+              room.capacity < totalStudents
+            "
+            (change)="selectRoom(room)"
+          />
+
+
+          <span class="room-radio"></span>
+
+
+          <span class="room-type-badge">
+            {{ room.room_type }}
+          </span>
+
+
+          <span class="room-option-content">
+
+            <span class="room-main-line">
+
+              <strong>
+                {{ room.room_id }}
+              </strong>
+
+              <span>
+                Capacity: {{ room.capacity }}
+              </span>
+
+            </span>
+
+          </span>
+
+
+          <span
+            class="room-status"
+            *ngIf="
+              totalStudents > 0 &&
+              room.capacity >= totalStudents
+            ">
+
+            ✓
+
+          </span>
+
+          <span
+            class="room-status unavailable"
+            *ngIf="
+              totalStudents > 0 &&
+              room.capacity < totalStudents
+            ">
+
+            Too small
+
+          </span>
+
+        </label>
+
+
+        <!-- NO SEARCH RESULTS -->
+
+        <div
+          class="empty-message"
+          *ngIf="filteredRooms.length === 0">
+
+          No rooms found.
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- NO ROOMS -->
+
+  <div
+    class="empty-message"
+    *ngIf="
+      !loadingRooms &&
+      availableRooms.length === 0
+    ">
+
+    No rooms available for
+    <strong>{{ lectureType }}</strong>
+
+  </div>
+
+
+  <small *ngIf="totalStudents > 0">
+
+    Rooms must have capacity for all
+    selected batches.
+
+  </small>
+
+</div>
+
+<!-- ======================================
+     TEACHERS
+     ====================================== -->
+
+<div class="form-section">
+
+  <div class="section-heading-row">
+
+    <label>
+      Teacher
+    </label>
+
+  </div>
+
+
+  <!-- SELECTED TEACHERS -->
+
+<div
+  class="selected-teachers"
+  *ngIf="selectedTeachers.length > 0">
+
+  <div class="selected-teachers-heading">
+    Selected Teachers
+    <span>
+      {{ selectedTeachers.length }}
+    </span>
+  </div>
+
+
+  <div class="selected-teacher-list">
+
+    <div
+      class="selected-teacher-chip"
+      *ngFor="let teacher of selectedTeachers">
+
+      <span class="selected-teacher-department">
+        {{ teacher.department }}
+      </span>
+
+      <strong>
+        {{ teacher.abbreviation }}
+      </strong>
+
+      <button
+        type="button"
+        (click)="toggleTeacher(teacher)"
+        title="Remove teacher">
+
+        ×
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+  <!-- FACULTY SEARCH -->
+
+  <div class="faculty-search">
+
+    <input
+      type="text"
+      placeholder="Search by faculty name or abbreviation..."
+      [(ngModel)]="teacherSearch"
+      (input)="searchFaculty()"
+    />
+
+  </div>
+
+
+  <!-- LOADING -->
+
+  <div
+    class="loading-message"
+    *ngIf="loadingFaculty">
+
+    Loading faculty...
+
+  </div>
+
+
+  <!-- FACULTY LIST -->
+
+  <div
+    class="checkbox-list"
+    *ngIf="
+      !loadingFaculty &&
+      filteredTeachers.length > 0
+    ">
+
+    <label
+      *ngFor="
+        let teacher of filteredTeachers
+      "
+      class="checkbox-option">
+
+      <input
+        type="checkbox"
+
+        [checked]="
+          isTeacherSelected(teacher)
+        "
+
+        (change)="
+          toggleTeacher(teacher)
+        "
+      />
+
+
+      <div class="teacher-option-content">
+
+        <span>
+
+          <strong>
+            {{ teacher.abbreviation }}
+          </strong>
+
+          -
+
+          {{ teacher.name }}
+
+        </span>
+
+
+        <small
+          [class.current-department]="
+            teacher.department === department
+          ">
+
+          {{ teacher.department }}
+
+        </small>
+
+      </div>
+
+    </label>
+
+  </div>
+
+
+  <!-- NO FACULTY -->
+
+  <div
+    class="empty-message"
+    *ngIf="
+      !loadingFaculty &&
+      filteredTeachers.length === 0
+    ">
+
+    No faculty found.
+
+  </div>
+
+</div>
+
+
+  <!-- ======================================
+       ACTIONS
+       ====================================== -->
+
+  <div class="form-actions">
+
+    <button
+      type="button"
+      class="cancel-button"
+
+      (click)="close()">
+
+      Cancel
+
+    </button>
+
+
+    <button
+      type="button"
+      class="submit-button"
+
+      (click)="submit()">
+
+      Add to Timetable
+
+    </button>
+
+  </div>
+
+</div>
