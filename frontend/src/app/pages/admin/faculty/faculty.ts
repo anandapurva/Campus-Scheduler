@@ -638,10 +638,59 @@ onFacultyNameChange(): void {
     );
   }
 
+if (parts.length === 1 && firstName.length >= 2) {
+
+  // ---------- 2 LETTER ABBREVIATIONS ----------
+
+  // First + second letter
+  candidates.push(
+    firstName.substring(0, 2)
+  );
+
+  // First + last letter
+  candidates.push(
+    firstName[0] + firstName[firstName.length - 1]
+  );
+
+  // First + middle letter
+  const middleIndex = Math.floor(firstName.length / 2);
+
+  candidates.push(
+    firstName[0] + firstName[middleIndex]
+  );
+
+
+  // ---------- 3 LETTER ABBREVIATIONS ----------
+
+  if (firstName.length >= 3) {
+
+    // First 3 letters
+    if (firstName.substring(0, 3) !== firstName) {
+    candidates.push(
+      firstName.substring(0, 3)
+    );}
+
+    // First + second + last
+    candidates.push(
+      firstName[0] +
+      firstName[1] +
+      firstName[firstName.length - 1]
+    );
+
+    // First + middle + last
+    candidates.push(
+      firstName[0] +
+      firstName[middleIndex] +
+      firstName[firstName.length - 1]
+    );
+  }
+}
   // Remove duplicate suggestions
   const uniqueCandidates = [
     ...new Set(candidates)
-  ];
+  ].filter(
+  abbreviation => abbreviation !== firstName
+);
 
   // ------------------------------------------
   // FIND ALREADY USED ABBREVIATIONS

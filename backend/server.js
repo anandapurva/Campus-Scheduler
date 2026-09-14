@@ -30,3 +30,8 @@ app.listen(process.env.PORT, ()=>{
     console.log(`Server running on port ${process.env.PORT}`);
 });
 
+const queryRoutes = require('./routes/query.routes');
+app.use('/api/auth', authRoutes);
+app.use('/api/faculty', facultyRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/query', queryRoutes);

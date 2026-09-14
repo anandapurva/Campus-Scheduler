@@ -9,36 +9,27 @@ export class AuthService {
 
   private apiUrl = 'http://localhost:5000/api/auth';
 
-
   constructor(
     private http: HttpClient
   ) {}
 
-
-  // ==========================================
   // LOGIN
-  // ==========================================
-
   login(
-    email: string,
-    password: string
-  ): Observable<any> {
+  faculty_id: string,
+  password: string
+): Observable<any> {
 
-    return this.http.post(
-      `${this.apiUrl}/login`,
-      {
-        email,
-        password
-      }
-    );
+  return this.http.post<any>(
+    `${this.apiUrl}/login`,
+    {
+      faculty_id: faculty_id,
+      password: password
+    }
+  );
 
-  }
+}
 
-
-  // ==========================================
   // SAVE USER
-  // ==========================================
-
   saveUser(user: any): void {
 
     localStorage.setItem(
@@ -48,21 +39,15 @@ export class AuthService {
 
   }
 
-
-  // ==========================================
-  // GET LOGGED-IN USER
-  // ==========================================
-
+  // GET USER
   getUser(): any {
 
     const user =
       localStorage.getItem('user');
 
-
     if (!user) {
       return null;
     }
-
 
     try {
 
@@ -76,22 +61,15 @@ export class AuthService {
 
   }
 
-
-  // ==========================================
   // LOGOUT
-  // ==========================================
-
   logout(): void {
 
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
 
   }
 
-
-  // ==========================================
   // CHECK LOGIN
-  // ==========================================
-
   isLoggedIn(): boolean {
 
     return !!localStorage.getItem('user');

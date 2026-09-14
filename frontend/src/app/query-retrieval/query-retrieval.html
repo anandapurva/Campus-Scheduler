@@ -1,0 +1,574 @@
+<div class="query-page">
+
+  <!-- =====================================================
+       PAGE HEADER
+  ====================================================== -->
+
+  <div class="page-header">
+
+    <div class="header-icon">
+      ✦
+    </div>
+
+    <h1>
+      Academic Query Assistant
+    </h1>
+
+    <p>
+      Search faculty, rooms, subjects, semesters and timetables using natural language.
+    </p>
+
+  </div>
+
+
+  <!-- =====================================================
+       QUERY CARD
+  ====================================================== -->
+
+  <div class="query-card">
+
+    <div class="query-title">
+
+      <div class="query-icon">
+        ⌕
+      </div>
+
+      <div>
+        <h2>Ask your question</h2>
+
+        <p>
+          Enter your academic query below and get the information directly from the system.
+        </p>
+      </div>
+
+    </div>
+
+
+    <!-- SEARCH AREA -->
+
+    <div class="search-area">
+
+      <div class="search-input-wrapper">
+
+        <span class="search-icon">
+          ⌕
+        </span>
+
+        <input
+          type="text"
+          [(ngModel)]="query"
+          (keyup.enter)="runQuery()"
+          placeholder="Example: Show CSE faculty"
+          class="query-input"
+        />
+
+        <button
+          *ngIf="query"
+          type="button"
+          class="clear-button"
+          (click)="clearQuery()"
+          title="Clear"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="search-button"
+        (click)="runQuery()"
+        [disabled]="loading || !query.trim()"
+      >
+
+        <span *ngIf="!loading">
+          Search
+        </span>
+
+        <span
+          *ngIf="loading"
+          class="button-loading"
+        >
+          Searching...
+        </span>
+
+      </button>
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+      *ngIf="errorMessage"
+      class="query-error"
+    >
+
+      <div class="error-icon">
+        !
+      </div>
+
+      <div>
+        <strong>Unable to process query</strong>
+
+        <span>
+          {{ errorMessage }}
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       LOADING
+  ====================================================== -->
+
+  <div
+    *ngIf="loading"
+    class="loading-card"
+  >
+
+    <div class="spinner"></div>
+
+    <div>
+      <strong>Searching academic data</strong>
+
+      <p>
+        Please wait while we retrieve the requested information.
+      </p>
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       RESULTS
+  ====================================================== -->
+
+  <div
+    *ngIf="!loading && results.length > 0"
+    class="results-card"
+  >
+
+    <!-- RESULTS HEADER -->
+
+    <div class="results-header">
+
+      <div>
+
+        <div class="results-title-row">
+
+          <h2>
+            Search Results
+          </h2>
+
+          <span class="result-badge">
+            {{ getDisplayType() }}
+          </span>
+
+        </div>
+
+        <p>
+          {{ resultCount }} result{{ resultCount === 1 ? '' : 's' }} found for your query
+        </p>
+
+      </div>
+
+      <div class="result-count">
+        {{ resultCount }}
+      </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         FACULTY RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="resultType === 'faculty' || resultType === 'teacher'"
+      class="table-wrapper"
+    >
+
+      <table class="result-table faculty-table">
+
+        <thead>
+
+          <tr>
+            <th>Faculty ID</th>
+            <th>Name</th>
+            <th>Abbreviation</th>
+            <th>Department</th>
+            <th>Email</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let faculty of results">
+
+            <td>
+              <span class="faculty-id">
+                {{ faculty.faculty_id }}
+              </span>
+            </td>
+
+            <td>
+              <span class="faculty-name">
+                {{ faculty.name }}
+              </span>
+            </td>
+
+            <td>
+              <span class="abbreviation">
+                {{ faculty.abbreviation }}
+              </span>
+            </td>
+
+            <td>
+              <span class="department-badge">
+                {{ faculty.department }}
+              </span>
+            </td>
+
+            <td>
+              <span class="faculty-email">
+                {{ faculty.email }}
+              </span>
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- =================================================
+         SUBJECT RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="resultType === 'subjects' || resultType === 'subject'"
+      class="table-wrapper"
+    >
+
+      <table class="result-table">
+
+        <thead>
+
+          <tr>
+
+            <th>Subject Code</th>
+
+            <th>Subject Name</th>
+
+            <th>Department</th>
+
+            <th>Program</th>
+
+            <th>Semester</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let subject of results">
+
+            <td>
+              <span class="subject-code">
+                {{ subject.subject_code || subject.code || '-' }}
+              </span>
+            </td>
+
+            <td>
+              <span class="subject-name">
+                {{ subject.subject_name || subject.name || '-' }}
+              </span>
+            </td>
+
+            <td>
+              <span class="department-badge">
+                {{ subject.department || '-' }}
+              </span>
+            </td>
+
+            <td>
+              {{ subject.program || '-' }}
+            </td>
+
+            <td>
+              {{ subject.semester || subject.semester_number || '-' }}
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- =================================================
+         ROOM RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="resultType === 'rooms' || resultType === 'room'"
+      class="room-grid"
+    >
+
+      <div
+        *ngFor="let room of results"
+        class="room-card"
+      >
+
+        <div class="room-top">
+
+          <div class="room-icon">
+            {{ getRoomIcon(room.room_type) }}
+          </div>
+
+          <span class="room-type">
+            {{ getRoomType(room.room_type) }}
+          </span>
+
+        </div>
+
+
+        <h3>
+          {{ room.room_name || room.room_id }}
+        </h3>
+
+        <p class="room-id">
+          Room ID: {{ room.room_id }}
+        </p>
+
+
+        <div class="room-info">
+
+          <div class="room-info-item">
+
+            <span>
+              Capacity
+            </span>
+
+            <strong>
+              {{ room.capacity || '-' }}
+            </strong>
+
+          </div>
+
+
+          <div class="room-info-item">
+
+            <span>
+              Department
+            </span>
+
+            <strong>
+              {{ room.department || '-' }}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         SEMESTER RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="resultType === 'semesters' || resultType === 'semester'"
+      class="semester-grid"
+    >
+
+      <div
+        *ngFor="let semester of results"
+        class="semester-card"
+      >
+
+        <div class="semester-icon">
+          S
+        </div>
+
+        <div class="semester-content">
+
+          <h3>
+            Semester
+            {{ semester.semester || semester.semester_number || semester.id }}
+          </h3>
+
+          <p>
+            {{ semester.program || semester.program_name || 'Academic Semester' }}
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =================================================
+         TIMETABLE RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="resultType === 'timetable'"
+      class="table-wrapper"
+    >
+
+      <table class="result-table">
+
+        <thead>
+
+          <tr>
+
+            <th>Day</th>
+            <th>Time</th>
+            <th>Subject</th>
+            <th>Faculty</th>
+            <th>Room</th>
+            <th>Batch</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let item of results">
+
+            <td>
+              {{ item.day || '-' }}
+            </td>
+
+            <td>
+              {{ item.time || item.time_slot || '-' }}
+            </td>
+
+            <td>
+              {{ item.subject || item.subject_name || '-' }}
+            </td>
+
+            <td>
+              {{ item.faculty || item.faculty_name || '-' }}
+            </td>
+
+            <td>
+              {{ item.room || item.room_name || '-' }}
+            </td>
+
+            <td>
+              {{ item.batch || item.batch_code || '-' }}
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+
+    <!-- =================================================
+         GENERIC RESULTS
+    ================================================== -->
+
+    <div
+      *ngIf="
+        resultType !== 'faculty' &&
+        resultType !== 'teacher' &&
+        resultType !== 'subjects' &&
+        resultType !== 'subject' &&
+        resultType !== 'rooms' &&
+        resultType !== 'room' &&
+        resultType !== 'semesters' &&
+        resultType !== 'semester' &&
+        resultType !== 'timetable'
+      "
+      class="generic-results"
+    >
+
+      <div
+        *ngFor="let result of results"
+        class="generic-card"
+      >
+
+        <div
+          *ngFor="let field of result | keyvalue"
+          class="generic-field"
+        >
+
+          <span>
+            {{ formatFieldName(field.key) }}
+          </span>
+
+          <strong>
+            {{ field.value }}
+          </strong>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       NO RESULTS
+  ====================================================== -->
+
+  <div
+    *ngIf="
+      !loading &&
+      query &&
+      !errorMessage &&
+      results.length === 0 &&
+      resultCount === 0
+    "
+    class="empty-card"
+  >
+
+    <div class="empty-icon">
+      ⌕
+    </div>
+
+    <h3>
+      No results found
+    </h3>
+
+    <p>
+      We couldn't find any academic data matching your query.
+    </p>
+
+  </div>
+
+</div>

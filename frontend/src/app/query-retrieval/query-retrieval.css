@@ -1,0 +1,1118 @@
+/* =========================================================
+   QUERY RETRIEVAL PAGE
+   Campus Scheduler
+========================================================= */
+
+.query-page {
+  min-height: 100vh;
+  background: #f5f7fb;
+  padding: 35px;
+  box-sizing: border-box;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  color: #111827;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.page-header {
+  margin-bottom: 25px;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  margin: 0;
+
+  font-size: 28px;
+  font-weight: 700;
+
+  color: #111827;
+
+  letter-spacing: -0.5px;
+}
+
+.page-header p {
+  margin: 10px 0 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   QUERY CARD
+========================================================= */
+
+.query-card {
+  background: #ffffff;
+
+  border-radius: 12px;
+
+  padding: 25px;
+
+  margin-bottom: 25px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #eef0f4;
+}
+
+
+/* =========================================================
+   QUERY TITLE
+========================================================= */
+
+.query-title {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom: 20px;
+}
+
+.query-icon {
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 20px;
+
+  font-weight: 600;
+}
+
+.query-title h2 {
+  margin: 0;
+
+  font-size: 18px;
+
+  font-weight: 600;
+
+  color: #111827;
+}
+
+.query-title p {
+  margin: 5px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   SEARCH AREA
+========================================================= */
+
+.search-area {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+.search-input-wrapper {
+  position: relative;
+
+  flex: 1;
+}
+
+
+/* =========================================================
+   SEARCH INPUT
+========================================================= */
+
+.query-input {
+  width: 100%;
+
+  height: 44px;
+
+  box-sizing: border-box;
+
+  padding: 0 42px 0 40px;
+
+  border: 1px solid #d9dee7;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.query-input::placeholder {
+  color: #9ca3af;
+}
+
+.query-input:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.10);
+}
+
+
+/* =========================================================
+   SEARCH ICON
+========================================================= */
+
+.search-icon {
+  position: absolute;
+
+  left: 13px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #64748b;
+
+  font-size: 17px;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   CLEAR BUTTON
+========================================================= */
+
+.clear-button {
+  position: absolute;
+
+  right: 8px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 26px;
+  height: 26px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #6b7280;
+
+  font-size: 19px;
+
+  cursor: pointer;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+.clear-button:hover {
+  background: #f1f3f5;
+
+  color: #111827;
+}
+
+
+/* =========================================================
+   SEARCH BUTTON
+========================================================= */
+
+.search-button {
+  height: 44px;
+
+  min-width: 100px;
+
+  padding: 0 20px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #3b82f6;
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-button:hover:not(:disabled) {
+  background: #2563eb;
+
+  box-shadow:
+    0 4px 12px rgba(59, 130, 246, 0.25);
+
+  transform: translateY(-1px);
+}
+
+.search-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.search-button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   BUTTON LOADING
+========================================================= */
+
+.button-loading {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.query-error {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-top: 18px;
+
+  padding: 13px 15px;
+
+  background: #fff1f2;
+
+  border: 1px solid #fecdd3;
+
+  border-radius: 9px;
+
+  color: #374151;
+}
+
+.error-icon {
+  width: 30px;
+  height: 30px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #fee2e2;
+
+  color: #dc2626;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 14px;
+
+  font-weight: 700;
+}
+
+.query-error strong {
+  display: block;
+
+  margin-bottom: 2px;
+
+  color: #be123c;
+
+  font-size: 13px;
+}
+
+.query-error span {
+  display: block;
+
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   LOADING CARD
+========================================================= */
+
+.loading-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+
+  background: #ffffff;
+
+  border-radius: 12px;
+
+  padding: 25px;
+
+  margin-bottom: 25px;
+
+  border: 1px solid #eef0f4;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+
+  flex-shrink: 0;
+
+  border: 3px solid #e5e7eb;
+
+  border-top-color: #3b82f6;
+
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-card strong {
+  display: block;
+
+  color: #111827;
+
+  font-size: 14px;
+}
+
+.loading-card p {
+  margin: 4px 0 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   RESULTS CARD
+========================================================= */
+
+.results-card {
+  background: #ffffff;
+
+  border-radius: 12px;
+
+  padding: 25px;
+
+  margin-bottom: 25px;
+
+  border: 1px solid #eef0f4;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   RESULTS HEADER
+========================================================= */
+
+.results-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 18px;
+}
+
+.results-title-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.results-header h2 {
+  margin: 0;
+
+  font-size: 20px;
+
+  font-weight: 600;
+
+  color: #111827;
+}
+
+.results-header p {
+  margin: 6px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.result-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  padding: 5px 10px;
+
+  border-radius: 5px;
+
+  background: #eef2ff;
+
+  color: #3730a3;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.result-count {
+  min-width: 42px;
+
+  height: 42px;
+
+  padding: 0 10px;
+
+  border-radius: 9px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e5e7eb;
+
+  color: #111827;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 15px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+
+  margin-top: 10px;
+}
+
+.result-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  min-width: 700px;
+}
+
+.result-table th,
+.result-table td {
+  padding: 14px;
+
+  text-align: left;
+
+  border-bottom: 1px solid #e5e7eb;
+
+  font-size: 14px;
+}
+
+.result-table th {
+  background: #f8fafc;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.result-table td {
+  color: #374151;
+}
+
+.result-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.result-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.result-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+
+/* =========================================================
+   FACULTY
+========================================================= */
+
+.faculty-id {
+  color: #111827;
+
+  font-weight: 600;
+}
+
+.faculty-name {
+  color: #111827;
+
+  font-weight: 500;
+}
+
+.abbreviation {
+  color: #475569;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+.department-badge {
+  display: inline-block;
+
+  padding: 5px 10px;
+
+  border-radius: 5px;
+
+  background: #eef2ff;
+
+  color: #3730a3;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.faculty-email {
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   SUBJECTS
+========================================================= */
+
+.subject-code {
+  color: #111827;
+
+  font-weight: 600;
+}
+
+.subject-name {
+  color: #111827;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   ROOM GRID
+========================================================= */
+
+.room-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 16px;
+
+  margin-top: 10px;
+}
+
+.room-card {
+  padding: 18px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+
+  background: #f8fafc;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.room-top {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.room-icon {
+  width: 36px;
+  height: 36px;
+
+  border-radius: 8px;
+
+  background: #eef2ff;
+
+  color: #3730a3;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
+
+.room-type {
+  color: #64748b;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+.room-card h3 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
+
+.room-id {
+  margin: 5px 0 16px;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.room-info {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 10px;
+}
+
+.room-info-item {
+  padding: 10px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 7px;
+}
+
+.room-info-item span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #64748b;
+
+  font-size: 11px;
+
+  font-weight: 500;
+}
+
+.room-info-item strong {
+  color: #111827;
+
+  font-size: 13px;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   SEMESTER GRID
+========================================================= */
+
+.semester-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 16px;
+
+  margin-top: 10px;
+}
+
+.semester-card {
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 18px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 10px;
+
+  background: #f8fafc;
+}
+
+.semester-icon {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  border-radius: 9px;
+
+  background: #eef2ff;
+
+  color: #3730a3;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 14px;
+
+  font-weight: 700;
+}
+
+.semester-content h3 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 15px;
+
+  font-weight: 600;
+}
+
+.semester-content p {
+  margin: 4px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   GENERIC RESULTS
+========================================================= */
+
+.generic-results {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.generic-card {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 12px;
+
+  padding: 16px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 9px;
+}
+
+.generic-field {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.generic-field span {
+  color: #64748b;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.generic-field strong {
+  color: #111827;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.empty-card {
+  background: #ffffff;
+
+  border-radius: 12px;
+
+  padding: 45px 25px;
+
+  margin-bottom: 25px;
+
+  text-align: center;
+
+  border: 1px solid #eef0f4;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+
+  margin: 0 auto 14px;
+
+  border-radius: 50%;
+
+  background: #f1f4f8;
+
+  color: #64748b;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  font-size: 22px;
+}
+
+.empty-card h3 {
+  margin: 0;
+
+  color: #374151;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
+
+.empty-card p {
+  margin: 7px 0 0;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.table-wrapper::-webkit-scrollbar {
+  height: 7px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f3f5;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+  .room-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .semester-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+}
+
+
+@media (max-width: 768px) {
+
+  .query-page {
+    padding: 25px;
+  }
+
+  .search-area {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .search-button {
+    width: 100%;
+  }
+
+  .results-header {
+    align-items: flex-start;
+  }
+
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .semester-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .generic-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+@media (max-width: 480px) {
+
+  .query-page {
+    padding: 20px;
+  }
+
+  .query-card,
+  .results-card {
+    padding: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+  }
+
+  .page-header p {
+    font-size: 13px;
+  }
+
+  .query-title h2 {
+    font-size: 17px;
+  }
+
+  .query-title p {
+    font-size: 12px;
+  }
+
+  .results-header {
+    flex-direction: column;
+
+    gap: 12px;
+  }
+
+  .result-count {
+    display: none;
+  }
+}

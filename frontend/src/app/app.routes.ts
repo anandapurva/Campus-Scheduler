@@ -10,9 +10,16 @@ import { Uploads } from './pages/admin/uploads/uploads';
 import { Timetables } from './pages/admin/timetables/timetables';
 import { TeacherDashboard } from './pages/faculty/teacher-dashboard/teacher-dashboard';
 import { Timetable } from './pages/faculty/timetable/timetable';
+import { QueryRetrievalComponent } from './query-retrieval/query-retrieval';
+
 
 export const routes: Routes = [
 
+
+    {
+    path: 'query-retrieval',
+    component: QueryRetrievalComponent
+  },
   {
     path: 'login',
     component: Login
@@ -77,7 +84,11 @@ export const routes: Routes = [
   {
   path: 'teacher/timetable',
   component: Timetable
-}
+},
 
+{
+  path: 'query-retrieval',
+  component: QueryRetrievalComponent
+}
 
 ];
