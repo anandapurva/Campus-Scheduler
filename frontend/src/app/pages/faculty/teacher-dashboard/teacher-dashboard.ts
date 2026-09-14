@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TimetableService } from '../../../services/timetable';
 import { ProgramService } from '../../../services/program';
 import { ChangeDetectorRef } from '@angular/core';
+import { AuthService } from '../../../services/auth';
 @Component({
   selector: 'app-teacher-dashboard',
   standalone: true,
@@ -30,6 +31,7 @@ export class TeacherDashboard implements OnInit {
   canEdit = false;
  checkingLunch = false;
 
+ showLogout = false;
 
 // -----------------------------------------
 // PROGRAM & SEMESTER DATA
@@ -98,6 +100,10 @@ onProgramChange(): void {
       }
 
     });
+}
+
+toggleTeacherMenu(): void {
+  this.showLogout = !this.showLogout;
 }
 
 getSelectedProgramName(): string {
@@ -173,6 +179,7 @@ lunchOptions = [
     private router: Router,
     private timetableService: TimetableService,
     private programService: ProgramService,
+     private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -240,42 +247,44 @@ lunchOptions = [
 
   }
 
-loadPrograms(): void {
+  loadPrograms(): void {
 
-  this.programService
-    .getPrograms()
-    .subscribe({
+    this.programService
+      .getPrograms()
+      .subscribe({
 
-      next: (data) => {
+        next: (data) => {
 
-        console.log(
-          'Programs loaded:',
-          data
-        );
+          console.log(
+            'Programs loaded:',
+            data
+          );
 
-        this.programs = data;
-        this.cdr.detectChanges();
+          this.programs = data;
+          this.cdr.detectChanges();
 
-      },
+        },
 
-      error: (error) => {
+        error: (error) => {
 
-        console.error(
-          'Failed to load programs:',
-          error
-        );
+          console.error(
+            'Failed to load programs:',
+            error
+          );
 
-      }
+        }
 
-    });
+      });
 
-}
+  }
+
+  logout(): void {
+   this.authService.logout();
+  }
 
   // =========================================
   // MY TIMETABLE
   // =========================================
-
-
 
   viewMyTimetable(): void {
 
@@ -306,6 +315,7 @@ loadPrograms(): void {
     );
 
   }
+
 
 
   // =========================================

@@ -822,3 +822,52 @@
   }
 
 }
+
+.admin-profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.admin-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-details strong {
+  font-size: 18px;
+}
+
+.admin-details small {
+  color: #777;
+  font-size: 14px;
+}
+
+.logout-container {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  background: white;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.15);
+}
+
+.logout-button {
+  border: 1px solid #aaa;
+  background: white;
+  border-radius: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.logout-button:hover {
+  background: #f1f1f1;
+}

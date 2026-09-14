@@ -79,7 +79,7 @@
 
 
       <a
-        routerLink="/admin/batches"
+        routerLink="/admin/batch-management"
         routerLinkActive="active">
 
         Batches
@@ -223,28 +223,34 @@
 
       </div>
 
-
       <!-- Admin Profile -->
-
-      <div class="admin-profile">
-
+      <div
+        class="admin-profile"
+        (click)="toggleAdminMenu()"
+      >
         <span class="avatar">
           A
         </span>
 
+        <div class="admin-details">
+          <strong>Admin</strong>
 
-        <div>
+          <small>Administrator</small>
 
-          <strong>
-            Admin
-          </strong>
-
-          <small>
-            Administrator
-          </small>
-
+          <div
+            class="logout-container"
+            *ngIf="showLogout"
+            (click)="$event.stopPropagation()"
+          >
+            <button
+              type="button"
+              class="logout-button"
+              (click)="logout()"
+            >
+              ↪ Logout
+            </button>
+          </div>
         </div>
-
       </div>
 
     </header>

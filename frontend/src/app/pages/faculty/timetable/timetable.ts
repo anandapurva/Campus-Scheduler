@@ -54,7 +54,8 @@ export class Timetable implements OnInit {
   // ==========================================
 
   program = '';
-  semester = '';
+  semester = 0;
+  academicSessionStartYear = 0;
 
 
   // ==========================================
@@ -235,11 +236,16 @@ loadSelection(): void {
   this.route.queryParams
     .subscribe(params => {
 
-      this.program =
-        params['program'] || '';
+       this.program =
+        String(params['program'] || '').toUpperCase();
 
       this.semester =
-        params['semester'] || '';
+        Number(params['semester'] || 0);
+
+      this.academicSessionStartYear =
+        Number(
+          params['academicSessionStartYear'] || 0
+        );
 
       const lunch =
         params['lunch'] || '';

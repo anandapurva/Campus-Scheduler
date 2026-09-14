@@ -427,16 +427,15 @@
            CLASS EDITOR
            ================================================= -->
 
-      <app-class-editor
-          [selectedCell]="selectedCell"
-
-          [department]="department"
-
-          (save)="saveCell($event)"
-
-          (cancel)="closeEditor()">
-
-    </app-class-editor>
+<app-class-editor
+  [selectedCell]="selectedCell"
+  [program]="program"
+  [semester]="semester"
+  [academicSessionStartYear]="academicSessionStartYear"
+  [department]="department"
+  (save)="saveCell($event)"
+  (cancel)="closeEditor()">
+</app-class-editor>
 
 
     </div>

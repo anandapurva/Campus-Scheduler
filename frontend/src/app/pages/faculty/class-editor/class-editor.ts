@@ -1,10 +1,24 @@
-import {  Component,  EventEmitter,  Input,  Output,  OnInit } from '@angular/core';
-import { ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ChangeDetectorRef,
+  OnChanges,
+  OnInit,
+  SimpleChanges
+} from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
 import { FacultyService } from '../../../services/faculty';
 import { RoomService } from '../../../services/room';
 
+import {
+  BatchService,
+  Batch
+} from '../../../services/batch';
 
 @Component({
   selector: 'app-class-editor',
@@ -18,8 +32,7 @@ import { RoomService } from '../../../services/room';
   templateUrl: './class-editor.html',
   styleUrl: './class-editor.css'
 })
-export class ClassEditor implements OnInit {
-
+export class ClassEditor implements OnInit, OnChanges {
 
   // ==================================================
   // INPUTS
@@ -28,16 +41,17 @@ export class ClassEditor implements OnInit {
   @Input()
   selectedCell: any;
 
+  @Input()
+  program = '';
 
-  /*
-   * Department of the timetable currently being created.
-   *
-   * Example:
-   * CSE & IT
-   */
+  @Input()
+  semester = 0;
+
+  @Input()
+  academicSessionStartYear = 0;
+
   @Input()
   department = '';
-
 
   // ==================================================
   // OUTPUTS
@@ -46,10 +60,8 @@ export class ClassEditor implements OnInit {
   @Output()
   save = new EventEmitter<any>();
 
-
   @Output()
   cancel = new EventEmitter<void>();
-
 
   // ==================================================
   // LECTURE TYPE
@@ -57,32 +69,24 @@ export class ClassEditor implements OnInit {
 
   lectureType = 'L';
 
-
   lectureTypes = [
-
     {
       code: 'L',
       name: 'Lecture'
     },
-
     {
       code: 'T',
       name: 'Tutorial'
     },
-
     {
       code: 'P',
       name: 'Practical'
     }
-
   ];
-
 
   // ==================================================
   // MASTER DATA
   // ==================================================
-
-  batches: any[] = [];
 
   subjects: any[] = [];
 
@@ -90,16 +94,13 @@ export class ClassEditor implements OnInit {
 
   teachers: any[] = [];
 
-
   // ==================================================
   // FACULTY SEARCH
   // ==================================================
 
   teacherSearch = '';
 
-
   filteredTeachers: any[] = [];
-
 
   // ==================================================
   // SELECTED DATA
@@ -111,14 +112,15 @@ export class ClassEditor implements OnInit {
 
   selectedRoom: any = null;
 
-// ==================================================
-// ROOM DROPDOWN
-// ==================================================
+  // ==================================================
+  // ROOM DROPDOWN
+  // ==================================================
 
   roomDropdownOpen = false;
 
   roomSearch = '';
 
+  filteredRooms: any[] = [];
 
   // ==================================================
   // AVAILABLE ROOMS
@@ -126,13 +128,21 @@ export class ClassEditor implements OnInit {
 
   availableRooms: any[] = [];
 
+  // ==================================================
+  // BATCH DATA
+  // ==================================================
 
-  // ==================================================
-  // STUDENT COUNT
-  // ==================================================
+  batches: Batch[] = [];
+
+  selectedBatches: Batch[] = [];
+
+  loadingBatches = false;
+
+  batchError = '';
 
   totalStudents = 0;
 
+  private lastBatchRequestKey = '';
 
   // ==================================================
   // LOADING
@@ -142,822 +152,606 @@ export class ClassEditor implements OnInit {
 
   loadingRooms = false;
 
-
   // ==================================================
   // CONSTRUCTOR
   // ==================================================
 
   constructor(
-
     private facultyService: FacultyService,
     private roomService: RoomService,
+    private batchService: BatchService,
     private cdr: ChangeDetectorRef
-
   ) {}
 
-
   // ==================================================
-  // INIT
+  // INPUT CHANGES
   // ==================================================
 
   ngOnInit(): void {
+  console.log('ClassEditor initialized');
 
-    this.loadFaculty();
+  console.log('Received inputs:', {
+    program: this.program,
+    semester: this.semester,
+    academicSessionStartYear: this.academicSessionStartYear,
+    department: this.department
+  });
 
-    this.loadRooms();
+  // Load master data
+  this.loadFaculty();
+  this.loadRooms();
 
-    /*
-     * Keep your batches and subjects loading
-     * separately when their APIs are ready.
-     */
+  // Load batches if all required inputs are already available
+  this.loadEligibleBatches();
+}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      changes['program'] ||
+      changes['semester'] ||
+      changes['academicSessionStartYear']
+    ) {
+      this.loadEligibleBatches();
+    }
+
+    if (changes['department']) {
+      this.sortFaculty();
+
+      this.filteredTeachers = [...this.teachers];
+    }
   }
 
+  // ==================================================
+  // LOAD ELIGIBLE BATCHES
+  // ==================================================
+
+  loadEligibleBatches(): void {
+    if (
+      !this.program ||
+      !this.semester ||
+      !this.academicSessionStartYear
+    ) {
+      this.batches = [];
+      this.selectedBatches = [];
+      this.totalStudents = 0;
+      this.lastBatchRequestKey = '';
+
+      this.filterRooms();
+
+      return;
+    }
+
+    const requestKey =
+      `${this.program}-${this.semester}-${this.academicSessionStartYear}`;
+
+    if (requestKey === this.lastBatchRequestKey) {
+      return;
+    }
+
+    this.lastBatchRequestKey = requestKey;
+
+    this.loadingBatches = true;
+    this.batchError = '';
+
+    this.batches = [];
+    this.selectedBatches = [];
+    this.totalStudents = 0;
+
+    this.batchService
+      .getEligibleBatches(
+        this.program,
+        this.semester,
+        this.academicSessionStartYear
+      )
+      .subscribe({
+        next: (response) => {
+          this.batches = response.batches || [];
+          this.loadingBatches = false;
+
+          this.calculateStudents();
+          this.filterRooms();
+        },
+
+        error: (error) => {
+          console.error(
+            'Failed to load eligible batches:',
+            error
+          );
+
+          this.batches = [];
+          this.selectedBatches = [];
+          this.totalStudents = 0;
+
+          this.loadingBatches = false;
+
+          this.batchError =
+            error?.error?.message ||
+            'Failed to load eligible batches';
+
+          this.filterRooms();
+        }
+      });
+  }
+
+  // ==================================================
+  // BATCH SELECTION
+  // ==================================================
+
+  isBatchSelected(batch: Batch): boolean {
+    return this.selectedBatches.some(
+      selectedBatch => selectedBatch.id === batch.id
+    );
+  }
+
+  onBatchChange(
+    batch: Batch,
+    event: Event
+  ): void {
+    const checkbox =
+      event.target as HTMLInputElement;
+
+    if (checkbox.checked) {
+      if (!this.isBatchSelected(batch)) {
+        this.selectedBatches.push(batch);
+      }
+    } else {
+      this.selectedBatches =
+        this.selectedBatches.filter(
+          selectedBatch => selectedBatch.id !== batch.id
+        );
+    }
+
+    this.calculateStudents();
+
+    this.filterRooms();
+
+    /*
+     * Remove the selected room if it cannot
+     * accommodate the selected students.
+     */
+    if (
+      this.selectedRoom &&
+      this.totalStudents > 0 &&
+      Number(this.selectedRoom.capacity || 0) <
+        this.totalStudents
+    ) {
+      this.selectedRoom = null;
+    }
+  }
+
+  calculateStudents(): void {
+    /*
+     * Every batch contains exactly 30 students.
+     */
+    this.totalStudents =
+      this.selectedBatches.length * 30;
+  }
+
+  getRequiredCapacity(): number {
+    return this.selectedBatches.length * 30;
+  }
 
   // ==================================================
   // LOAD FACULTY
   // ==================================================
 
-  loadFaculty(): void {
+loadFaculty(): void {
+  this.loadingFaculty = true;
 
-    this.loadingFaculty = true;
+  this.facultyService.getFaculty().subscribe({
+    next: (response: any) => {
+      console.log('Faculty API response:', response);
 
+      if (Array.isArray(response)) {
+        this.teachers = response;
+      } else if (Array.isArray(response?.faculty)) {
+        this.teachers = response.faculty;
+      } else if (Array.isArray(response?.data)) {
+        this.teachers = response.data;
+      } else {
+        this.teachers = [];
+      }
 
-    this.facultyService
-      .getFaculty()
-      .subscribe({
+      console.log('Faculty count:', this.teachers.length);
 
-        next: (data: any[]) => {
+      this.loadingFaculty = false;
 
-          console.log(
-            'Faculty loaded:',
-            data
-          );
+      this.sortFaculty();
+      this.filteredTeachers = [...this.teachers];
 
+      this.cdr.detectChanges();
+    },
 
-          this.loadingFaculty = false;
+    error: (error) => {
+      this.loadingFaculty = false;
+      this.teachers = [];
+      this.filteredTeachers = [];
 
-
-          this.teachers = data || [];
-          this.cdr.detectChanges();
-
-          /*
-           * Put faculty belonging to the
-           * current department first.
-           */
-
-          this.sortFaculty();
-
-
-          this.filteredTeachers =
-            [...this.teachers];
-
-        },
-
-
-        error: (error) => {
-
-          this.loadingFaculty = false;
-
-
-          console.error(
-            'Failed to load faculty:',
-            error
-          );
-
-
-          this.teachers = [];
-
-          this.filteredTeachers = [];
-
-        }
-
-      });
-
-  }
-
+      console.error('Failed to load faculty:', error);
+    }
+  });
+}
 
   // ==================================================
   // SORT FACULTY
   // ==================================================
 
   sortFaculty(): void {
-
     const currentDepartment =
       this.department
         ?.trim()
         .toLowerCase();
 
-
     if (!currentDepartment) {
-
-      this.teachers.sort(
-        (a, b) =>
-          a.name.localeCompare(
-            b.name
-          )
+      this.teachers.sort((a, b) =>
+        String(a.name || '').localeCompare(
+          String(b.name || '')
+        )
       );
 
       return;
-
     }
 
+    this.teachers.sort((a, b) => {
+      const aDepartment =
+        String(a.department || '')
+          .trim()
+          .toLowerCase();
 
-    this.teachers.sort(
-      (a, b) => {
+      const bDepartment =
+        String(b.department || '')
+          .trim()
+          .toLowerCase();
 
-        const aDepartment =
-          String(
-            a.department || ''
-          )
-            .trim()
-            .toLowerCase();
+      const aCurrent =
+        aDepartment === currentDepartment;
 
+      const bCurrent =
+        bDepartment === currentDepartment;
 
-        const bDepartment =
-          String(
-            b.department || ''
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const aCurrent =
-          aDepartment ===
-          currentDepartment;
-
-
-        const bCurrent =
-          bDepartment ===
-          currentDepartment;
-
-
-        /*
-         * Current department first.
-         */
-
-        if (
-          aCurrent &&
-          !bCurrent
-        ) {
-
-          return -1;
-
-        }
-
-
-        if (
-          !aCurrent &&
-          bCurrent
-        ) {
-
-          return 1;
-
-        }
-
-
-        /*
-         * Within same priority,
-         * sort alphabetically.
-         */
-
-        return String(a.name || '')
-          .localeCompare(
-            String(b.name || '')
-          );
-
+      if (aCurrent && !bCurrent) {
+        return -1;
       }
-    );
 
+      if (!aCurrent && bCurrent) {
+        return 1;
+      }
+
+      return String(a.name || '').localeCompare(
+        String(b.name || '')
+      );
+    });
   }
-
 
   // ==================================================
   // FACULTY SEARCH
   // ==================================================
 
   searchFaculty(): void {
-
     const search =
       this.teacherSearch
         .trim()
         .toLowerCase();
 
-
     if (!search) {
-
-      this.filteredTeachers =
-        [...this.teachers];
-
+      this.filteredTeachers = [...this.teachers];
       return;
-
     }
 
-
     this.filteredTeachers =
-      this.teachers.filter(
-        teacher => {
+      this.teachers.filter(teacher => {
+        const name =
+          String(teacher.name || '').toLowerCase();
 
-          const name =
-            String(
-              teacher.name || ''
-            ).toLowerCase();
+        const abbreviation =
+          String(teacher.abbreviation || '').toLowerCase();
 
-
-          const abbreviation =
-            String(
-              teacher.abbreviation || ''
-            ).toLowerCase();
-
-
-          return (
-
-            name.includes(search) ||
-
-            abbreviation.includes(search)
-
-          );
-
-        }
-      );
-
+        return (
+          name.includes(search) ||
+          abbreviation.includes(search)
+        );
+      });
   }
-
 
   // ==================================================
   // LOAD ROOMS
   // ==================================================
 
 loadRooms(): void {
-
   this.loadingRooms = true;
 
-  this.roomService
-    .getRooms()
-    .subscribe({
+  this.roomService.getRooms().subscribe({
+    next: (response: any) => {
+      console.log('Rooms API response:', response);
 
-      next: (data: any[]) => {
-
-        console.log('RAW ROOMS:', data);
-        console.log('ROOM COUNT:', data?.length);
-
-        this.loadingRooms = false;
-
-        this.rooms = data || [];
-        this.cdr.detectChanges();
-
-        this.filterRooms();
-        this.filterRoomsBySearch();
-
-      },
-
-      error: (error) => {
-
-        this.loadingRooms = false;
-
-        console.error(
-          'Failed to load rooms:',
-          error
-        );
-
+      if (Array.isArray(response)) {
+        this.rooms = response;
+      } else if (Array.isArray(response?.rooms)) {
+        this.rooms = response.rooms;
+      } else if (Array.isArray(response?.data)) {
+        this.rooms = response.data;
+      } else {
         this.rooms = [];
-        this.availableRooms = [];
-
       }
 
-    });
+      console.log('Room count:', this.rooms.length);
 
+      this.loadingRooms = false;
+
+      this.filterRooms();
+      this.filterRoomsBySearch();
+
+      this.cdr.detectChanges();
+    },
+
+    error: (error) => {
+      this.loadingRooms = false;
+      this.rooms = [];
+      this.availableRooms = [];
+      this.filteredRooms = [];
+
+      console.error('Failed to load rooms:', error);
+    }
+  });
 }
-
-
-  // ==================================================
-  // BATCH CHANGE
-  // ==================================================
-
-onBatchChange(): void {
-
-  this.calculateStudents();
-
-  /*
-   * Re-filter and re-sort rooms because
-   * the required capacity has changed.
-   */
-
-  this.filterRooms();
-
-
-  /*
-   * If the currently selected room can no
-   * longer accommodate the students,
-   * remove the selection.
-   */
-
-  if (
-    this.selectedRoom &&
-    this.totalStudents > 0 &&
-    Number(this.selectedRoom.capacity || 0) <
-      this.totalStudents
-  ) {
-
-    this.selectedRoom = null;
-
-  }
-
-}
-
-
-  // ==================================================
-  // CALCULATE STUDENTS
-  // ==================================================
-
-  calculateStudents(): void {
-
-    this.totalStudents =
-      this.batches
-
-        .filter(
-          batch => batch.selected
-        )
-
-        .reduce(
-          (
-            total,
-            batch
-          ) =>
-
-            total +
-            Number(
-              batch.students || 0
-            ),
-
-          0
-        );
-
-  }
-
 
   // ==================================================
   // LECTURE TYPE CHANGE
   // ==================================================
 
-onLectureTypeChange(): void {
+  onLectureTypeChange(): void {
+    this.selectedRoom = null;
 
-  this.selectedRoom = null;
+    this.roomSearch = '';
 
-  this.roomSearch = '';
+    this.roomDropdownOpen = false;
 
-  this.roomDropdownOpen = false;
-
-  this.filterRooms();
-
-}
-
+    this.filterRooms();
+  }
 
   // ==================================================
   // FILTER ROOMS
   // ==================================================
 
-filterRooms(): void {
+  filterRooms(): void {
+    if (!this.rooms.length) {
+      this.availableRooms = [];
+      this.filteredRooms = [];
+      return;
+    }
 
-  if (!this.rooms.length) {
-    this.availableRooms = [];
-    return;
-  }
-
-  /*
-   * Selected lecture type:
-   *
-   * L = Lecture
-   * T = Tutorial
-   * P = Practical
-   */
-  const selectedType =
-    String(this.lectureType || '')
-      .trim()
-      .toUpperCase();
-
-
-  /*
-   * Create a copy so that the original
-   * rooms array is not modified.
-   */
-  this.availableRooms = [...this.rooms];
-
-
-  /*
-   * Sort rooms according to priority.
-   */
-  this.availableRooms.sort((a, b) => {
-
-    const aType =
-      String(a.room_type || '')
+    const selectedType =
+      String(this.lectureType || '')
         .trim()
         .toUpperCase();
 
-    const bType =
-      String(b.room_type || '')
-        .trim()
-        .toUpperCase();
+    this.availableRooms = [...this.rooms];
 
+    this.availableRooms.sort((a, b) => {
+      const aType =
+        String(a.room_type || '')
+          .trim()
+          .toUpperCase();
 
-    const aCapacity =
-      Number(a.capacity || 0);
+      const bType =
+        String(b.room_type || '')
+          .trim()
+          .toUpperCase();
 
-    const bCapacity =
-      Number(b.capacity || 0);
+      const aCapacity =
+        Number(a.capacity || 0);
 
+      const bCapacity =
+        Number(b.capacity || 0);
 
-    /*
-     * ----------------------------------------
-     * TYPE MATCH
-     * ----------------------------------------
-     */
+      const aTypeMatch =
+        aType === selectedType;
 
-    const aTypeMatch =
-      aType === selectedType;
+      const bTypeMatch =
+        bType === selectedType;
 
-    const bTypeMatch =
-      bType === selectedType;
+      const aCapacityEnough =
+        aCapacity >= this.totalStudents;
 
+      const bCapacityEnough =
+        bCapacity >= this.totalStudents;
 
-    /*
-     * ----------------------------------------
-     * CAPACITY MATCH
-     * ----------------------------------------
-     */
+      const getPriority = (
+        typeMatch: boolean,
+        capacityEnough: boolean
+      ): number => {
+        if (typeMatch && capacityEnough) {
+          return 1;
+        }
 
-    const aCapacityEnough =
-      aCapacity >= this.totalStudents;
+        if (typeMatch && !capacityEnough) {
+          return 2;
+        }
 
-    const bCapacityEnough =
-      bCapacity >= this.totalStudents;
+        if (!typeMatch && capacityEnough) {
+          return 3;
+        }
 
+        return 4;
+      };
 
-    /*
-     * ----------------------------------------
-     * PRIORITY
-     * ----------------------------------------
-     *
-     * 1 = Correct type + enough capacity
-     * 2 = Correct type + insufficient capacity
-     * 3 = Wrong type + enough capacity
-     * 4 = Wrong type + insufficient capacity
-     */
+      const aPriority =
+        getPriority(
+          aTypeMatch,
+          aCapacityEnough
+        );
 
-    const getPriority = (
-      typeMatch: boolean,
-      capacityEnough: boolean
-    ): number => {
+      const bPriority =
+        getPriority(
+          bTypeMatch,
+          bCapacityEnough
+        );
 
-      if (
-        typeMatch &&
-        capacityEnough
-      ) {
-        return 1;
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
       }
 
+      /*
+       * Smaller suitable room first.
+       */
       if (
-        typeMatch &&
-        !capacityEnough
-      ) {
-        return 2;
-      }
-
-      if (
-        !typeMatch &&
-        capacityEnough
-      ) {
-        return 3;
-      }
-
-      return 4;
-
-    };
-
-
-    const aPriority =
-      getPriority(
-        aTypeMatch,
-        aCapacityEnough
-      );
-
-    const bPriority =
-      getPriority(
-        bTypeMatch,
+        aCapacityEnough &&
         bCapacityEnough
-      );
+      ) {
+        return aCapacity - bCapacity;
+      }
 
-
-    /*
-     * First sort by priority.
-     */
-    if (
-      aPriority !== bPriority
-    ) {
-
-      return (
-        aPriority -
-        bPriority
-      );
-
-    }
-
-
-    /*
-     * Within the same priority:
-     *
-     * Smaller suitable room first.
-     *
-     * Example:
-     * 90 seats before 120 seats
-     */
-    if (
-      aCapacityEnough &&
-      bCapacityEnough
-    ) {
-
-      return (
-        aCapacity -
-        bCapacity
-      );
-
-    }
-
-
-    /*
-     * For insufficient rooms,
-     * larger capacity first.
-     *
-     * Example:
-     * 60 seats before 30 seats
-     * when 90 are required.
-     */
-    return (
-      bCapacity -
-      aCapacity
-    );
-
-  });
-  
-  // Update searchable room list
-  this.filterRoomsBySearch();
-
-}
-
-// ==================================================
-// SELECT ROOM
-// ==================================================
-
-selectRoom(room: any): void {
-
-  /*
-   * Prevent selecting a room that
-   * cannot accommodate all students.
-   */
-
-  if (
-    this.totalStudents > 0 &&
-    Number(room.capacity || 0) < this.totalStudents
-  ) {
-
-    return;
-
-  }
-
-
-  // Select exactly ONE room
-  this.selectedRoom = room;
-
-
-  // Close dropdown
-  this.roomDropdownOpen = false;
-
-
-  // Clear search
-  this.roomSearch = '';
-
-}
-
-// ==================================================
-// FILTERED ROOMS FOR SEARCH
-// ==================================================
-
-filteredRooms: any[] = [];
-
-filterRoomsBySearch(): void {
-
-  const search =
-    this.roomSearch
-      .trim()
-      .toLowerCase();
-
-  if (!search) {
-    this.filteredRooms = [...this.availableRooms];
-    return;
-  }
-
-  this.filteredRooms =
-    this.availableRooms.filter(room => {
-
-      const roomId =
-        String(room.room_id || '').toLowerCase();
-
-      const roomName =
-        String(room.room_name || '').toLowerCase();
-
-      const roomType =
-        String(room.room_type || '').toLowerCase();
-
-      return (
-        roomId.includes(search) ||
-        roomName.includes(search) ||
-        roomType.includes(search)
-      );
+      /*
+       * Larger insufficient room first.
+       */
+      return bCapacity - aCapacity;
     });
-}
 
+    this.filterRoomsBySearch();
+  }
+
+  // ==================================================
+  // ROOM SELECTION
+  // ==================================================
+
+  selectRoom(room: any): void {
+    /*
+     * Do not select a room with insufficient capacity.
+     */
+    if (
+      this.totalStudents > 0 &&
+      Number(room.capacity || 0) < this.totalStudents
+    ) {
+      return;
+    }
+
+    this.selectedRoom = room;
+
+    this.roomDropdownOpen = false;
+
+    this.roomSearch = '';
+
+    this.filterRoomsBySearch();
+  }
+
+  // ==================================================
+  // FILTER ROOMS BY SEARCH
+  // ==================================================
+
+  filterRoomsBySearch(): void {
+    const search =
+      this.roomSearch
+        .trim()
+        .toLowerCase();
+
+    if (!search) {
+      this.filteredRooms = [...this.availableRooms];
+      return;
+    }
+
+    this.filteredRooms =
+      this.availableRooms.filter(room => {
+        const roomId =
+          String(room.room_id || '').toLowerCase();
+
+        const roomName =
+          String(room.room_name || '').toLowerCase();
+
+        const roomType =
+          String(room.room_type || '').toLowerCase();
+
+        return (
+          roomId.includes(search) ||
+          roomName.includes(search) ||
+          roomType.includes(search)
+        );
+      });
+  }
 
   // ==================================================
   // TEACHER SELECTION
   // ==================================================
 
-  toggleTeacher(
-    teacher: any
-  ): void {
-
+  toggleTeacher(teacher: any): void {
     const exists =
       this.selectedTeachers.some(
-        t =>
-          t.id === teacher.id
+        t => t.id === teacher.id
       );
-
 
     if (exists) {
-
       this.selectedTeachers =
         this.selectedTeachers.filter(
-          t =>
-            t.id !== teacher.id
+          t => t.id !== teacher.id
         );
-
+    } else {
+      this.selectedTeachers.push(teacher);
     }
-    else {
-
-      this.selectedTeachers.push(
-        teacher
-      );
-
-    }
-
   }
-
 
   // ==================================================
   // CHECK TEACHER
   // ==================================================
 
-  isTeacherSelected(
-    teacher: any
-  ): boolean {
-
+  isTeacherSelected(teacher: any): boolean {
     return this.selectedTeachers.some(
-      t =>
-        t.id === teacher.id
+      t => t.id === teacher.id
     );
-
   }
-
 
   // ==================================================
   // SUBMIT
   // ==================================================
 
   submit(): void {
+    const selectedBatches = this.selectedBatches;
 
-    const selectedBatches =
-      this.batches.filter(
-        batch =>
-          batch.selected
-      );
-
-
-    if (
-      selectedBatches.length === 0
-    ) {
-
-      alert(
-        'Please select at least one batch.'
-      );
-
+    if (selectedBatches.length === 0) {
+      alert('Please select at least one batch.');
       return;
-
     }
 
-
-    if (
-      !this.selectedSubject
-    ) {
-
-      alert(
-        'Please select a subject.'
-      );
-
+    if (!this.selectedSubject) {
+      alert('Please select a subject.');
       return;
-
     }
 
-
-    if (
-      !this.selectedRoom
-    ) {
-
-      alert(
-        'Please select a room.'
-      );
-
+    if (!this.selectedRoom) {
+      alert('Please select a room.');
       return;
-
     }
-
-
-    // const data = {
-
-    //   lectureType:
-    //     this.lectureType,
-
-    //   batches:
-    //     selectedBatches,
-
-    //   subjectCode:
-    //     this.selectedSubject.code,
-
-    //   subjectName:
-    //     this.selectedSubject.name,
-
-    //   room:
-    //     this.selectedRoom.name,
-
-    //   roomId:
-    //     this.selectedRoom.id,
-
-    //   teachers:
-    //     this.selectedTeachers,
-
-    //   totalStudents:
-    //     this.totalStudents
-
-    // };
 
     const data = {
+      lectureType: this.lectureType,
 
-  lectureType:
-    this.lectureType,
+      batches: selectedBatches,
 
-  batches:
-    selectedBatches,
+      subjectCode: this.selectedSubject.code,
 
-  subjectCode:
-    this.selectedSubject.code,
+      subjectName: this.selectedSubject.name,
 
-  subjectName:
-    this.selectedSubject.name,
+      room: this.selectedRoom.room_id,
 
-  room:
-    this.selectedRoom.room_id,
+      roomId: this.selectedRoom.id,
 
-  roomId:
-    this.selectedRoom.id,
+      roomName: this.selectedRoom.room_name,
 
-  roomName:
-    this.selectedRoom.room_name,
+      roomType: this.selectedRoom.room_type,
 
-  roomType:
-    this.selectedRoom.room_type,
+      roomCapacity: this.selectedRoom.capacity,
 
-  roomCapacity:
-    this.selectedRoom.capacity,
+      teachers: this.selectedTeachers,
 
-  teachers:
-    this.selectedTeachers,
-
-  totalStudents:
-    this.totalStudents
-
-};
-
+      totalStudents: this.totalStudents
+    };
 
     this.save.emit(data);
-
   }
-
 
   // ==================================================
   // CANCEL
   // ==================================================
 
   close(): void {
-
     this.cancel.emit();
-
   }
-
 }

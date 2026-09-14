@@ -33,35 +33,54 @@
     </div>
 
 
-    <div class="teacher-profile">
+<!-- Teacher Profile -->
 
-      <div class="avatar">
-        {{ teacherName.charAt(0).toUpperCase() }}
-      </div>
+<div
+  class="teacher-profile"
+  (click)="toggleTeacherMenu()"
+>
+  <div class="avatar">
+    {{ teacherName.charAt(0).toUpperCase() }}
+  </div>
 
-      <div class="profile-text">
+  <div class="profile-text">
 
-        <strong>
-          {{ teacherName }}
-        </strong>
+    <strong>
+      {{ teacherName }}
+    </strong>
 
-        <span>
-          {{ department }}
-        </span>
+    <span>
+      {{ department }}
+    </span>
 
-        <small
-          [class.edit-access]="canEdit"
-          [class.view-access]="!canEdit">
+    <small
+      [class.edit-access]="canEdit"
+      [class.view-access]="!canEdit"
+    >
+      <i></i>
 
-          <i></i>
+      {{ canEdit ? 'Edit Access' : 'View Only' }}
+    </small>
 
-          {{ canEdit ? 'Edit Access' : 'View Only' }}
+    <!-- Logout appears only after clicking the profile -->
 
-        </small>
-
-      </div>
-
+    <div
+      class="logout-container"
+      *ngIf="showLogout"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        class="logout-button"
+        (click)="logout()"
+      >
+        <span>↪</span>
+        Logout
+      </button>
     </div>
+
+  </div>
+</div>
 
   </header>
 

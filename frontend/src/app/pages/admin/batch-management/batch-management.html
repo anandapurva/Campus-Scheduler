@@ -1,0 +1,829 @@
+<div class="batch-page">
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <div class="page-header">
+
+    <div>
+      <h1>Batch Management</h1>
+
+      <p>
+        Manage student batches, enrollment years and
+        academic programs.
+      </p>
+    </div>
+
+    <button
+      class="primary-btn"
+      (click)="openAddForm()"
+    >
+      + Add Batch
+    </button>
+
+  </div>
+
+
+  <!-- =====================================================
+       CSV IMPORT
+  ====================================================== -->
+
+  <div class="card import-card">
+
+    <div class="card-header">
+
+      <div>
+        <h2>Import Batches</h2>
+
+        <p>
+          Upload a CSV file to preview and import batches.
+        </p>
+      </div>
+
+    </div>
+
+
+    <div class="csv-upload-area">
+
+      <div class="file-input-wrapper">
+
+        <input
+          type="file"
+          id="batchCsv"
+          accept=".csv"
+          (change)="onFileSelected($event)"
+        />
+
+        <label
+          for="batchCsv"
+          class="file-label"
+        >
+          Choose CSV File
+        </label>
+
+      </div>
+
+
+      <span
+        class="file-name"
+        *ngIf="selectedFile"
+      >
+        {{ selectedFile.name }}
+      </span>
+
+
+      <button
+        class="secondary-btn"
+        *ngIf="selectedFile"
+        (click)="previewCSV()"
+      >
+        Preview CSV
+      </button>
+
+
+      <button
+        class="danger-outline-btn"
+        *ngIf="selectedFile"
+        (click)="resetCSV()"
+      >
+        Clear
+      </button>
+
+    </div>
+
+
+    <div class="csv-help">
+
+      <strong>Required CSV columns:</strong>
+
+      <code>
+        batch_code, program, batch_type,
+        enrollment_year, department
+      </code>
+
+      <span>
+        Each batch represents 30 students.
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       IMPORT RESULT
+  ====================================================== -->
+
+  <div
+    class="import-result"
+    *ngIf="importResult"
+  >
+
+    <h3>Import Result</h3>
+
+    <div class="result-grid">
+
+      <div class="result-box total">
+        <span>Total</span>
+        <strong>
+          {{ importResult.total }}
+        </strong>
+      </div>
+
+      <div class="result-box inserted">
+        <span>Inserted</span>
+        <strong>
+          {{ importResult.inserted }}
+        </strong>
+      </div>
+
+      <div class="result-box updated">
+        <span>Updated</span>
+        <strong>
+          {{ importResult.updated }}
+        </strong>
+      </div>
+
+      <div class="result-box unchanged">
+        <span>Unchanged</span>
+        <strong>
+          {{ importResult.unchanged }}
+        </strong>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       CSV PREVIEW
+  ====================================================== -->
+
+  <div
+    class="card preview-card"
+    *ngIf="showPreview"
+  >
+
+    <div class="card-header">
+
+      <div>
+
+        <h2>CSV Preview</h2>
+
+        <p>
+          Review the data before importing.
+        </p>
+
+      </div>
+
+      <button
+        class="primary-btn"
+        [disabled]="previewInvalid > 0 || isImporting"
+        (click)="importCSV()"
+      >
+        {{
+          isImporting
+            ? 'Importing...'
+            : 'Import CSV'
+        }}
+      </button>
+
+    </div>
+
+
+    <!-- Summary -->
+
+    <div class="preview-summary">
+
+      <div>
+        <span>Total Rows</span>
+        <strong>
+          {{ previewTotal }}
+        </strong>
+      </div>
+
+      <div class="valid-summary">
+        <span>Valid</span>
+        <strong>
+          {{ previewValid }}
+        </strong>
+      </div>
+
+      <div class="invalid-summary">
+        <span>Invalid</span>
+        <strong>
+          {{ previewInvalid }}
+        </strong>
+      </div>
+
+    </div>
+
+
+    <!-- Preview Table -->
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>#</th>
+
+            <th>Batch Code</th>
+
+            <th>Program</th>
+
+            <th>Batch Type</th>
+
+            <th>Enrollment Year</th>
+
+            <th>Department</th>
+
+            <th>Status</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          <tr
+            *ngFor="let row of previewData"
+            [class.invalid-row]="!row.valid"
+          >
+
+            <td>
+              {{ row.row }}
+            </td>
+
+            <td>
+              {{ row.batch_code }}
+            </td>
+
+            <td>
+              {{ getProgramLabel(row.program) }}
+            </td>
+
+            <td>
+              <span class="type-pill">
+                {{ row.batch_type }}
+              </span>
+            </td>
+
+            <td>
+              {{ row.enrollment_year }}
+            </td>
+
+            <td>
+              {{ row.department }}
+            </td>
+
+            <td>
+
+              <span
+                class="status-pill valid"
+                *ngIf="row.valid"
+              >
+                ✓ Valid
+              </span>
+
+              <span
+                class="status-pill invalid"
+                *ngIf="!row.valid"
+              >
+                ✕ Invalid
+              </span>
+
+              <div
+                class="row-errors"
+                *ngIf="!row.valid"
+              >
+                <small
+                  *ngFor="let error of row.errors"
+                >
+                  {{ error }}
+                </small>
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       MASTER TABLE
+  ====================================================== -->
+
+  <div class="card">
+
+    <div class="master-header">
+
+      <div>
+
+        <h2>Batch List</h2>
+
+        <p>
+          {{ filteredBatches.length }}
+          batch{{ filteredBatches.length === 1 ? '' : 'es' }}
+        </p>
+
+      </div>
+
+
+      <div class="filters">
+
+        <input
+          type="text"
+          placeholder="Search batches..."
+          [(ngModel)]="searchTerm"
+          (input)="applyFilters()"
+        />
+
+
+        <select
+          [(ngModel)]="selectedProgramFilter"
+          (change)="applyFilters()"
+        >
+
+          <option value="">
+            All Programs
+          </option>
+
+          <option
+            *ngFor="let program of programs"
+            [value]="program"
+          >
+            {{ getProgramLabel(program) }}
+          </option>
+
+        </select>
+
+
+        <select
+          [(ngModel)]="selectedBatchTypeFilter"
+          (change)="applyFilters()"
+        >
+
+          <option value="">
+            All Batch Types
+          </option>
+
+          <option
+            *ngFor="let type of batchTypes"
+            [value]="type"
+          >
+            {{ type }}
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <!-- Loading -->
+
+    <div
+      class="loading-state"
+      *ngIf="isLoading"
+    >
+      Loading batches...
+    </div>
+
+
+    <!-- Empty -->
+
+    <div
+      class="empty-state"
+      *ngIf="
+        !isLoading &&
+        paginatedBatches.length === 0
+      "
+    >
+
+      <div class="empty-icon">
+        📚
+      </div>
+
+      <h3>No batches found</h3>
+
+      <p>
+        Add a batch or import batches using CSV.
+      </p>
+
+    </div>
+
+
+    <!-- Table -->
+
+    <div
+      class="table-wrapper"
+      *ngIf="
+        !isLoading &&
+        paginatedBatches.length > 0
+      "
+    >
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>#</th>
+
+            <th>Batch Code</th>
+
+            <th>Program</th>
+
+            <th>Batch Type</th>
+
+            <th>Enrollment Year</th>
+
+            <th>Department</th>
+
+            <th>Students</th>
+
+            <th>Actions</th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let batch of paginatedBatches;
+              let i = index
+            "
+          >
+
+            <td>
+              {{
+                ((currentPage - 1) * pageSize)
+                + i + 1
+              }}
+            </td>
+
+
+            <td>
+
+              <strong>
+                {{ batch.batch_code }}
+              </strong>
+
+            </td>
+
+
+            <td>
+
+              <span class="program-pill">
+                {{ getProgramLabel(batch.program) }}
+              </span>
+
+            </td>
+
+
+            <td>
+
+              <span
+                class="type-pill"
+                [class.integrated]="
+                  batch.batch_type === 'Integrated'
+                "
+              >
+                {{ batch.batch_type }}
+              </span>
+
+            </td>
+
+
+            <td>
+              {{ batch.enrollment_year }}
+            </td>
+
+
+            <td>
+              {{ batch.department }}
+            </td>
+
+
+            <td>
+
+              <span class="student-count">
+                30
+              </span>
+
+            </td>
+
+
+            <td>
+
+              <div class="actions">
+
+                <button
+                  class="edit-btn"
+                  title="Edit"
+                  (click)="editBatch(batch)"
+                >
+                  ✎
+                </button>
+
+                <button
+                  class="delete-btn"
+                  title="Delete"
+                  (click)="deleteBatch(batch)"
+                >
+                  🗑
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- Pagination -->
+
+    <div
+      class="pagination"
+      *ngIf="
+        !isLoading &&
+        filteredBatches.length > 0
+      "
+    >
+
+      <button
+        [disabled]="currentPage === 1"
+        (click)="previousPage()"
+      >
+        ‹
+      </button>
+
+
+      <button
+        *ngFor="let page of pageNumbers"
+        [class.active]="
+          currentPage === page
+        "
+        (click)="goToPage(page)"
+      >
+        {{ page }}
+      </button>
+
+
+      <button
+        [disabled]="
+          currentPage === totalPages
+        "
+        (click)="nextPage()"
+      >
+        ›
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       ADD / EDIT MODAL
+  ====================================================== -->
+
+  <div
+    class="modal-backdrop"
+    *ngIf="showBatchForm"
+    (click)="closeBatchForm()"
+  >
+
+    <div
+      class="modal"
+      (click)="$event.stopPropagation()"
+    >
+
+      <div class="modal-header">
+
+        <div>
+
+          <h2>
+            {{
+              isEditing
+                ? 'Edit Batch'
+                : 'Add Batch'
+            }}
+          </h2>
+
+          <p>
+            {{
+              isEditing
+                ? 'Update batch information'
+                : 'Enter batch information'
+            }}
+          </p>
+
+        </div>
+
+        <button
+          class="close-btn"
+          (click)="closeBatchForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="form-body">
+
+
+        <!-- Batch Code -->
+
+        <div class="form-group">
+
+          <label>
+            Batch Code
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="batchForm.batch_code"
+            placeholder="Example: CSE-B1"
+          />
+
+        </div>
+
+
+        <!-- Program -->
+
+        <div class="form-group">
+
+          <label>
+            Program
+          </label>
+
+          <select
+            [(ngModel)]="batchForm.program"
+          >
+
+            <option
+              *ngFor="let program of programs"
+              [value]="program"
+            >
+              {{ getProgramLabel(program) }}
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Batch Type -->
+
+        <div class="form-group">
+
+          <label>
+            Batch Type
+          </label>
+
+          <select
+            [(ngModel)]="batchForm.batch_type"
+          >
+
+            <option
+              *ngFor="let type of batchTypes"
+              [value]="type"
+            >
+              {{ type }}
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <!-- Enrollment Year -->
+
+        <div class="form-group">
+
+          <label>
+            Enrollment Year
+          </label>
+
+          <input
+            type="number"
+            [(ngModel)]="batchForm.enrollment_year"
+            min="2000"
+            max="2100"
+          />
+
+        </div>
+
+
+        <!-- Department -->
+
+        <div class="form-group">
+
+          <label>
+            Department
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="batchForm.department"
+            placeholder="Example: Computer Science and Engineering"
+          />
+
+        </div>
+
+
+        <!-- Student Count -->
+
+        <div class="student-info">
+
+          <span>
+            Students in this batch
+          </span>
+
+          <strong>
+            30
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-footer">
+
+        <button
+          class="cancel-btn"
+          (click)="closeBatchForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="primary-btn"
+          (click)="saveBatch()"
+        >
+          {{
+            isEditing
+              ? 'Update Batch'
+              : 'Add Batch'
+          }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       TOAST
+  ====================================================== -->
+
+  <div
+    class="toast"
+    *ngIf="showToast"
+    [class.success]="toastType === 'success'"
+    [class.error]="toastType === 'error'"
+    [class.info]="toastType === 'info'"
+  >
+
+    <span>
+      {{ toastMessage }}
+    </span>
+
+    <button
+      (click)="closeToast()"
+    >
+      ×
+    </button>
+
+  </div>
+
+</div>

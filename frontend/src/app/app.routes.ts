@@ -5,7 +5,7 @@ import { Users } from './pages/admin/users/users';
 import { Faculty } from './pages/admin/faculty/faculty';
 import { SubjectManagement } from './pages/admin/subject-management/subject-management';
 import { Rooms } from './pages/admin/rooms/rooms';
-import { Batches } from './pages/admin/batches/batches';
+import { BatchManagement } from './pages/admin/batch-management/batch-management';
 import { Uploads } from './pages/admin/uploads/uploads';
 import { Timetables } from './pages/admin/timetables/timetables';
 import { TeacherDashboard } from './pages/faculty/teacher-dashboard/teacher-dashboard';
@@ -57,8 +57,8 @@ export const routes: Routes = [
   },
 
   {
-    path: 'admin/batches',
-    component: Batches
+    path: 'admin/batch-management',
+    component: BatchManagement
   },
 
   {

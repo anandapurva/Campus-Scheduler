@@ -16,7 +16,9 @@ const roomRoutes = require("./routes/room.route");
 const departmentRoutes = require("./routes/department.route");
 const subjectRoutes = require("./routes/subject.routes");
 const dashboardRoutes = require('./routes/dashboard.route');
+const batchRoutes = require('./routes/batch.routes');
 
+app.use('/api/batches', batchRoutes);
 app.use( "/api/auth", authRoutes );
 app.use( '/api/dashboard', dashboardRoutes );
 app.use( "/api/faculty", facultyRoutes );

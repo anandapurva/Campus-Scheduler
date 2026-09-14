@@ -62,12 +62,16 @@ export class AuthService {
   }
 
   // LOGOUT
-  logout(): void {
+  // ==========================================
 
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+logout(): void {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  localStorage.removeItem('role');
 
-  }
+  sessionStorage.clear();
+  window.location.href = '/login';
+}
 
   // CHECK LOGIN
   isLoggedIn(): boolean {

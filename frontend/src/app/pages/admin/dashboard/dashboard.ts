@@ -2,12 +2,15 @@ import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { DashboardService } from '../../../services/dashboard';
 import { ChangeDetectorRef } from '@angular/core';
+import { AuthService } from '../../../services/auth';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-dashboard',
   imports: [
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
+    CommonModule
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -24,6 +27,7 @@ facultyCount = 0;
 
 constructor(
   private dashboardService: DashboardService,
+  private authService: AuthService,
   private cdr: ChangeDetectorRef
 ) {}
 
@@ -32,6 +36,9 @@ ngOnInit(): void {
   this.loadDashboardStats();
 
 }
+
+showLogout = false;
+
 
 loadDashboardStats(): void {
 
@@ -73,6 +80,15 @@ loadDashboardStats(): void {
 
     });
 
+}
+
+
+toggleAdminMenu(): void {
+  this.showLogout = !this.showLogout;
+}
+
+logout(): void {
+  this.authService.logout();
 }
 
 }

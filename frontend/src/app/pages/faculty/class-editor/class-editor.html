@@ -53,58 +53,88 @@
        BATCHES
        ====================================== -->
 
-  <div class="form-section">
+  <div class="batch-section">
 
-    <label>
-      Batches
-    </label>
+  <h3>Select Batches</h3>
 
-    <div class="checkbox-list">
+  <p class="batch-description">
+    Each batch contains 30 students.
+  </p>
 
-      <label
-        *ngFor="
-          let batch of batches
-        "
-        class="checkbox-option">
+  <div
+    *ngIf="loadingBatches"
+    class="loading-message"
+  >
+    Loading eligible batches...
+  </div>
 
-        <input
-          type="checkbox"
+  <div
+    *ngIf="!loadingBatches && batchError"
+    class="error-message"
+  >
+    {{ batchError }}
+  </div>
 
-          [(ngModel)]="batch.selected"
+  <div
+    *ngIf="
+      !loadingBatches &&
+      !batchError &&
+      batches.length === 0
+    "
+    class="empty-message"
+  >
+    No eligible batches found.
+  </div>
 
-          (change)="
-            onBatchChange()
-          "
-        />
+  <label
+    class="batch-option"
+    *ngFor="let batch of batches"
+  >
+    <input
+      type="checkbox"
+      [checked]="isBatchSelected(batch)"
+      (change)="onBatchChange(batch, $event)"
+    />
 
-        <span>
-          {{ batch.name }}
-        </span>
-
-        <small>
-          {{ batch.students }} students
-        </small>
-
-      </label>
-
-    </div>
-
-
-    <!-- STUDENT COUNT -->
-
-    <div
-      class="student-count"
-      *ngIf="totalStudents > 0">
-
-      Total students:
-
+    <div class="batch-info">
       <strong>
-        {{ totalStudents }}
+        {{ batch.batch_code }}
       </strong>
 
-    </div>
+      <span>
+        30 students
+      </span>
 
+      <small>
+        {{ batch.program }}
+        · {{ batch.batch_type }}
+        · Enrolled {{ batch.enrollment_year }}
+      </small>
+    </div>
+  </label>
+
+  <div
+    *ngIf="selectedBatches.length > 0"
+    class="selected-batches-summary"
+  >
+    <strong>
+      Selected batches:
+    </strong>
+
+    <span>
+      {{ selectedBatches.length }}
+    </span>
+
+    <strong>
+      Total students:
+    </strong>
+
+    <span>
+      {{ totalStudents }}
+    </span>
   </div>
+
+</div>
 
 
   <!-- ======================================
