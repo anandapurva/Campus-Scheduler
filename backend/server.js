@@ -17,7 +17,9 @@ const departmentRoutes = require("./routes/department.route");
 const subjectRoutes = require("./routes/subject.routes");
 const dashboardRoutes = require('./routes/dashboard.route');
 const batchRoutes = require('./routes/batch.routes');
+const academicSessionRoutes = require('./routes/academicSessionRoutes');
 
+app.use('/api/academic-sessions', academicSessionRoutes);
 app.use('/api/batches', batchRoutes);
 app.use( "/api/auth", authRoutes );
 app.use( '/api/dashboard', dashboardRoutes );

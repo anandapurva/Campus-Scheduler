@@ -6,7 +6,9 @@ const timetableConfigController =
     require("../controllers/timetableConfig.controller");
 
 
+// ============================================================
 // LOCK LUNCH
+// ============================================================
 
 router.post(
     "/lock-lunch",
@@ -14,27 +16,37 @@ router.post(
 );
 
 
-// router.post(
-//     "/lock-lunch",
-//     (req, res, next) => {
-
-//         console.log("LOCK LUNCH ROUTE HIT");
-//         console.log("REQUEST BODY:", req.body);
-
-//         next();
-
-//     },
-//     timetableConfigController.lockLunch
-// );
-
-
-
-// GET LOCKED LUNCH
+// ============================================================
+// GET LUNCH BY PROGRAM + YEAR
+// ============================================================
 
 router.get(
     "/lunch",
     timetableConfigController.getLunchConfiguration
 );
 
+
+// ============================================================
+// GET ALL LUNCH CONFIGURATIONS
+// ============================================================
+
+router.get(
+    "/lunch/all",
+    timetableConfigController.getAllLunchConfigurations
+);
+
+router.get(
+    "/lunch/batch",
+    timetableConfigController.getLunchForBatch
+);
+
+// ============================================================
+// CHANGE LUNCH
+// ============================================================
+
+router.put(
+    "/lunch/change",
+    timetableConfigController.changeLunch
+);
 
 module.exports = router;

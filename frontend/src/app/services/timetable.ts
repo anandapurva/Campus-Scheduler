@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -47,30 +47,20 @@ export class TimetableService {
   // GET LUNCH
   // ==================================================
 
-  getLunchConfiguration(
-    department: string,
-    program: string,
-    semester: number
-  ): Observable<any> {
+ getLunchConfiguration(
+  program: string,
+  year: number
+): Observable<any> {
 
-    return this.http.get(
+  const params = new HttpParams()
+    .set('program', program)
+    .set('year', year.toString());
 
-      `${this.apiUrl}/lunch`,
+  return this.http.get(
+    `${this.apiUrl}/lunch`,
+    { params }
+  );
 
-      {
-        params: {
-
-          department,
-          program,
-          semester:
-            semester.toString()
-
-        }
-
-      }
-
-    );
-
-  }
+}
 
 }

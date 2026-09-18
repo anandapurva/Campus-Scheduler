@@ -1,20 +1,10 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  ChangeDetectorRef,
-  OnChanges,
-  OnInit,
-  SimpleChanges
-} from '@angular/core';
-
+import { Component, EventEmitter, Input, Output, ChangeDetectorRef, OnChanges, OnInit, SimpleChanges} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
+import { forkJoin } from 'rxjs';
 import { FacultyService } from '../../../services/faculty';
 import { RoomService } from '../../../services/room';
-
+import { AcademicSessionService } from '../../../services/academic-session';
 import {
   BatchService,
   Batch
@@ -47,8 +37,10 @@ export class ClassEditor implements OnInit, OnChanges {
   @Input()
   semester = 0;
 
-  @Input()
-  academicSessionStartYear = 0;
+  @Input() academicSessionId: number | null = null;
+
+@Input() academicSessionStartYear: number | null = null;
+
 
   @Input()
   department = '';
@@ -62,6 +54,38 @@ export class ClassEditor implements OnInit, OnChanges {
 
   @Output()
   cancel = new EventEmitter<void>();
+
+  academicSessions: any[] = [];
+
+  selectedAcademicSessionId: number | null = null;
+
+  selectedAcademicSessionStartYear: number | null = null;
+
+  academicSessionLoading = false;
+
+  academicSessionError = '';
+
+  eligibleBatches: any[] = [];
+
+  batchSearch = '';
+  filteredBatches: any[] = [];
+
+  // ==================================================
+  // LOCK LUNCH
+  // ==================================================
+
+  lunchLocked = false;
+
+  lunchStart = '';
+  lunchEnd = '';
+
+  lunchSource: any = null;
+
+  checkingLunch = false;
+
+  lunchMessage = '';
+
+lunchChecking = false;
 
   // ==================================================
   // LECTURE TYPE
@@ -117,6 +141,8 @@ export class ClassEditor implements OnInit, OnChanges {
   // ==================================================
 
   roomDropdownOpen = false;
+  isBatchDropdownOpen = false;
+  isTeacherDropdownOpen = false;
 
   roomSearch = '';
 
@@ -142,7 +168,7 @@ export class ClassEditor implements OnInit, OnChanges {
 
   totalStudents = 0;
 
-  private lastBatchRequestKey = '';
+
 
   // ==================================================
   // LOADING
@@ -160,6 +186,7 @@ export class ClassEditor implements OnInit, OnChanges {
     private facultyService: FacultyService,
     private roomService: RoomService,
     private batchService: BatchService,
+    private academicSessionService: AcademicSessionService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -167,111 +194,314 @@ export class ClassEditor implements OnInit, OnChanges {
   // INPUT CHANGES
   // ==================================================
 
-  ngOnInit(): void {
-  console.log('ClassEditor initialized');
+ngOnInit(): void {
 
-  console.log('Received inputs:', {
-    program: this.program,
-    semester: this.semester,
-    academicSessionStartYear: this.academicSessionStartYear,
-    department: this.department
-  });
+  // Use values received from the parent component
+  this.selectedAcademicSessionId = this.academicSessionId;
+  this.selectedAcademicSessionStartYear =
+    this.academicSessionStartYear;
 
-  // Load master data
   this.loadFaculty();
   this.loadRooms();
-
-  // Load batches if all required inputs are already available
   this.loadEligibleBatches();
 }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (
-      changes['program'] ||
-      changes['semester'] ||
-      changes['academicSessionStartYear']
-    ) {
-      this.loadEligibleBatches();
-    }
-
-    if (changes['department']) {
-      this.sortFaculty();
-
-      this.filteredTeachers = [...this.teachers];
-    }
+ngOnChanges(changes: SimpleChanges): void {
+  if (changes['academicSessionId']) {
+    this.selectedAcademicSessionId =
+      this.academicSessionId;
   }
+
+  if (changes['academicSessionStartYear']) {
+    this.selectedAcademicSessionStartYear =
+      this.academicSessionStartYear;
+  }
+
+  if (
+    changes['program'] ||
+    changes['semester'] ||
+    changes['department'] ||
+    changes['academicSessionStartYear'] ||
+    changes['academicSessionId']
+  ) {
+    this.loadEligibleBatches();
+  }
+
+  if (changes['department']) {
+    this.sortFaculty();
+    this.filteredTeachers = [...this.teachers];
+  }
+}
+
+  loadActiveAcademicSession(): void {
+  this.academicSessionLoading = true;
+  this.academicSessionError = '';
+
+  this.academicSessionService
+    .getActiveSession()
+    .subscribe({
+      next: (response) => {
+        this.academicSessionLoading = false;
+
+        if (response.active && response.session) {
+          this.academicSessions = [response.session];
+
+          this.selectedAcademicSessionId =
+            response.session.id;
+
+          this.selectedAcademicSessionStartYear =
+            Number(response.session.start_year);
+
+          this.loadEligibleBatches();
+        } else {
+          this.academicSessions = [];
+          this.selectedAcademicSessionId = null;
+          this.selectedAcademicSessionStartYear = null;
+
+          this.academicSessionError =
+            'No academic session is currently active. Please contact the administrator.';
+        }
+      },
+      error: (error) => {
+        console.error(
+          'Error loading active academic session:',
+          error
+        );
+
+        this.academicSessionLoading = false;
+
+        this.academicSessionError =
+          'Unable to load the active academic session.';
+      }
+    });
+}
 
   // ==================================================
   // LOAD ELIGIBLE BATCHES
   // ==================================================
 
-  loadEligibleBatches(): void {
-    if (
-      !this.program ||
-      !this.semester ||
-      !this.academicSessionStartYear
-    ) {
-      this.batches = [];
-      this.selectedBatches = [];
-      this.totalStudents = 0;
-      this.lastBatchRequestKey = '';
+loadEligibleBatches(): void {
 
-      this.filterRooms();
-
-      return;
-    }
-
-    const requestKey =
-      `${this.program}-${this.semester}-${this.academicSessionStartYear}`;
-
-    if (requestKey === this.lastBatchRequestKey) {
-      return;
-    }
-
-    this.lastBatchRequestKey = requestKey;
-
-    this.loadingBatches = true;
-    this.batchError = '';
-
-    this.batches = [];
-    this.selectedBatches = [];
-    this.totalStudents = 0;
-
-    this.batchService
-      .getEligibleBatches(
-        this.program,
-        this.semester,
-        this.academicSessionStartYear
-      )
-      .subscribe({
-        next: (response) => {
-          this.batches = response.batches || [];
-          this.loadingBatches = false;
-
-          this.calculateStudents();
-          this.filterRooms();
-        },
-
-        error: (error) => {
-          console.error(
-            'Failed to load eligible batches:',
-            error
-          );
-
-          this.batches = [];
-          this.selectedBatches = [];
-          this.totalStudents = 0;
-
-          this.loadingBatches = false;
-
-          this.batchError =
-            error?.error?.message ||
-            'Failed to load eligible batches';
-
-          this.filterRooms();
-        }
-      });
+  if (
+    !this.program ||
+    !this.semester ||
+    !this.department ||
+    !this.selectedAcademicSessionStartYear
+  ) {
+    return;
   }
+
+  this.loadingBatches = true;
+  this.batchError = '';
+
+  this.batchService.getEligibleBatches(
+    this.program,
+    Number(this.semester),
+    this.department,
+    Number(this.selectedAcademicSessionStartYear)
+  ).subscribe({
+
+    next: (response: any) => {
+
+      this.eligibleBatches =
+        Array.isArray(response?.batches)
+          ? response.batches
+          : [];
+
+      // IMPORTANT:
+      // The HTML displays filteredBatches.
+      // Initially show all eligible batches.
+      this.filteredBatches =
+        [...this.eligibleBatches];
+
+      this.loadingBatches = false;
+
+      console.log( 'Eligible batches:', this.eligibleBatches);
+
+      console.log('Filtered batches:', this.filteredBatches );
+
+      /*
+       * Check lunch configuration
+       * for every eligible batch.
+       */
+      this.eligibleBatches.forEach(
+        (batch: any) => {
+          this.checkBatchLunch(batch);
+        }
+      );
+
+      this.cdr.detectChanges();
+    },
+
+    error: (error) => {
+
+      console.error(
+        'Failed to load eligible batches:',
+        error
+      );
+
+      this.eligibleBatches = [];
+      this.filteredBatches = [];
+
+      this.loadingBatches = false;
+
+      this.batchError =
+        'Unable to load eligible batches.';
+
+      this.cdr.detectChanges();
+    }
+
+  });
+}
+
+
+
+  checkLunchForEligibleBatches(): void {
+
+  if (
+    !this.eligibleBatches?.length ||
+    !this.selectedAcademicSessionStartYear
+  ) {
+    return;
+  }
+
+  this.checkingLunch = true;
+
+  const requests = this.eligibleBatches
+    .filter(batch => batch?.id != null)
+    .map(batch =>
+      this.batchService.getLunchForBatch(
+        Number(batch.id),
+        Number(this.selectedAcademicSessionStartYear)
+      )
+    );
+
+  if (!requests.length) {
+    this.checkingLunch = false;
+    return;
+  }
+
+  forkJoin(requests).subscribe({
+
+    next: (responses: any[]) => {
+
+      const lockedLunches = responses.filter(
+        response => response?.locked === true
+      );
+
+      if (lockedLunches.length === 0) {
+
+        this.lunchLocked = false;
+        this.lunchMessage = '';
+
+        this.checkingLunch = false;
+        return;
+      }
+
+      /*
+       * If any selected batch has a lunch lock,
+       * the selected timetable slot must respect it.
+       */
+      this.lunchLocked = true;
+
+      const firstLocked = lockedLunches[0];
+
+      this.lunchStart =
+        firstLocked.lunchStart ||
+        firstLocked.lunch_start ||
+        '';
+
+      this.lunchEnd =
+        firstLocked.lunchEnd ||
+        firstLocked.lunch_end ||
+        '';
+
+      this.lunchSource =
+        firstLocked.lunchSource || null;
+
+      this.lunchMessage =
+        `Lunch is locked from ${this.lunchStart} to ${this.lunchEnd}.`;
+
+      this.checkingLunch = false;
+    },
+
+    error: (error:any) => {
+
+      console.error(
+        'Failed to check lunch configuration:',
+        error
+      );
+
+      this.lunchLocked = false;
+      this.lunchMessage = '';
+      this.checkingLunch = false;
+    }
+  });
+}
+
+checkBatchLunch(batch: any): void {
+  if (!this.selectedAcademicSessionStartYear || !batch?.id) {
+    batch.lunchLocked = false;
+    return;
+  }
+
+  this.batchService.getLunchForBatch(
+    Number(batch.id),
+    Number(this.selectedAcademicSessionStartYear)
+  ).subscribe({
+    next: (response: any) => {
+
+      batch.lunchLocked = response?.locked === true;
+
+      const configurations = Array.isArray(response?.configuration)
+        ? response.configuration
+        : [];
+
+      /*
+       * For a batch, both semester configurations have
+       * the same lunch period, so the first one is enough.
+       */
+      const config = configurations[0];
+
+      batch.lunchStart =
+        config?.lunchStart ||
+        config?.lunch_start ||
+        '';
+
+      batch.lunchEnd =
+        config?.lunchEnd ||
+        config?.lunch_end ||
+        '';
+
+      batch.lunchSource = response?.lunchSource || null;
+
+      console.log('BATCH LUNCH APPLIED:', {
+        id: batch.id,
+        lunchLocked: batch.lunchLocked,
+        lunchStart: batch.lunchStart,
+        lunchEnd: batch.lunchEnd,
+        lunchSource: batch.lunchSource,
+        integratedYear: response?.integratedYear
+      });
+
+      this.cdr.detectChanges();
+    },
+
+    error: (error) => {
+      console.error(
+        `Failed to check lunch for batch ${batch.id}:`,
+        error
+      );
+
+      batch.lunchLocked = false;
+      batch.lunchStart = '';
+      batch.lunchEnd = '';
+      batch.lunchSource = null;
+
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   // ==================================================
   // BATCH SELECTION
@@ -340,7 +570,6 @@ loadFaculty(): void {
 
   this.facultyService.getFaculty().subscribe({
     next: (response: any) => {
-      console.log('Faculty API response:', response);
 
       if (Array.isArray(response)) {
         this.teachers = response;
@@ -454,6 +683,149 @@ loadFaculty(): void {
   }
 
   // ==================================================
+  // BATCHES SEARCH
+  // ==================================================
+
+  searchBatches(): void {
+  const searchText = this.batchSearch
+    .trim()
+    .toLowerCase();
+
+  if (!searchText) {
+    this.filteredBatches = [...this.eligibleBatches];
+    return;
+  }
+
+  this.filteredBatches = this.eligibleBatches.filter(
+    (batch: any) => {
+      const batchCode =
+        String(batch.batch_code || '').toLowerCase();
+
+      const program =
+        String(batch.program || '').toLowerCase();
+
+      const batchType =
+        String(batch.batch_type || '').toLowerCase();
+
+      const enrollmentYear =
+        String(batch.enrollment_year || '').toLowerCase();
+
+      const department =
+        String(batch.department || '').toLowerCase();
+
+      return (
+        batchCode.includes(searchText) ||
+        program.includes(searchText) ||
+        batchType.includes(searchText) ||
+        enrollmentYear.includes(searchText) ||
+        department.includes(searchText)
+      );
+    }
+  );
+}
+
+  toggleBatch(batch: any): void {
+
+    // Do not allow a batch whose lunch overlaps
+    // the currently selected timetable slot.
+    if (
+      !this.isBatchSelected(batch) &&
+      this.isBatchLunchLocked(batch)
+    ) {
+      console.warn(
+        'Cannot select batch because of lunch:',
+        batch.batch_code,
+        batch.lunchStart,
+        batch.lunchEnd
+      );
+
+      return;
+    }
+
+    const alreadySelected =
+      this.isBatchSelected(batch);
+
+    if (alreadySelected) {
+
+      this.selectedBatches =
+        this.selectedBatches.filter(
+          (selectedBatch: any) =>
+            selectedBatch.id !== batch.id
+        );
+
+    } else {
+
+      this.selectedBatches = [
+        ...this.selectedBatches,
+        batch
+      ];
+
+    }
+
+    this.calculateStudents();
+
+    this.filterRooms();
+
+    if (
+      this.selectedRoom &&
+      this.totalStudents > 0 &&
+      Number(this.selectedRoom.capacity || 0) <
+        this.totalStudents
+    ) {
+      this.selectedRoom = null;
+    }
+
+    this.cdr.detectChanges();
+  }
+
+isBatchLunchLocked(batch: any): boolean {
+
+  if (!batch?.lunchLocked) {
+    return false;
+  }
+
+  // Your selected cell stores time inside selectedCell.slot
+  const slotStart =
+    this.selectedCell?.slot?.start ||
+    this.selectedCell?.startTime ||
+    this.selectedCell?.start ||
+    '';
+
+  const slotEnd =
+    this.selectedCell?.slot?.end ||
+    this.selectedCell?.endTime ||
+    this.selectedCell?.end ||
+    '';
+
+  if (!slotStart || !slotEnd) {
+    console.log('NO SLOT TIME FOUND:', {
+      batchId: batch.id,
+      selectedCell: this.selectedCell
+    });
+
+    return false;
+  }
+
+  const toMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const lunchStart = toMinutes(batch.lunchStart);
+  const lunchEnd = toMinutes(batch.lunchEnd);
+
+  const slotStartMinutes = toMinutes(slotStart);
+  const slotEndMinutes = toMinutes(slotEnd);
+
+  const locked =
+    slotStartMinutes < lunchEnd &&
+    slotEndMinutes > lunchStart;
+
+  return locked;
+}
+
+
+  // ==================================================
   // LOAD ROOMS
   // ==================================================
 
@@ -462,7 +834,6 @@ loadRooms(): void {
 
   this.roomService.getRooms().subscribe({
     next: (response: any) => {
-      console.log('Rooms API response:', response);
 
       if (Array.isArray(response)) {
         this.rooms = response;
@@ -493,6 +864,24 @@ loadRooms(): void {
       console.error('Failed to load rooms:', error);
     }
   });
+}
+
+getProgramCode(): string {
+  const value = String(this.program).trim().toUpperCase();
+
+  if (value === 'BTECH' || value === 'MTECH') {
+    return value;
+  }
+
+  if (value === '1') {
+    return 'BTECH';
+  }
+
+  if (value === '2') {
+    return 'MTECH';
+  }
+
+  return value;
 }
 
   // ==================================================
@@ -668,6 +1057,10 @@ loadRooms(): void {
       });
   }
 
+  toggleBatchDropdown(): void {
+  this.isBatchDropdownOpen = !this.isBatchDropdownOpen;
+}
+
   // ==================================================
   // TEACHER SELECTION
   // ==================================================
@@ -688,6 +1081,10 @@ loadRooms(): void {
     }
   }
 
+  toggleTeacherDropdown(): void {
+    this.isTeacherDropdownOpen = !this.isTeacherDropdownOpen;
+  }
+
   // ==================================================
   // CHECK TEACHER
   // ==================================================
@@ -703,6 +1100,15 @@ loadRooms(): void {
   // ==================================================
 
   submit(): void {
+
+    if (!this.selectedAcademicSessionId) {
+      alert(
+        'Timetable creation is disabled because no academic session is active.'
+      );
+
+      return;
+    }
+
     const selectedBatches = this.selectedBatches;
 
     if (selectedBatches.length === 0) {

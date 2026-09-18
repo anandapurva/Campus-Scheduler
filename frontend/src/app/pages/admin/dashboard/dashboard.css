@@ -871,3 +871,29 @@
 .logout-button:hover {
   background: #f1f1f1;
 }
+
+.academic-session-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+
+  width: 100%;
+  margin: 15px auto;
+}
+
+.session-label {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.session-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.session-error {
+  color: #dc2626;
+}

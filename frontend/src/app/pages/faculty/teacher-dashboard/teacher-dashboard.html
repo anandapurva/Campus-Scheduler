@@ -437,6 +437,37 @@
 
 </div>
 
+<!-- ==========================================
+     DEPARTMENT
+     ========================================== -->
+
+<div class="form-group">
+
+  <label for="department">
+    Department
+  </label>
+
+  <select
+    id="department"
+    [(ngModel)]="selectedDepartment">
+
+    <option value="" disabled hidden>
+      Select Department
+    </option>
+
+    <option
+      *ngFor="let department of departments"
+      [value]="department.abbreviation">
+
+      {{ department.name }}
+
+    </option>
+
+  </select>
+
+</div>
+
+
 
     <!-- ==========================================
          SEMESTER
@@ -469,18 +500,30 @@
 
     </div>
 
+
   </div>
 
 
+
+
+
+
+
+
+
+
+
+
   <!-- =====================================================
-       LOADING LUNCH CONFIGURATION
-       ===================================================== -->
+     CHECKING LUNCH
+     ===================================================== -->
 
 <div
   class="lunch-loading"
   *ngIf="
     checkingLunch &&
     selectedProgram &&
+    selectedDepartment && 
     selectedSemester
   ">
 
@@ -493,187 +536,97 @@
 </div>
 
 
-  <!-- =====================================================
-       LUNCH NOT LOCKED
-       ===================================================== -->
+<!-- =====================================================
+     LUNCH LOCKED
+     ===================================================== -->
 
-  <div
-    class="lunch-setup"
-    *ngIf="
-      !lunchLocked &&
-      !lunchLoading &&
-      selectedProgram &&
-      selectedSemester
-    ">
+<div
+  class="lunch-locked-card"
+  *ngIf="
+    !checkingLunch &&
+    lunchLocked &&
+    selectedProgram &&
+    selectedDepartment &&
+    selectedSemester
+  ">
 
+  <div class="locked-icon">
+    🔒
+  </div>
 
-    <div class="lunch-title">
+  <div class="locked-content">
 
-      <div class="lunch-icon">
-        🍴
-      </div>
+    <span class="locked-label">
+      LUNCH BREAK LOCKED BY ADMIN
+    </span>
 
-      <div>
+    <h3>
+      {{ getLunchDisplay() }}
+    </h3>
 
-        <h3>
-          Select Lunch Break
-        </h3>
+    <p>
 
-        <p>
-          Lunch must be exactly 1 hour and can be
-          locked only once.
-        </p>
+      Lunch break has been configured by the
+      <strong>Administrator</strong>
 
-      </div>
+      for
 
-    </div>
+      <strong>
+        {{ getSelectedProgramName() }}
+      </strong>
 
+      -
 
-    <!-- ================= LUNCH OPTIONS ================= -->
+      <strong>
+        Semester {{ getSelectedSemesterName() }}
+      </strong>
 
-    <div class="lunch-options">
-
-      <label
-        class="lunch-option"
-        *ngFor="let lunch of lunchOptions">
-
-        <input
-          type="radio"
-          name="lunchBreak"
-          [value]="lunch.value"
-          [(ngModel)]="selectedLunch"
-        />
-
-        <div class="lunch-option-content">
-
-          <strong>
-            {{ lunch.label }}
-          </strong>
-
-          <span>
-            1 hour break
-          </span>
-
-        </div>
-
-      </label>
-
-    </div>
-
-
-    <!-- ================= LOCK BUTTON ================= -->
-
-    <button
-  type="button"
-  class="lock-lunch-button"
-
-  [disabled]="
-    !selectedLunch ||
-    !selectedProgram ||
-    !selectedSemester ||
-    lunchLoading
-  "
-
-  (click)="lockLunchAndContinue()">
-
-  <span *ngIf="!lunchLoading">
-
-    🔒 Lock Lunch & Continue
-
-  </span>
-
-  <span *ngIf="lunchLoading">
-
-    Saving Lunch...
-
-  </span>
-
-  <span
-    *ngIf="!lunchLoading"
-    class="button-arrow">
-
-    →
-
-  </span>
-
-</button>
-
-
-    <div class="lunch-warning">
-
-      ⚠️
-      Once lunch is locked, it cannot be changed
-      for this department, program and semester.
-
-    </div>
+    </p>
 
   </div>
 
+  <div class="locked-status">
 
-  <!-- =====================================================
-       LUNCH LOCKED
-       ===================================================== -->
+    <span class="status-dot"></span>
 
-  <div
-    class="lunch-locked-card"
-    *ngIf="
-      lunchLocked &&
-      selectedProgram &&
-      selectedSemester
-    ">
-
-
-    <div class="locked-icon">
-
-      🔒
-
-    </div>
-
-
-    <div class="locked-content">
-
-      <span class="locked-label">
-
-        LUNCH BREAK LOCKED
-
-      </span>
-
-
-      <h3>
-
-        {{ getLunchDisplay() }}
-
-      </h3>
-
-
-      <p>
-
-        Lunch break has already been locked for
-
-        <strong>
-          {{ getSelectedProgramName() }}
-        </strong>
-
-        -
-
-        <strong>
-          Semester {{ getSelectedSemesterName() }}
-        </strong>
-
-      </p>
-
-    </div>
-
-
-    <div class="locked-status">
-
-      <span class="status-dot"></span>
-
-      Locked
-
-    </div>
+    Locked
 
   </div>
+
+</div>
+
+
+<!-- =====================================================
+     LUNCH NOT YET CONFIGURED
+     ===================================================== -->
+
+<div
+  class="lunch-admin-warning"
+  *ngIf="
+    !checkingLunch &&
+    !lunchLocked &&
+    selectedProgram &&
+    selectedSemester
+  ">
+
+  <div class="warning-icon">
+    ⚠️
+  </div>
+
+  <div>
+
+    <strong>
+      Lunch break has not been configured yet.
+    </strong>
+
+    <p>
+      Please ask the Administrator to lock the lunch
+      break before creating the timetable.
+    </p>
+
+  </div>
+
+</div>
 
 
   <!-- =====================================================
@@ -686,6 +639,7 @@
     *ngIf="
       lunchLocked &&
       selectedProgram &&
+      selectedDepartment && 
       selectedSemester
     ">
 
@@ -707,7 +661,7 @@
 
 
   <!-- =====================================================
-       NO PROGRAM / SEMESTER SELECTED
+       NO PROGRAM / DEPARTMENT / SEMESTER SELECTED
        ===================================================== -->
 
   <div
@@ -715,6 +669,7 @@
 
     *ngIf="
       !selectedProgram ||
+      !selectedDepartment ||
       !selectedSemester
     ">
 
@@ -723,7 +678,7 @@
     </div>
 
     <p>
-      Select a program and semester to configure
+      Select a program, department and semester to configure
       the department timetable.
     </p>
 

@@ -748,3 +748,50 @@ select {
   background: #eef0f3;
   color: #333;
 }
+
+.select-batch-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border: 1px solid #dce2eb;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #243b5a;
+  font-size: 17px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.select-batch-button:hover {
+  border-color: #8aa4d6;
+}
+
+.dropdown-arrow {
+  font-size: 22px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.batch-dropdown {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid #dce2eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.batch-dropdown .faculty-search {
+  margin-bottom: 12px;
+}
+
+.batch-dropdown .checkbox-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+

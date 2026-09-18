@@ -1,0 +1,252 @@
+/* Main container */
+.academic-session-container {
+  max-width: 1200px;
+  margin: 30px auto;
+  padding: 0 24px 40px;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+}
+
+/* Page heading */
+.academic-session-container h2 {
+  margin-bottom: 25px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Success and error messages */
+.success-message,
+.error-message {
+  padding: 13px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.success-message {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.error-message {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+/* Cards */
+.add-session-card,
+.session-list-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Card headings */
+.add-session-card h3,
+.session-list-card h3 {
+  margin: 0 0 20px;
+  font-size: 19px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Form layout */
+.form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.form-row > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  flex: 1;
+}
+
+/* Labels */
+.form-row label {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+/* Inputs */
+.form-row input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-row input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-row input[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* General buttons */
+button {
+  border: none;
+  border-radius: 7px;
+  padding: 11px 17px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+/* Add session button */
+.add-session-card button {
+  background: #2563eb;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.add-session-card button:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Table wrapper */
+.session-list-card {
+  overflow-x: auto;
+}
+
+/* Table */
+.session-list-card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  min-width: 700px;
+}
+
+/* Table heading */
+.session-list-card th {
+  padding: 14px 16px;
+  text-align: left;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Table cells */
+.session-list-card td {
+  padding: 15px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+/* Table row hover */
+.session-list-card tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* Status badges */
+.active-status,
+.inactive-status {
+  display: inline-block;
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.active-status {
+  background: #dcfce7;
+  color: #163765;
+}
+
+.inactive-status {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Activate button */
+.session-list-card td button {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.session-list-card td button:hover {
+  background: #1d4ed8;
+}
+
+/* Currently active text */
+.session-list-card td span:not(.active-status):not(.inactive-status) {
+  color: black;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Deactivate all button */
+.session-list-card > button {
+  margin-top: 22px;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.session-list-card > button:hover {
+  background: #b91c1c;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .academic-session-container {
+    margin: 20px auto;
+    padding: 0 15px 30px;
+  }
+
+  .academic-session-container h2 {
+    font-size: 23px;
+  }
+
+  .add-session-card,
+  .session-list-card {
+    padding: 18px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-row > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-row button {
+    width: 100%;
+  }
+}

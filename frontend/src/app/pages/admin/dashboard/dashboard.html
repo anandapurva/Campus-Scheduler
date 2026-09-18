@@ -115,6 +115,13 @@
 
       </div>
 
+      <a
+        routerLink="/admin/lock-lunch"
+        routerLinkActive="active">
+
+        Lock Lunch 
+      </a>
+
 
       <a
         routerLink="/admin/timetables"
@@ -123,10 +130,15 @@
         Timetables
 
       </a>
-          <a routerLink="/query-retrieval">
-      <span></span>
+
+
+      <a 
+      routerLink="/admin/query-retrieval"
+      routerLinkActive="active">
+
       Query Retrieval
-    </a>
+
+      </a>
 
 
       <a
@@ -168,6 +180,13 @@
 
       </div>
 
+      <a
+        routerLink="/admin/academic-sessions"
+        routerLinkActive="active">
+
+        Academic Sessions
+
+      </a>
 
       <a
         routerLink="/admin/users"
@@ -258,6 +277,36 @@
 
 
     <!-- ================= DASHBOARD CONTENT ================= -->
+
+<div class="academic-session-badge">
+
+    <span class="session-label">
+      Academic Session: 
+    </span>
+
+    <span
+      class="session-value"
+      *ngIf="!academicSessionLoading && academicSessionName"
+    >
+      {{ academicSessionName }}
+    </span>
+
+    <span
+      class="session-value session-error"
+      *ngIf="!academicSessionLoading && !academicSessionName"
+    >
+      {{ academicSessionError || 'Not Active' }}
+    </span>
+
+    <span
+      class="session-value"
+      *ngIf="academicSessionLoading"
+    >
+      Loading...
+    </span>
+
+</div>
+
 
     <section class="dashboard-content">
 

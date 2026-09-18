@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth';
 import { ClassEditor } from '../class-editor/class-editor';
+import { AcademicSessionService } from '../../../services/academic-session';
+import { TimetableConfigService } from '../../../services/timetable-config';
 
 interface TimeSlot {
 
@@ -55,7 +57,12 @@ export class Timetable implements OnInit {
 
   program = '';
   semester = 0;
-  academicSessionStartYear = 0;
+  academicSessionId: number | null = null;
+  academicSessionStartYear: number | null = null;
+  academicSessionName = '';
+
+  academicSessionLoading = false;
+  academicSessionError = '';
 
 
   // ==========================================
@@ -175,7 +182,11 @@ export class Timetable implements OnInit {
 
     private route: ActivatedRoute,
 
-    private router: Router
+    private router: Router,
+    private academicSessionService: AcademicSessionService,
+    private timetableConfigService: TimetableConfigService,
+     private cdr: ChangeDetectorRef
+
 
   ) {}
 
@@ -218,9 +229,6 @@ export class Timetable implements OnInit {
     this.facultyId =
       user.faculty_id || '';
 
-    this.department =
-      user.department || '';
-
     this.canEdit =
       Number(user.can_edit) === 1;
 
@@ -232,47 +240,222 @@ export class Timetable implements OnInit {
   // ==========================================
 
 loadSelection(): void {
+  this.route.queryParams.subscribe(params => {
 
-  this.route.queryParams
-    .subscribe(params => {
+    this.program = String(
+      params['program'] || ''
+    ).trim().toUpperCase();
 
-       this.program =
-        String(params['program'] || '').toUpperCase();
+    this.department = String(
+      params['department'] || ''
+    ).trim().toUpperCase();
 
-      this.semester =
-        Number(params['semester'] || 0);
+    this.semester = Number(
+      params['semester'] || 0
+    );
 
-      this.academicSessionStartYear =
-        Number(
-          params['academicSessionStartYear'] || 0
-        );
+    this.academicSessionId = params['academicSessionId']
+      ? Number(params['academicSessionId'])
+      : null;
 
-      const lunch =
-        params['lunch'] || '';
+    console.log('TIMETABLE INPUTS:', {
+      department: this.department,
+      program: this.program,
+      semester: this.semester,
+      academicSessionId: this.academicSessionId
+    });
 
-      console.log('TIMETABLE PARAMS:', params);
-      console.log('Lunch parameter:', lunch);
+    this.loadAcademicSession();
 
-      if (lunch) {
+     // Load Admin locked lunch
+    this.loadLunchConfiguration();
+  });
+}
 
-        const parts =
-          lunch.split('-');
+loadLunchConfiguration(): void {
 
-        this.lunchStart =
-          parts[0];
+  if (!this.program || !this.semester) {
+    console.warn(
+      'Cannot load lunch configuration: program or semester missing'
+    );
+    return;
+  }
 
-        this.lunchEnd =
-          parts[1];
+  const year = Math.ceil(this.semester / 2);
+
+  console.log('LOADING LUNCH CONFIGURATION:', {
+    program: this.program,
+    semester: this.semester,
+    year: year
+  });
+
+  this.timetableConfigService
+    .getLunchConfiguration(this.program, year)
+    .subscribe({
+
+      next: (response: any) => {
 
         console.log(
-          'Lunch start:',
-          this.lunchStart
+          'TIMETABLE LUNCH RESPONSE:',
+          response
         );
 
-        console.log(
-          'Lunch end:',
-          this.lunchEnd
+        if (
+          response?.locked === true &&
+          response?.configuration
+        ) {
+
+          const configurations =
+            Array.isArray(response.configuration)
+              ? response.configuration
+              : [response.configuration];
+
+          const config = configurations.find(
+            (item: any) =>
+              Number(item.semester) === Number(this.semester)
+          );
+
+          if (config) {
+
+            this.lunchStart =
+              config.lunchStart;
+
+            this.lunchEnd =
+              config.lunchEnd;
+
+            console.log(
+              'LUNCH APPLIED TO TIMETABLE:',
+              {
+                lunchStart: this.lunchStart,
+                lunchEnd: this.lunchEnd
+              }
+            );
+
+          } else {
+
+            console.warn(
+              'No lunch configuration found for selected semester:',
+              this.semester
+            );
+
+            this.lunchStart = '';
+            this.lunchEnd = '';
+          }
+
+        } else {
+
+          console.log(
+            'Lunch is not locked for this timetable.'
+          );
+
+          this.lunchStart = '';
+          this.lunchEnd = '';
+        }
+
+        // IMPORTANT:
+        // Force Angular to update the timetable immediately.
+        this.cdr.detectChanges();
+
+      },
+
+      error: (error) => {
+
+        console.error(
+          'Error loading lunch configuration:',
+          error
         );
+
+        this.lunchStart = '';
+        this.lunchEnd = '';
+
+        this.cdr.detectChanges();
+
+      }
+
+    });
+}
+
+loadAcademicSession(): void {
+
+  this.academicSessionLoading = true;
+
+  this.academicSessionError = '';
+
+
+  this.academicSessionService
+    .getActiveSession()
+    .subscribe({
+
+      next: (response) => {
+
+        this.academicSessionLoading = false;
+
+
+        if (
+          !response.active ||
+          !response.session
+        ) {
+
+          this.academicSessionId = null;
+
+          this.academicSessionStartYear = null;
+
+          this.academicSessionName = '';
+
+          this.academicSessionError =
+            'No academic session is currently active.';
+
+          return;
+
+        }
+
+
+        const session =
+          response.session;
+
+
+        this.academicSessionId =
+          Number(session.id);
+
+
+        this.academicSessionStartYear =
+          Number(session.start_year);
+
+
+        this.academicSessionName =
+          session.session_name;
+
+
+        console.log(
+          'ACTIVE ACADEMIC SESSION:',
+          session
+        );
+
+
+        console.log(
+          'Academic session start year:',
+          this.academicSessionStartYear
+        );
+
+      },
+
+
+      error: (error) => {
+
+        console.error(
+          'Error loading academic session:',
+          error
+        );
+
+
+        this.academicSessionLoading = false;
+
+        this.academicSessionId = null;
+
+        this.academicSessionStartYear = null;
+
+        this.academicSessionError =
+          'Unable to load the active academic session.';
 
       }
 
@@ -411,9 +594,10 @@ isLunchSlot(slot: TimeSlot): boolean {
   const slotEndMinutes =
     this.timeToMinutes(slot.end);
 
+  // Check whether the timetable slot overlaps lunch
   return (
-    slotStartMinutes >= lunchStartMinutes &&
-    slotStartMinutes < lunchEndMinutes
+    slotStartMinutes < lunchEndMinutes &&
+    slotEndMinutes > lunchStartMinutes
   );
 }
 

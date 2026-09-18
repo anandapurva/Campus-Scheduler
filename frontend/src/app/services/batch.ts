@@ -133,23 +133,37 @@ export class BatchService {
   getEligibleBatches(
     program: string,
     semester: number,
+    department: string,
     academicSessionStartYear: number
-  ): Observable<BatchResponse> {
-
-    const params = new HttpParams()
-      .set('program', program)
-      .set(
-        'semester',
-        semester.toString()
-      )
-      .set(
-        'academicSessionStartYear',
-        academicSessionStartYear.toString()
-      );
-
-    return this.http.get<BatchResponse>(
+  ): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/eligible`,
-      { params }
+      {
+        params: {
+          program,
+          semester: semester.toString(),
+          department,
+          academicSessionStartYear:
+            academicSessionStartYear.toString()
+        }
+      }
     );
   }
+
+getLunchForBatch(
+  batchId: number,
+  academicSessionStartYear: number
+): Observable<any> {
+
+  const params = {
+    batchId: batchId.toString(),
+    academicSessionStartYear:
+      academicSessionStartYear.toString()
+  };
+
+  return this.http.get(
+    'http://localhost:5000/api/timetable-config/lunch/batch',
+    { params }
+  );
+}
 }

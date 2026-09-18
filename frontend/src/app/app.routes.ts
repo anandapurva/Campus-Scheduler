@@ -11,15 +11,13 @@ import { Timetables } from './pages/admin/timetables/timetables';
 import { TeacherDashboard } from './pages/faculty/teacher-dashboard/teacher-dashboard';
 import { Timetable } from './pages/faculty/timetable/timetable';
 import { QueryRetrievalComponent } from './query-retrieval/query-retrieval';
-
+import { AcademicSessionManagement } from './pages/admin/academic-session-management/academic-session-management';
+import { LunchConfiguration } from './pages/admin/lunch-configuration/lunch-configuration';
+import { Component } from '@angular/core';
 
 export const routes: Routes = [
 
-
-    {
-    path: 'query-retrieval',
-    component: QueryRetrievalComponent
-  },
+    
   {
     path: 'login',
     component: Login
@@ -35,6 +33,11 @@ export const routes: Routes = [
     path: 'admin/dashboard',
     component: Dashboard
   },
+
+  {
+  path: 'admin/academic-sessions',
+  component: AcademicSessionManagement
+},
 
   {
     path: 'admin/users',
@@ -72,6 +75,11 @@ export const routes: Routes = [
   },
 
   {
+    path: 'admin/lock-lunch',
+    component: LunchConfiguration
+  },
+
+  {
   path: 'admin/faculty',
   component: Faculty
   },
@@ -87,7 +95,7 @@ export const routes: Routes = [
 },
 
 {
-  path: 'query-retrieval',
+  path: 'admin/query-retrieval',
   component: QueryRetrievalComponent
 }
 

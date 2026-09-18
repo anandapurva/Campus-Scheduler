@@ -428,14 +428,16 @@
            ================================================= -->
 
 <app-class-editor
+  *ngIf="academicSessionId !== null"
   [selectedCell]="selectedCell"
   [program]="program"
   [semester]="semester"
   [academicSessionStartYear]="academicSessionStartYear"
+  [academicSessionId]="academicSessionId"
   [department]="department"
   (save)="saveCell($event)"
-  (cancel)="closeEditor()">
-</app-class-editor>
+  (cancel)="closeEditor()"
+></app-class-editor>
 
 
     </div>

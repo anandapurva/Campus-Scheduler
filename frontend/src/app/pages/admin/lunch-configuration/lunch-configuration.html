@@ -1,0 +1,1036 @@
+<div class="lunch-lock-container">
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <div class="page-header">
+
+    <div>
+      <h2>Lunch Break Configuration</h2>
+
+      <p class="page-description">
+        Configure and manage lunch break timings for different
+        program years.
+      </p>
+    </div>
+
+  </div>
+
+
+
+  <!-- =====================================================
+       CHANGE LUNCH / EDIT MODE
+  ====================================================== -->
+
+  <div
+    *ngIf="isEditing"
+    id="change-lunch-section"
+    class="change-lunch-section"
+  >
+
+    <!-- EDIT HEADER -->
+
+    <div class="change-lunch-header">
+
+      <div class="change-lunch-title">
+
+        <span class="change-icon">
+          ✏️
+        </span>
+
+        <div>
+
+          <h3>
+            Change Lunch Timing
+          </h3>
+
+          <p>
+            You are changing the lunch slot for
+            <strong>
+              {{ editingProgram }}
+              {{ getYearLabel(editingYear!) }}
+            </strong>
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- EDIT INFORMATION -->
+
+    <div class="change-lunch-info">
+
+      <!-- PROGRAM / YEAR -->
+
+      <div class="change-info-item">
+
+        <span class="info-label">
+          Changing
+        </span>
+
+        <strong class="info-value">
+
+          {{ editingProgram }}
+
+          {{ getYearLabel(editingYear!) }}
+
+        </strong>
+
+      </div>
+
+
+      <!-- NEW LUNCH -->
+
+      <div class="change-info-item">
+
+        <span class="info-label">
+          New Lunch
+        </span>
+
+        <strong
+          *ngIf="
+            editingLunchStart &&
+            editingLunchEnd
+          "
+          class="info-value"
+        >
+
+          {{ editingLunchStart }}
+          -
+          {{ editingLunchEnd }}
+
+        </strong>
+
+        <span
+          *ngIf="
+            !editingLunchStart ||
+            !editingLunchEnd
+          "
+          class="not-selected"
+        >
+
+          Select a new lunch slot below
+
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         SELECT NEW LUNCH SLOT
+    ==================================================== -->
+
+    <div class="edit-lunch-slots">
+
+      <h4>
+        Select New Lunch Slot
+      </h4>
+
+      <div class="edit-lunch-options">
+
+        <label
+          *ngFor="let slot of lunchSlots"
+
+          class="edit-lunch-option"
+
+          [class.selected]="
+            editingLunchStart === slot.start &&
+            editingLunchEnd === slot.end
+          "
+
+          [class.disabled]="
+            currentLockedLunchStart === slot.start &&
+            currentLockedLunchEnd === slot.end
+          "
+        >
+
+          <input
+            type="radio"
+
+            name="editingLunchSlot"
+
+            [checked]="
+              editingLunchStart === slot.start &&
+              editingLunchEnd === slot.end
+            "
+
+            [disabled]="
+              loading ||
+              (
+                currentLockedLunchStart === slot.start &&
+                currentLockedLunchEnd === slot.end
+              )
+            "
+
+            (change)="
+              selectEditingLunch(
+                slot.start,
+                slot.end
+              )
+            "
+          />
+
+          <span>
+            {{ slot.label }}
+          </span>
+
+          <span
+            *ngIf="
+              currentLockedLunchStart === slot.start &&
+              currentLockedLunchEnd === slot.end
+            "
+            class="current-slot-label"
+          >
+            🔒 Current
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+
+    <!-- ===================================================
+         EDIT ACTIONS
+    ==================================================== -->
+
+    <div class="edit-actions">
+
+      <button
+        type="button"
+
+        class="save-change-btn"
+
+        (click)="saveChangedLunch()"
+
+        [disabled]="
+          loading ||
+          !editingLunchStart ||
+          !editingLunchEnd
+        "
+      >
+
+        <span *ngIf="!loading">
+          Save Changed Lunch
+        </span>
+
+        <span *ngIf="loading">
+          Saving...
+        </span>
+
+      </button>
+
+
+      <button
+        type="button"
+
+        class="cancel-change-btn"
+
+        (click)="cancelChangeLunch()"
+
+        [disabled]="loading"
+      >
+
+        Cancel
+
+      </button>
+
+    </div>
+
+  </div>
+
+  <div *ngIf="!isEditing">
+
+    <!-- ===================================================
+         1. SELECT LUNCH SLOT
+    ==================================================== -->
+
+    <div class="lunch-section">
+
+      <div class="section-header">
+
+        <div>
+
+          <h3>
+            Select Lunch Slot
+          </h3>
+
+          <p>
+            Choose the lunch timing you want to configure.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="lunch-options">
+
+        <label
+          *ngFor="let slot of lunchSlots"
+
+          class="lunch-option"
+
+          [class.selected]="
+            selectedLunchStart === slot.start &&
+            selectedLunchEnd === slot.end
+          "
+        >
+
+          <input
+            type="radio"
+
+            name="lunchSlot"
+
+            [checked]="
+              selectedLunchStart === slot.start &&
+              selectedLunchEnd === slot.end
+            "
+
+            (change)="
+              selectLunch(
+                slot.start,
+                slot.end
+              )
+            "
+
+            [disabled]="loading"
+          />
+
+          <span class="lunch-option-label">
+
+            {{ slot.label }}
+
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         2. SELECT PROGRAM & YEAR
+    ==================================================== -->
+
+    <div
+      class="program-selection"
+
+      *ngIf="selectedLunchStart"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h3>
+            Select Program &amp; Year
+          </h3>
+
+          <p>
+            Select the academic year for which lunch should
+            be locked.
+          </p>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- =================================================
+           B.TECH
+      ================================================== -->
+
+      <div class="program-group">
+
+        <div class="program-header">
+
+          <h4>
+            B.Tech
+          </h4>
+
+        </div>
+
+
+        <!-- ===============================================
+             B.TECH 1ST YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.BTECH.includes(1)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('BTECH', 1)
+              "
+
+              (change)="
+                toggleYear(
+                  'BTECH',
+                  1,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              1st Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('BTECH', 1)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('BTECH', 1)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'BTECH',
+                1
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+
+
+        <!-- ===============================================
+             B.TECH 2ND YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.BTECH.includes(2)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('BTECH', 2)
+              "
+
+              (change)="
+                toggleYear(
+                  'BTECH',
+                  2,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              2nd Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('BTECH', 2)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('BTECH', 2)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'BTECH',
+                2
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+
+
+        <!-- ===============================================
+             B.TECH 3RD YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.BTECH.includes(3)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('BTECH', 3)
+              "
+
+              (change)="
+                toggleYear(
+                  'BTECH',
+                  3,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              3rd Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('BTECH', 3)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('BTECH', 3)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'BTECH',
+                3
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+
+
+        <!-- ===============================================
+             B.TECH 4TH YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.BTECH.includes(4)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('BTECH', 4)
+              "
+
+              (change)="
+                toggleYear(
+                  'BTECH',
+                  4,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              4th Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('BTECH', 4)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('BTECH', 4)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'BTECH',
+                4
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- =================================================
+           M.TECH
+      ================================================== -->
+
+      <div class="program-group">
+
+        <div class="program-header">
+
+          <h4>
+            M.Tech
+          </h4>
+
+        </div>
+
+
+        <!-- ===============================================
+             M.TECH 1ST YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.MTECH.includes(1)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('MTECH', 1)
+              "
+
+              (change)="
+                toggleYear(
+                  'MTECH',
+                  1,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              1st Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('MTECH', 1)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('MTECH', 1)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'MTECH',
+                1
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+
+
+        <!-- ===============================================
+             M.TECH 2ND YEAR
+        ================================================ -->
+
+        <div class="year-option">
+
+          <div class="year-info">
+
+            <input
+              type="checkbox"
+
+              [checked]="
+                selectedYears.MTECH.includes(2)
+              "
+
+              [disabled]="
+                loading ||
+                isYearLocked('MTECH', 2)
+              "
+
+              (change)="
+                toggleYear(
+                  'MTECH',
+                  2,
+                  $event
+                )
+              "
+            />
+
+            <span class="year-name">
+              2nd Year
+            </span>
+
+            <span
+              *ngIf="isYearLocked('MTECH', 2)"
+              class="locked-label"
+            >
+              🔒 Locked
+            </span>
+
+          </div>
+
+
+          <button
+            *ngIf="isYearLocked('MTECH', 2)"
+
+            type="button"
+
+            class="change-lunch-btn"
+
+            (click)="
+              changeLunch(
+                'MTECH',
+                2
+              )
+            "
+
+            [disabled]="loading"
+          >
+
+            ✏️ Change Lunch
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         SELECTED SUMMARY
+    ==================================================== -->
+
+    <div
+      class="selected-summary"
+
+      *ngIf="
+        selectedYears.BTECH.length > 0 ||
+        selectedYears.MTECH.length > 0
+      "
+    >
+
+      <div class="summary-header">
+
+        <h3>
+          Selected Configuration
+        </h3>
+
+      </div>
+
+
+      <!-- B.TECH -->
+
+      <div
+        class="summary-row"
+
+        *ngIf="
+          selectedYears.BTECH.length > 0
+        "
+      >
+
+        <strong>
+          B.Tech:
+        </strong>
+
+        <div class="selected-years">
+
+          <span
+            *ngFor="
+              let year of selectedYears.BTECH
+            "
+
+            class="selected-year"
+          >
+
+            {{ getYearLabel(year) }}
+
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- M.TECH -->
+
+      <div
+        class="summary-row"
+
+        *ngIf="
+          selectedYears.MTECH.length > 0
+        "
+      >
+
+        <strong>
+          M.Tech:
+        </strong>
+
+        <div class="selected-years">
+
+          <span
+            *ngFor="
+              let year of selectedYears.MTECH
+            "
+
+            class="selected-year"
+          >
+
+            {{ getYearLabel(year) }}
+
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <!-- LUNCH -->
+
+      <div class="summary-row">
+
+        <strong>
+          Lunch:
+        </strong>
+
+        <span class="selected-lunch">
+
+          {{ selectedLunchStart }}
+          -
+          {{ selectedLunchEnd }}
+
+        </span>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         LOCKED MESSAGE
+    ==================================================== -->
+
+    <div
+      *ngIf="lunchLocked"
+
+      class="locked-message"
+    >
+
+      <span class="message-icon">
+        🔒
+      </span>
+
+      <span>
+
+        {{
+          message ||
+          'Lunch is already locked for the selected program/year combination.'
+        }}
+
+      </span>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         SUCCESS MESSAGE
+    ==================================================== -->
+
+    <div
+      *ngIf="
+        message &&
+        !lunchLocked
+      "
+
+      class="success-message"
+    >
+
+      <span class="message-icon">
+        ✓
+      </span>
+
+      <span>
+        {{ message }}
+      </span>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         ERROR MESSAGE
+    ==================================================== -->
+
+    <div
+      *ngIf="errorMessage"
+
+      class="error-message"
+    >
+
+      <span class="message-icon">
+        ⚠
+      </span>
+
+      <span>
+        {{ errorMessage }}
+      </span>
+
+    </div>
+
+
+
+    <!-- ===================================================
+         NORMAL LOCK BUTTON
+    ==================================================== -->
+
+    <div class="lock-button-container">
+
+      <button
+        type="button"
+
+        class="lock-lunch-btn"
+
+        (click)="lockLunch()"
+
+        [disabled]="
+          loading ||
+          !selectedLunchStart ||
+          (
+            selectedYears.BTECH.length === 0 &&
+            selectedYears.MTECH.length === 0
+          )
+        "
+      >
+
+        <span *ngIf="!loading">
+          🔒 Lock Lunch
+        </span>
+
+        <span *ngIf="loading">
+          Locking...
+        </span>
+
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+       TOAST NOTIFICATION
+  ====================================================== -->
+
+  <div
+    *ngIf="showToast"
+    class="toast-notification"
+    [class.toast-success]="toastType === 'success'"
+    [class.toast-error]="toastType === 'error'"
+  >
+
+    <span class="toast-icon">
+      {{ toastType === 'success' ? '✓' : '⚠' }}
+    </span>
+
+    <span class="toast-text">
+      {{ toastMessage }}
+    </span>
+
+  </div>
+
+</div>

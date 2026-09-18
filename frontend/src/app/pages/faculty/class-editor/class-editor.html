@@ -1,6 +1,41 @@
 <div class="class-editor">
 
+<div class="form-group">
 
+  <label for="academicSession">
+    Academic Session
+  </label>
+
+  <select
+    id="academicSession"
+    [ngModel]="selectedAcademicSessionId"
+    [disabled]="true"
+  >
+
+<option
+  *ngFor="let session of academicSessions"
+  [ngValue]="session.id"
+>
+  {{ session.session_name }}
+</option>
+
+<option
+  *ngIf="!academicSessions.length"
+  [ngValue]="null"
+>
+  No active academic session
+</option>
+
+  </select>
+
+  <small
+    *ngIf="academicSessionError"
+    class="error-message"
+  >
+    {{ academicSessionError }}
+  </small>
+
+</div>
   <!-- ======================================
        LECTURE TYPE
        ====================================== -->
@@ -53,85 +88,229 @@
        BATCHES
        ====================================== -->
 
-  <div class="batch-section">
+<!-- BATCH SELECTION -->
 
-  <h3>Select Batches</h3>
+<div class="form-section">
 
-  <p class="batch-description">
-    Each batch contains 30 students.
-  </p>
+
+    <label>
+      Batches
+    </label>
+
+
+
+  <!-- SELECT BATCH BUTTON -->
+
+<button
+  type="button"
+  class="room-select"
+  (click)="toggleBatchDropdown()">
+
+  <span class="room-placeholder">
+    Select Batch
+  </span>
+
+  <span
+    class="dropdown-arrow"
+    [class.open]="isBatchDropdownOpen">
+
+    ▾
+
+  </span>
+
+</button>
+
+
+  <!-- SELECTED BATCHES -->
 
   <div
-    *ngIf="loadingBatches"
-    class="loading-message"
-  >
-    Loading eligible batches...
-  </div>
+    class="selected-teachers"
+    *ngIf="selectedBatches.length > 0">
 
-  <div
-    *ngIf="!loadingBatches && batchError"
-    class="error-message"
-  >
-    {{ batchError }}
-  </div>
+    <div class="selected-teachers-heading">
 
-  <div
-    *ngIf="
-      !loadingBatches &&
-      !batchError &&
-      batches.length === 0
-    "
-    class="empty-message"
-  >
-    No eligible batches found.
-  </div>
-
-  <label
-    class="batch-option"
-    *ngFor="let batch of batches"
-  >
-    <input
-      type="checkbox"
-      [checked]="isBatchSelected(batch)"
-      (change)="onBatchChange(batch, $event)"
-    />
-
-    <div class="batch-info">
-      <strong>
-        {{ batch.batch_code }}
-      </strong>
+      Selected Batches
 
       <span>
-        30 students
+        {{ selectedBatches.length }}
       </span>
 
-      <small>
-        {{ batch.program }}
-        · {{ batch.batch_type }}
-        · Enrolled {{ batch.enrollment_year }}
-      </small>
     </div>
-  </label>
+
+
+    <div class="selected-teacher-list">
+
+      <div
+        class="selected-teacher-chip"
+        *ngFor="let batch of selectedBatches"
+        [class.lunch-disabled]="isBatchLunchLocked(batch)">
+
+        <span class="selected-teacher-department">
+          {{ batch.department }}
+        </span>
+
+        <strong>
+          {{ batch.batch_code }}
+        </strong>
+
+         <!-- <span
+      *ngIf="isBatchLunchLocked(batch)"
+      class="lunch-label"
+    >
+      Lunch {{ batch.lunchStart }}–{{ batch.lunchEnd }}
+    </span> -->
+
+        <button
+          type="button"
+          (click)="toggleBatch(batch)"
+          title="Remove batch">
+
+          ×
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- DROPDOWN CONTENT -->
 
   <div
-    *ngIf="selectedBatches.length > 0"
-    class="selected-batches-summary"
-  >
-    <strong>
-      Selected batches:
-    </strong>
+    class="batch-dropdown"
+    *ngIf="isBatchDropdownOpen">
 
-    <span>
-      {{ selectedBatches.length }}
-    </span>
 
-    <strong>
-      Total students:
-    </strong>
+    <!-- BATCH SEARCH -->
 
-    <span>
-      {{ totalStudents }}
-    </span>
+    <div class="faculty-search">
+
+      <input
+        type="text"
+        placeholder="Search by batch code, program, department or year..."
+        [(ngModel)]="batchSearch"
+        (input)="searchBatches()"
+      />
+
+    </div>
+
+
+    <!-- LOADING -->
+
+    <div
+      class="loading-message"
+      *ngIf="loadingBatches">
+
+      Loading batches...
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+      class="empty-message"
+      *ngIf="
+        !loadingBatches &&
+        batchError
+      ">
+
+      {{ batchError }}
+
+    </div>
+
+
+    <!-- BATCH LIST -->
+
+    <div
+      class="checkbox-list"
+      *ngIf="
+        !loadingBatches &&
+        !batchError &&
+        filteredBatches.length > 0
+      ">
+
+      <label
+        *ngFor="let batch of filteredBatches"
+        class="checkbox-option">
+
+        <input
+          type="checkbox"
+          [checked]="isBatchSelected(batch)"
+          [disabled]="isBatchLunchLocked(batch)"
+          (change)="toggleBatch(batch)"
+/>
+
+
+        <div class="teacher-option-content">
+
+          <span>
+
+            <strong>
+              {{ batch.batch_code }}
+            </strong>
+
+            -
+
+            {{ batch.program }}
+
+            <span
+              *ngIf="batch.batch_type">
+
+              ({{ batch.batch_type }})
+
+            </span>
+
+          </span>
+
+
+      <small
+        [class.current-department]="
+          batch.department === department
+        ">
+
+        {{ batch.department }}
+
+        ·
+
+        {{ batch.enrollment_year }}
+
+      </small>
+
+      <small
+        *ngIf="isBatchLunchLocked(batch)"
+        class="lunch-label">
+
+        🔒 Lunch
+        {{ batch.lunchStart }}
+        -
+        {{ batch.lunchEnd }}
+
+      </small>
+
+        </div>
+
+      </label>
+
+    </div>
+
+
+    <!-- NO BATCHES -->
+
+    <div
+      class="empty-message"
+      *ngIf="
+        !loadingBatches &&
+        !batchError &&
+        filteredBatches.length === 0
+      ">
+
+      No batches found.
+
+    </div>
+
   </div>
 
 </div>
@@ -181,8 +360,6 @@
 
 <div class="form-section">
 
-  <div class="room-heading">
-
     <label>
       Room
     </label>
@@ -192,9 +369,6 @@
       <strong>{{ totalStudents }}</strong>
       students
     </span>
-
-  </div>
-
 
   <!-- LOADING -->
 
@@ -395,158 +569,180 @@
      TEACHERS
      ====================================== -->
 
-<div class="form-section">
+  <div class="form-section">
 
-  <div class="section-heading-row">
+      <label>
+        Teacher
+      </label>
 
-    <label>
-      Teacher
-    </label>
+    <!-- SELECT TEACHER BUTTON -->
 
-  </div>
+    <button
+      type="button"
+      class="room-select"
+      (click)="toggleTeacherDropdown()">
 
-
-  <!-- SELECTED TEACHERS -->
-
-<div
-  class="selected-teachers"
-  *ngIf="selectedTeachers.length > 0">
-
-  <div class="selected-teachers-heading">
-    Selected Teachers
-    <span>
-      {{ selectedTeachers.length }}
-    </span>
-  </div>
-
-
-  <div class="selected-teacher-list">
-
-    <div
-      class="selected-teacher-chip"
-      *ngFor="let teacher of selectedTeachers">
-
-      <span class="selected-teacher-department">
-        {{ teacher.department }}
+      <span class="room-placeholder">
+        Select Teacher
       </span>
 
-      <strong>
-        {{ teacher.abbreviation }}
-      </strong>
+      <span
+        class="dropdown-arrow"
+        [class.open]="isTeacherDropdownOpen">
 
-      <button
-        type="button"
-        (click)="toggleTeacher(teacher)"
-        title="Remove teacher">
+        ▾
 
-        ×
+      </span>
 
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-
-  <!-- FACULTY SEARCH -->
-
-  <div class="faculty-search">
-
-    <input
-      type="text"
-      placeholder="Search by faculty name or abbreviation..."
-      [(ngModel)]="teacherSearch"
-      (input)="searchFaculty()"
-    />
-
-  </div>
+    </button>
 
 
-  <!-- LOADING -->
+    <!-- SELECTED TEACHERS -->
 
-  <div
-    class="loading-message"
-    *ngIf="loadingFaculty">
+    <div
+      class="selected-teachers"
+      *ngIf="selectedTeachers.length > 0">
 
-    Loading faculty...
+      <div class="selected-teachers-heading">
 
-  </div>
-
-
-  <!-- FACULTY LIST -->
-
-  <div
-    class="checkbox-list"
-    *ngIf="
-      !loadingFaculty &&
-      filteredTeachers.length > 0
-    ">
-
-    <label
-      *ngFor="
-        let teacher of filteredTeachers
-      "
-      class="checkbox-option">
-
-      <input
-        type="checkbox"
-
-        [checked]="
-          isTeacherSelected(teacher)
-        "
-
-        (change)="
-          toggleTeacher(teacher)
-        "
-      />
-
-
-      <div class="teacher-option-content">
+        Selected Teachers
 
         <span>
+          {{ selectedTeachers.length }}
+        </span>
+
+      </div>
+
+
+      <div class="selected-teacher-list">
+
+        <div
+          class="selected-teacher-chip"
+          *ngFor="let teacher of selectedTeachers">
+
+          <span class="selected-teacher-department">
+            {{ teacher.department }}
+          </span>
 
           <strong>
             {{ teacher.abbreviation }}
           </strong>
 
-          -
+          <button
+            type="button"
+            (click)="toggleTeacher(teacher)"
+            title="Remove teacher">
 
-          {{ teacher.name }}
+            ×
 
-        </span>
+          </button>
 
-
-        <small
-          [class.current-department]="
-            teacher.department === department
-          ">
-
-          {{ teacher.department }}
-
-        </small>
+        </div>
 
       </div>
 
-    </label>
+    </div>
+
+
+    <!-- TEACHER DROPDOWN -->
+
+    <div
+      class="teacher-dropdown"
+      *ngIf="isTeacherDropdownOpen">
+
+
+      <!-- FACULTY SEARCH -->
+
+      <div class="faculty-search">
+
+        <input
+          type="text"
+          placeholder="Search by faculty name or abbreviation..."
+          [(ngModel)]="teacherSearch"
+          (input)="searchFaculty()"
+        />
+
+      </div>
+
+
+      <!-- LOADING -->
+
+      <div
+        class="loading-message"
+        *ngIf="loadingFaculty">
+
+        Loading faculty...
+
+      </div>
+
+
+      <!-- FACULTY LIST -->
+
+      <div
+        class="checkbox-list"
+        *ngIf="
+          !loadingFaculty &&
+          filteredTeachers.length > 0
+        ">
+
+        <label
+          *ngFor="let teacher of filteredTeachers"
+          class="checkbox-option">
+
+          <input
+            type="checkbox"
+            [checked]="isTeacherSelected(teacher)"
+            (change)="toggleTeacher(teacher)"
+          />
+
+
+          <div class="teacher-option-content">
+
+            <span>
+
+              <strong>
+                {{ teacher.abbreviation }}
+              </strong>
+
+              -
+
+              {{ teacher.name }}
+
+            </span>
+
+
+            <small
+              [class.current-department]="
+                teacher.department === department
+              ">
+
+              {{ teacher.department }}
+
+            </small>
+
+          </div>
+
+        </label>
+
+      </div>
+
+
+      <!-- NO FACULTY -->
+
+      <div
+        class="empty-message"
+        *ngIf="
+          !loadingFaculty &&
+          filteredTeachers.length === 0
+        ">
+
+        No faculty found.
+
+      </div>
+
+    </div>
 
   </div>
-
-
-  <!-- NO FACULTY -->
-
-  <div
-    class="empty-message"
-    *ngIf="
-      !loadingFaculty &&
-      filteredTeachers.length === 0
-    ">
-
-    No faculty found.
-
-  </div>
-
-</div>
 
 
   <!-- ======================================
@@ -570,11 +766,15 @@
       type="button"
       class="submit-button"
 
-      (click)="submit()">
+      (click)="submit()"
+      [disabled]=
+      "!selectedAcademicSessionId || academicSessionLoading"
+    >
 
       Add to Timetable
 
     </button>
+
 
   </div>
 

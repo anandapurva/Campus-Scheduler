@@ -14,6 +14,7 @@ const REQUIRED_HEADERS = [
     'department'
 ];
 
+
 function normalizeHeader(header) {
     return String(header || '')
         .trim()
@@ -750,20 +751,21 @@ const getEligibleBatches = async (req, res) => {
         const {
             program,
             semester,
-            academicSessionStartYear
+            department
         } = req.query;
 
-        if (!program || !semester || !academicSessionStartYear) {
+        if (!program || !semester || !department) {
             return res.status(400).json({
                 success: false,
-                message:
-                    'program, semester and academicSessionStartYear are required'
+                message: 'program, semester and department are required'
             });
         }
 
         const normalizedProgram = normalizeProgram(program);
         const semesterNumber = Number(semester);
-        const sessionStartYear = Number(academicSessionStartYear);
+        const normalizedDepartment = String(department).trim();
+
+        const currentAcademicStartYear = 2026;
 
         if (!['BTECH', 'MTECH'].includes(normalizedProgram)) {
             return res.status(400).json({
@@ -772,142 +774,122 @@ const getEligibleBatches = async (req, res) => {
             });
         }
 
-        if (!Number.isInteger(semesterNumber) || semesterNumber < 1) {
+        if (
+            !Number.isInteger(semesterNumber) ||
+            semesterNumber < 1
+        ) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid semester'
             });
         }
 
-        if (
-            !Number.isInteger(sessionStartYear) ||
-            sessionStartYear < 2000
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid academic session start year'
-            });
+        /*
+         * Generic enrollment-year calculation:
+         *
+         * Semester 1-2 => 2026
+         * Semester 3-4 => 2025
+         * Semester 5-6 => 2024
+         * Semester 7-8 => 2023
+         */
+        const academicYearOffset =
+            Math.floor((semesterNumber - 1) / 2);
+
+        const expectedEnrollmentYear =
+            currentAcademicStartYear - academicYearOffset;
+
+        let query = `
+            SELECT
+                id,
+                batch_code,
+                program,
+                batch_type,
+                enrollment_year,
+                department,
+                is_active
+            FROM batches
+            WHERE is_active = 1
+              AND enrollment_year = ?
+              AND (
+        `;
+
+        const queryParams = [
+            expectedEnrollmentYear
+        ];
+
+        /*
+         * B.Tech selection:
+         *
+         * Return only B.Tech batches, including:
+         * - Regular
+         * - Integrated
+         *
+         * No batch_type filter is applied.
+         */
+        if (normalizedProgram === 'BTECH') {
+            query += `
+                    program LIKE 'BTECH%'
+            `;
         }
 
         /*
-         * M.Tech Semester 1
+         * M.Tech selection:
          *
-         * 1. M.Tech first-year students
-         *    enrollment_year = session start
-         *
-         * 2. Integrated M.Tech represented as BTECH:
-         *    4th year = session - 3
-         *    5th year = session - 4
+         * Return all M.Tech branches for the calculated year,
+         * plus integrated B.Tech batches from the additional
+         * eligible enrollment years.
          */
-        if (
-            normalizedProgram === 'MTECH' &&
-            semesterNumber === 1
-        ) {
-            const mtechFirstYear = sessionStartYear;
-            const integratedFourthYear = sessionStartYear - 3;
-            const integratedFifthYear = sessionStartYear - 4;
+        if (normalizedProgram === 'MTECH') {
+            query += `
+                    program LIKE 'MTECH%'
+            `;
 
-            const [rows] = await pool.query(
-                `
-                SELECT
-                    id,
-                    batch_code,
-                    program,
-                    batch_type,
-                    enrollment_year,
-                    department,
-                    is_active
-                FROM batches
-                WHERE is_active = 1
-                  AND (
-                        (
-                            program = 'MTECH'
-                            AND enrollment_year = ?
-                        )
-                        OR
-                        (
-                            program = 'BTECH'
-                            AND batch_type = 'Integrated'
-                            AND enrollment_year IN (?, ?)
-                        )
-                  )
-                ORDER BY
-                    CASE
-                        WHEN program = 'MTECH' THEN 1
-                        ELSE 2
-                    END,
-                    enrollment_year ASC,
-                    batch_code ASC
-                `,
-                [
-                    mtechFirstYear,
-                    integratedFourthYear,
-                    integratedFifthYear
-                ]
+            query += `
+                    OR (
+                        program LIKE 'BTECH%'
+                        AND LOWER(batch_type) = 'integrated'
+                        AND enrollment_year IN (?, ?)
+                    )
+            `;
+
+            queryParams.push(
+                expectedEnrollmentYear - 3,
+                expectedEnrollmentYear - 4
             );
-
-            return res.json({
-                success: true,
-                count: rows.length,
-                batches: rows
-            });
         }
 
-        /*
-         * B.Tech Semester 1
-         *
-         * All B.Tech batches enrolled in the current
-         * academic session.
-         *
-         * This intentionally does NOT filter batch_type,
-         * so both Regular and Integrated are returned.
-         */
-        if (
-            normalizedProgram === 'BTECH' &&
-            semesterNumber === 1
-        ) {
-            const [rows] = await pool.query(
-                `
-                SELECT
-                    id,
-                    batch_code,
-                    program,
-                    batch_type,
-                    enrollment_year,
-                    department,
-                    is_active
-                FROM batches
-                WHERE is_active = 1
-                  AND program = 'BTECH'
-                  AND enrollment_year = ?
-                ORDER BY
-                    batch_type ASC,
-                    batch_code ASC
-                `,
-                [sessionStartYear]
-            );
+        query += `
+              )
+            ORDER BY
+                CASE
+                    WHEN department = ? THEN 0
+                    ELSE 1
+                END,
+                enrollment_year DESC,
+                program ASC,
+                batch_type ASC,
+                batch_code ASC
+        `;
 
-            return res.json({
-                success: true,
-                count: rows.length,
-                batches: rows
-            });
-        }
+        queryParams.push(normalizedDepartment);
 
-        /*
-         * We don't invent eligibility rules for semesters
-         * that have not yet been defined.
-         */
-        return res.status(400).json({
-            success: false,
-            message:
-                `Eligibility rule is not configured for ${normalizedProgram} semester ${semesterNumber}`
+        const [rows] = await pool.query(
+            query,
+            queryParams
+        );
+
+        return res.json({
+            success: true,
+            count: rows.length,
+            calculatedEnrollmentYear: expectedEnrollmentYear,
+            selectedDepartment: normalizedDepartment,
+            batches: rows
         });
 
     } catch (error) {
         console.error('Eligible batches error:', error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to load eligible batches'
         });
