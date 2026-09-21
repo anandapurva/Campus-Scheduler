@@ -5,7 +5,9 @@ import { AuthService } from '../../../services/auth';
 import { ClassEditor } from '../class-editor/class-editor';
 import { AcademicSessionService } from '../../../services/academic-session';
 import { TimetableConfigService } from '../../../services/timetable-config';
-
+import { TimetableService } from '../../../services/timetable';
+import { ProgramService } from '../../../services/program';
+import { DepartmentService } from '../../../services/department';
 interface TimeSlot {
 
   id: number;
@@ -57,12 +59,17 @@ export class Timetable implements OnInit {
 
   program = '';
   semester = 0;
+
   academicSessionId: number | null = null;
   academicSessionStartYear: number | null = null;
   academicSessionName = '';
 
   academicSessionLoading = false;
   academicSessionError = '';
+
+semesterId: number | null = null;
+  programId: number | null = null;
+departmentId: number | null = null;
 
 
   // ==========================================
@@ -185,7 +192,10 @@ export class Timetable implements OnInit {
     private router: Router,
     private academicSessionService: AcademicSessionService,
     private timetableConfigService: TimetableConfigService,
-     private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private timetableService: TimetableService,
+    private programService: ProgramService,
+    private departmentService: DepartmentService
 
 
   ) {}
@@ -195,16 +205,13 @@ export class Timetable implements OnInit {
 
     this.loadTeacher();
 
-    this.loadSelection();
-
     this.createEmptyTimetable();
+
+    this.loadSelection();
 
   }
 
-
-  // ==========================================
   // TEACHER
-  // ==========================================
 
   loadTeacher(): void {
 
@@ -234,234 +241,474 @@ export class Timetable implements OnInit {
 
   }
 
-
-  // ==========================================
   // PROGRAM / SEMESTER
-  // ==========================================
-
 loadSelection(): void {
+
   this.route.queryParams.subscribe(params => {
 
-    this.program = String(
-      params['program'] || ''
-    ).trim().toUpperCase();
+    this.program =
+      String(params['program'] || '')
+        .trim()
+        .toUpperCase();
 
-    this.department = String(
-      params['department'] || ''
-    ).trim().toUpperCase();
+    this.department =
+      String(params['department'] || '')
+        .trim()
+        .toUpperCase();
 
-    this.semester = Number(
-      params['semester'] || 0
-    );
+    this.programId =
+      params['programId']
+        ? Number(params['programId'])
+        : null;
 
-    this.academicSessionId = params['academicSessionId']
-      ? Number(params['academicSessionId'])
-      : null;
+    this.departmentId =
+      params['departmentId']
+        ? Number(params['departmentId'])
+        : null;
 
-    console.log('TIMETABLE INPUTS:', {
-      department: this.department,
-      program: this.program,
-      semester: this.semester,
-      academicSessionId: this.academicSessionId
-    });
+    this.semesterId =
+      params['semesterId']
+        ? Number(params['semesterId'])
+        : null;
 
+    this.semester =
+      params['semesterNumber']
+        ? Number(params['semesterNumber'])
+        : Number(params['semester'] || 0);
+
+    this.academicSessionId =
+      params['academicSessionId']
+        ? Number(params['academicSessionId'])
+        : null;
+
+    // Load session information
     this.loadAcademicSession();
 
-     // Load Admin locked lunch
     this.loadLunchConfiguration();
+
   });
 }
 
-loadLunchConfiguration(): void {
 
-  if (!this.program || !this.semester) {
-    console.warn(
-      'Cannot load lunch configuration: program or semester missing'
-    );
-    return;
-  }
+  loadLunchConfiguration(): void {
 
-  const year = Math.ceil(this.semester / 2);
+    if (!this.program || !this.semester) {
+      console.warn(
+        'Cannot load lunch configuration: program or semester missing'
+      );
+      return;
+    }
 
-  console.log('LOADING LUNCH CONFIGURATION:', {
-    program: this.program,
-    semester: this.semester,
-    year: year
-  });
+    const year = Math.ceil(this.semester / 2);
 
-  this.timetableConfigService
-    .getLunchConfiguration(this.program, year)
-    .subscribe({
+    this.timetableConfigService
+      .getLunchConfiguration(this.program, year)
+      .subscribe({
 
-      next: (response: any) => {
+        next: (response: any) => {
 
-        console.log(
-          'TIMETABLE LUNCH RESPONSE:',
-          response
-        );
+          if (
+            response?.locked === true &&
+            response?.configuration
+          ) {
 
-        if (
-          response?.locked === true &&
-          response?.configuration
-        ) {
+            const configurations =
+              Array.isArray(response.configuration)
+                ? response.configuration
+                : [response.configuration];
 
-          const configurations =
-            Array.isArray(response.configuration)
-              ? response.configuration
-              : [response.configuration];
-
-          const config = configurations.find(
-            (item: any) =>
-              Number(item.semester) === Number(this.semester)
-          );
-
-          if (config) {
-
-            this.lunchStart =
-              config.lunchStart;
-
-            this.lunchEnd =
-              config.lunchEnd;
-
-            console.log(
-              'LUNCH APPLIED TO TIMETABLE:',
-              {
-                lunchStart: this.lunchStart,
-                lunchEnd: this.lunchEnd
-              }
+            const config = configurations.find(
+              (item: any) =>
+                Number(item.semester) === Number(this.semester)
             );
+
+            if (config) {
+
+              this.lunchStart =
+                config.lunchStart;
+
+              this.lunchEnd =
+                config.lunchEnd;
+
+            } else {
+
+              console.warn(
+                'No lunch configuration found for selected semester:',
+                this.semester
+              );
+
+              this.lunchStart = '';
+              this.lunchEnd = '';
+            }
 
           } else {
-
-            console.warn(
-              'No lunch configuration found for selected semester:',
-              this.semester
-            );
 
             this.lunchStart = '';
             this.lunchEnd = '';
           }
 
-        } else {
+          // IMPORTANT:
+          // Force Angular to update the timetable immediately.
+          this.cdr.detectChanges();
 
-          console.log(
-            'Lunch is not locked for this timetable.'
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Error loading lunch configuration:',
+            error
           );
 
           this.lunchStart = '';
           this.lunchEnd = '';
+
+          this.cdr.detectChanges();
+
         }
 
-        // IMPORTANT:
-        // Force Angular to update the timetable immediately.
-        this.cdr.detectChanges();
+      });
+  }
 
-      },
+  loadAcademicSession(): void {
 
-      error: (error) => {
+    this.academicSessionLoading = true;
+    this.academicSessionError = '';
 
-        console.error(
-          'Error loading lunch configuration:',
-          error
-        );
+    this.academicSessionService
+      .getActiveSession()
+      .subscribe({
 
-        this.lunchStart = '';
-        this.lunchEnd = '';
+        next: (response) => {
 
-        this.cdr.detectChanges();
-
-      }
-
-    });
-}
-
-loadAcademicSession(): void {
-
-  this.academicSessionLoading = true;
-
-  this.academicSessionError = '';
+          this.academicSessionLoading = false;
 
 
-  this.academicSessionService
-    .getActiveSession()
-    .subscribe({
+          if (
+            !response.active ||
+            !response.session
+          ) {
 
-      next: (response) => {
+            this.academicSessionId = null;
 
-        this.academicSessionLoading = false;
+            this.academicSessionStartYear = null;
+
+            this.academicSessionName = '';
+
+            this.academicSessionError =
+              'No academic session is currently active.';
+
+            return;
+          }
 
 
-        if (
-          !response.active ||
-          !response.session
-        ) {
+          const session =
+            response.session;
+
+
+          this.academicSessionId =
+            Number(session.id);
+
+          this.academicSessionStartYear =
+            Number(session.start_year);
+
+          this.academicSessionName =
+            session.session_name;
+
+          this.loadLunchConfiguration();
+
+          this.loadExistingTimetable();
+
+        },
+
+
+        error: (error) => {
+
+          console.error(
+            'Error loading academic session:',
+            error
+          );
+
+
+          this.academicSessionLoading = false;
 
           this.academicSessionId = null;
 
           this.academicSessionStartYear = null;
 
-          this.academicSessionName = '';
-
           this.academicSessionError =
-            'No academic session is currently active.';
-
-          return;
+            'Unable to load the active academic session.';
 
         }
 
+      });
 
-        const session =
-          response.session;
+  }
+
+  // ==========================================
+  // LOAD EXISTING TIMETABLE
+  // ==========================================
+
+  loadTimetable(): void {
+
+    if (!this.academicSessionId) {
+      console.warn('Cannot load timetable: academic session missing');
+      return;
+    }
+
+    if (!this.program || !this.semester) {
+      console.warn('Cannot load timetable: program or semester missing');
+      return;
+    }
+
+    const programId = Number(
+      this.route.snapshot.queryParams['programId']
+    );
+
+    const departmentId = Number(
+      this.route.snapshot.queryParams['departmentId']
+    );
+
+    const semesterId = Number(
+      this.route.snapshot.queryParams['semesterId']
+    );
+
+    if (!programId || !departmentId || !semesterId) {
+
+      console.warn(
+        'Cannot load timetable: missing programId, departmentId or semesterId',
+        {
+          programId,
+          departmentId,
+          semesterId
+        }
+      );
+
+      return;
+    }
+
+    this.timetableService
+      .getTimetable(
+        this.academicSessionId,
+        programId,
+        departmentId,
+        semesterId
+      )
+      .subscribe({
+
+        next: (response: any) => {
+
+          if (
+            !response?.success ||
+            !Array.isArray(response.entries)
+          ) {
+            console.warn('No timetable entries found');
+
+            return;
+          }
+
+          this.populateTimetable(
+            response.entries
+          );
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Failed to load timetable:',
+            error
+          );
+
+        }
+
+      });
+  }
+
+  normalizeProgram(value: string): string {
+
+    return String(value || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+
+  }
+
+  loadExistingTimetable(): void {
+
+    if (!this.academicSessionId) {
+
+      console.warn(
+        'Cannot load timetable: academic session ID missing'
+      );
+
+      return;
+    }
 
 
-        this.academicSessionId =
-          Number(session.id);
+    if (
+      !this.programId ||
+      !this.departmentId ||
+      !this.semesterId
+    ) {
+
+      console.error(
+        'Cannot load timetable: missing IDs',
+        {
+          programId: this.programId,
+          departmentId: this.departmentId,
+          semesterId: this.semesterId
+        }
+      );
+
+      return;
+    }
+
+    this.timetableService
+      .getTimetable(
+
+        Number(
+          this.academicSessionId
+        ),
+
+        Number(
+          this.programId
+        ),
+
+        Number(
+          this.departmentId
+        ),
+
+        Number(
+          this.semesterId
+        )
+
+      )
+      .subscribe({
+
+        next: (response: any) => {
+
+          if (
+            response?.success &&
+            Array.isArray(
+              response.entries
+            )
+          ) {
+
+            this.populateTimetable(
+              response.entries
+            );
+
+          }
 
 
-        this.academicSessionStartYear =
-          Number(session.start_year);
+          this.cdr.detectChanges();
+
+        },
 
 
-        this.academicSessionName =
-          session.session_name;
+        error: (error) => {
+
+          console.error(
+            'Cannot load timetable:',
+            error
+          );
+
+        }
+
+      });
+
+  }
+
+  // ==========================================
+  // POPULATE TIMETABLE GRID
+  // ==========================================
+
+  populateTimetable(entries: any[]): void {
+
+    // Start with an empty grid
+    this.createEmptyTimetable();
 
 
-        console.log(
-          'ACTIVE ACADEMIC SESSION:',
-          session
+    for (const entry of entries) {
+
+      const dayIndex =
+        this.days.findIndex(
+          day =>
+            day.toLowerCase() ===
+            String(entry.day)
+              .trim()
+              .toLowerCase()
         );
 
 
-        console.log(
-          'Academic session start year:',
-          this.academicSessionStartYear
-        );
-
-      },
-
-
-      error: (error) => {
-
-        console.error(
-          'Error loading academic session:',
-          error
+      const slotIndex =
+        this.timeSlots.findIndex(
+          slot =>
+            Number(slot.id) ===
+            Number(entry.slot_id)
         );
 
 
-        this.academicSessionLoading = false;
+      if (
+        dayIndex === -1 ||
+        slotIndex === -1
+      ) {
 
-        this.academicSessionId = null;
+        console.warn(
+          'Could not map timetable entry:',
+          entry
+        );
 
-        this.academicSessionStartYear = null;
-
-        this.academicSessionError =
-          'Unable to load the active academic session.';
-
+        continue;
       }
 
-    });
 
-}
+      this.timetable[dayIndex][slotIndex].data = {
+
+        id:
+          entry.id,
+
+        lectureType:
+          entry.lecture_type,
+
+        subjectCode:
+          entry.subject_code,
+
+        subjectName:
+          entry.subject_name,
+
+        room:
+          entry.room_code ||
+          entry.room_name,
+
+        roomId:
+          entry.room_id,
+
+        roomName:
+          entry.room_name,
+
+        roomType:
+          entry.room_type,
+
+        roomCapacity:
+          entry.room_capacity,
+
+        totalStudents:
+          entry.total_students,
+
+        batches:
+          entry.batches || [],
+
+        teachers:
+          entry.teachers || []
+
+      };
+
+    }
+
+  }
 
 
   // ==========================================
@@ -549,17 +796,136 @@ loadAcademicSession(): void {
   saveCell(data: any): void {
 
     if (!this.selectedCell) {
-
       return;
-
     }
 
+    if (!this.academicSessionId) {
 
-    this.selectedCell.data =
-      data;
+      alert(
+        'No active academic session found.'
+      );
+
+      return;
+    }
+
+    const payload = {
+
+      academicSessionId:
+        Number(this.academicSessionId),
+
+      programId:
+        Number(data.programId),
+
+      departmentId:
+        Number(data.departmentId),
+
+      semesterId:
+        Number(data.semesterId),
+
+      day:
+        this.selectedCell.day,
+
+      slotId:
+        Number(this.selectedCell.slot.id),
+
+      startTime:
+        this.selectedCell.slot.start,
+
+      endTime:
+        this.selectedCell.slot.end,
+
+      subjectId:
+        Number(data.subjectId),
+
+      lectureType:
+        data.lectureType,
+
+      roomId:
+        Number(data.roomId),
+
+      batchIds:
+        data.batchIds || [],
+
+      teacherIds:
+        data.teacherIds || [],
+
+      totalStudents:
+        Number(data.totalStudents || 0)
+
+    };
+
+    this.timetableService
+      .createTimetableEntry(payload)
+      .subscribe({
+
+        next: (response) => {
+
+          this.selectedCell!.data = {
+
+            lectureType:
+              data.lectureType,
+
+            batches:
+              data.batches,
+
+            subjectCode:
+              data.subjectCode,
+
+            subjectName:
+              data.subjectName,
+
+            room:
+              data.room,
+
+            roomId:
+              data.roomId,
+
+            roomName:
+              data.roomName,
+
+            roomType:
+              data.roomType,
+
+            roomCapacity:
+              data.roomCapacity,
+
+            teachers:
+              data.teachers,
+
+            totalStudents:
+              data.totalStudents
+
+          };
 
 
-    this.closeEditor();
+          this.closeEditor();
+
+          this.cdr.detectChanges();
+
+
+          alert(
+            'Class added to timetable successfully.'
+          );
+
+        },
+
+
+        error: (error) => {
+
+          console.error(
+            'Failed to save timetable:',
+            error
+          );
+
+
+          alert(
+            error?.error?.message ||
+            'Failed to save timetable.'
+          );
+
+        }
+
+      });
 
   }
 
@@ -576,39 +942,39 @@ loadAcademicSession(): void {
 
   }
 
-isLunchSlot(slot: TimeSlot): boolean {
+  isLunchSlot(slot: TimeSlot): boolean {
 
-  if (!this.lunchStart || !this.lunchEnd) {
-    return false;
+    if (!this.lunchStart || !this.lunchEnd) {
+      return false;
+    }
+
+    const lunchStartMinutes =
+      this.timeToMinutes(this.lunchStart);
+
+    const lunchEndMinutes =
+      this.timeToMinutes(this.lunchEnd);
+
+    const slotStartMinutes =
+      this.timeToMinutes(slot.start);
+
+    const slotEndMinutes =
+      this.timeToMinutes(slot.end);
+
+    // Check whether the timetable slot overlaps lunch
+    return (
+      slotStartMinutes < lunchEndMinutes &&
+      slotEndMinutes > lunchStartMinutes
+    );
   }
 
-  const lunchStartMinutes =
-    this.timeToMinutes(this.lunchStart);
+  timeToMinutes(time: string): number {
 
-  const lunchEndMinutes =
-    this.timeToMinutes(this.lunchEnd);
+    const parts = time.split(':');
 
-  const slotStartMinutes =
-    this.timeToMinutes(slot.start);
+    const hours = Number(parts[0]);
+    const minutes = Number(parts[1]);
 
-  const slotEndMinutes =
-    this.timeToMinutes(slot.end);
-
-  // Check whether the timetable slot overlaps lunch
-  return (
-    slotStartMinutes < lunchEndMinutes &&
-    slotEndMinutes > lunchStartMinutes
-  );
-}
-
-timeToMinutes(time: string): number {
-
-  const parts = time.split(':');
-
-  const hours = Number(parts[0]);
-  const minutes = Number(parts[1]);
-
-  return (hours * 60) + minutes;
-}
+    return (hours * 60) + minutes;
+  }
 
 }

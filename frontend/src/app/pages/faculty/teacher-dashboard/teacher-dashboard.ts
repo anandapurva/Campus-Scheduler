@@ -47,7 +47,7 @@ semesters: any[] = [];
 
 selectedProgram = '';
 
-selectedSemester = '';
+
 
 
 onProgramChange(): void {
@@ -92,7 +92,7 @@ onProgramChange(): void {
     });
 }
 
-toggleTeacherMenu(): void {
+toggleFacultyMenu(): void {
   this.showLogout = !this.showLogout;
 }
 
@@ -131,7 +131,8 @@ getSelectedSemesterName(): string {
 lunchLocked = false;
 
 lunchLoading = false;
-
+selectedSemester = '';       // semester ID
+selectedSemesterNumber = 0;  // semester number
 
 lunchOptions = [
 
@@ -187,9 +188,6 @@ lunchOptions = [
       this.loadDepartments();
 
   }
-
-  
-
 
   // -----------------------------------------
   // LOAD LOGGED-IN TEACHER
@@ -257,19 +255,19 @@ lunchOptions = [
 
   }
 
-loadDepartments(): void {
-  this.departmentService.getDepartments().subscribe({
-    next: (response) => {
+  loadDepartments(): void {
+    this.departmentService.getDepartments().subscribe({
+      next: (response) => {
 
-      this.departments = response;
-    },
+        this.departments = response;
+      },
 
-    error: (error) => {
-      console.error('Error loading departments:', error);
-      this.departments = [];
-    }
-  });
-}
+      error: (error) => {
+        console.error('Error loading departments:', error);
+        this.departments = [];
+      }
+    });
+  }
 
   logout(): void {
    this.authService.logout();
@@ -301,8 +299,6 @@ loadDepartments(): void {
 
   }
 
-
-
   // =========================================
   // SEARCH TIMETABLE
   // =========================================
@@ -310,31 +306,72 @@ loadDepartments(): void {
   viewTimetable(): void {
 
     if (!this.selectedProgram) {
-
       alert('Please select a program.');
-
       return;
-
     }
 
+    if (!this.selectedDepartment) {
+      alert('Please select a department.');
+      return;
+    }
 
     if (!this.selectedSemester) {
-
       alert('Please select a semester.');
-
       return;
-
     }
 
+
+    const programId =
+      Number(this.selectedProgram);
+
+    const departmentId =
+      Number(this.selectedDepartment);
+
+    const semesterId =
+      Number(this.selectedSemester);
+
+
+    const semester =
+      this.semesters.find(
+        s => Number(s.id) === semesterId
+      );
+
+
+    if (!semester) {
+
+      console.error(
+        'Selected semester not found:',
+        semesterId
+      );
+
+      alert('Invalid semester selected.');
+
+      return;
+    }
+
+
+    const semesterNumber =
+      Number(semester.semester_number);
 
     this.router.navigate(
       ['/teacher/timetable'],
       {
         queryParams: {
 
-          program: this.selectedProgram,
-          department: this.selectedDepartment,
-          semester: this.selectedSemester
+          // Display values
+          program:
+            this.getProgramCode(),
+
+          department:
+            this.getSelectedDepartmentName(),
+
+          semester:
+            semesterNumber,
+
+          // Database IDs
+          programId,
+          departmentId,
+          semesterId
 
         }
       }
@@ -342,6 +379,17 @@ loadDepartments(): void {
 
   }
 
+  getSelectedDepartmentName(): string {
+
+  const department = this.departments.find(
+    d => Number(d.id) === Number(this.selectedDepartment)
+  );
+
+  return department
+    ? department.name
+    : '';
+
+  }
 
   // =========================================
   // REQUEST EXTRA CLASS
@@ -354,7 +402,6 @@ loadDepartments(): void {
     );
 
   }
-
 
   // =========================================
   // SEARCH TEACHER
@@ -390,238 +437,277 @@ loadDepartments(): void {
   // CREATE TIMETABLE WITH LUNCH
   // =========================================
 
+  getProgramCode(): string {
 
-getProgramCode(): string {
-
-  const program = this.programs.find(
-    p =>
-      Number(p.id) ===
-      Number(this.selectedProgram)
-  );
+    const program = this.programs.find(
+      p =>
+        Number(p.id) ===
+        Number(this.selectedProgram)
+    );
 
 
-  if (!program) {
+    if (!program) {
+      return '';
+    }
+
+
+    if (program.program_name === 'B.Tech') {
+      return 'BTECH';
+    }
+
+
+    if (program.program_name === 'M.Tech') {
+      return 'MTECH';
+    }
+
+
     return '';
   }
 
+  checkLunchLock(): void {
 
-  if (program.program_name === 'B.Tech') {
-    return 'BTECH';
-  }
+    this.lunchLocked = false;
+    this.selectedLunch = '';
+
+    if (!this.selectedProgram || !this.selectedSemester) {
+      return;
+    }
+
+  const semesterId =
+    Number(this.selectedSemester);
 
 
-  if (program.program_name === 'M.Tech') {
-    return 'MTECH';
-  }
-
-
-  return '';
-}
-
-checkLunchLock(): void {
-
-  this.lunchLocked = false;
-  this.selectedLunch = '';
-
-  if (!this.selectedProgram || !this.selectedSemester) {
-    return;
-  }
-
-  const semesterNumber = Number(this.selectedSemester);
-
-  if (!semesterNumber || Number.isNaN(semesterNumber)) {
-    console.error(
-      'Invalid selected semester:',
-      this.selectedSemester
+  const semester =
+    this.semesters.find(
+      s => Number(s.id) === semesterId
     );
-    return;
-  }
 
-  const year = Math.ceil(semesterNumber / 2);
 
-  const programCode = this.getProgramCode();
+  if (!semester) {
 
-  if (!programCode) {
     console.error(
-      'Invalid program:',
-      this.selectedProgram
+      'Cannot determine semester number for ID:',
+      semesterId
     );
+
     return;
   }
 
-  this.checkingLunch = true;
 
-  this.timetableService
-    .getLunchConfiguration(programCode, year)
-    .subscribe({
+  const semesterNumber =
+    Number(semester.semester_number);
 
-      next: (response: any) => {
 
-        this.checkingLunch = false;
+  if (
+    !semesterNumber ||
+    Number.isNaN(semesterNumber)
+  ) {
 
-        this.lunchLocked =
-          response?.locked === true;
+    console.error(
+      'Invalid semester number:',
+      semester.semester_number
+    );
 
-        if (
-          this.lunchLocked &&
-          response?.configuration
-        ) {
+    return;
+  }
 
-          const config = Array.isArray(
-            response.configuration
-          )
-            ? response.configuration[0]
-            : response.configuration;
 
-          if (config) {
-            this.selectedLunch =
-              `${config.lunchStart}-${config.lunchEnd}`;
+  const year =
+    Math.ceil(semesterNumber / 2);
+
+    const programCode = this.getProgramCode();
+
+    if (!programCode) {
+      console.error(
+        'Invalid program:',
+        this.selectedProgram
+      );
+      return;
+    }
+
+    this.checkingLunch = true;
+
+    this.timetableService
+      .getLunchConfiguration(programCode, year)
+      .subscribe({
+
+        next: (response: any) => {
+
+          this.checkingLunch = false;
+
+          this.lunchLocked =
+            response?.locked === true;
+
+          if (
+            this.lunchLocked &&
+            response?.configuration
+          ) {
+
+            const config = Array.isArray(
+              response.configuration
+            )
+              ? response.configuration[0]
+              : response.configuration;
+
+            if (config) {
+              this.selectedLunch =
+                `${config.lunchStart}-${config.lunchEnd}`;
+            }
+
+          } else {
+
+            this.selectedLunch = '';
           }
 
-        } else {
+          this.cdr.detectChanges();
+        },
 
+        error: (error) => {
+
+          this.checkingLunch = false;
+          this.lunchLocked = false;
           this.selectedLunch = '';
+
+          console.error(
+            'Failed to check lunch configuration:',
+            error
+          );
+
+          this.cdr.detectChanges();
         }
-
-        this.cdr.detectChanges();
-      },
-
-      error: (error) => {
-
-        this.checkingLunch = false;
-        this.lunchLocked = false;
-        this.selectedLunch = '';
-
-        console.error(
-          'Failed to check lunch configuration:',
-          error
-        );
-
-        this.cdr.detectChanges();
-      }
-    });
-}
-
-onSemesterSelected(value: string): void {
-
-  this.selectedSemester = value;
-
-  const semesterNumber = Number(value);
-
-  if (!value || Number.isNaN(semesterNumber)) {
-
-    console.error(
-      'Invalid semester value:',
-      value
-    );
-
-    return;
+      });
   }
 
-  this.checkLunchLock();
+  onSemesterSelected(value: string): void {
 
-}
+    this.selectedSemester = value;
+
+    const semesterId = Number(value);
+
+    if (!value || Number.isNaN(semesterId)) {
+
+      console.error(
+        'Invalid semester ID:',
+        value
+      );
+
+      return;
+    }
 
 
-getLunchDisplay(): string {
+    const semester =
+      this.semesters.find(
+        s => Number(s.id) === semesterId
+      );
 
-  if (!this.selectedLunch) {
 
-    return '';
+    if (!semester) {
+
+      console.error(
+        'Semester not found:',
+        semesterId
+      );
+
+      return;
+    }
+
+
+    const semesterNumber = Number(semester.semester_number);
+
+    this.checkLunchLock();
 
   }
 
+  getLunchDisplay(): string {
 
-  const parts =
-    this.selectedLunch.split('-');
+    if (!this.selectedLunch) {
 
+      return '';
 
-  if (parts.length !== 2) {
-
-    return this.selectedLunch;
-
-  }
+    }
 
 
-  const start =
-    this.formatTime(parts[0]);
-
-  const end =
-    this.formatTime(parts[1]);
+    const parts =
+      this.selectedLunch.split('-');
 
 
-  return `${start} - ${end}`;
+    if (parts.length !== 2) {
 
-}
+      return this.selectedLunch;
 
-formatTime(time: string): string {
-
-  if (!time) {
-
-    return '';
-
-  }
+    }
 
 
-  const parts =
-    time.split(':');
+    const start =
+      this.formatTime(parts[0]);
+
+    const end =
+      this.formatTime(parts[1]);
 
 
-  let hour =
-    Number(parts[0]);
-
-  const minutes =
-    parts[1];
-
-
-  const period =
-    hour >= 12
-      ? 'PM'
-      : 'AM';
-
-
-  if (hour === 0) {
-
-    hour = 12;
-
-  }
-  else if (hour > 12) {
-
-    hour -= 12;
+    return `${start} - ${end}`;
 
   }
 
+  formatTime(time: string): string {
 
-  return `${hour}:${minutes} ${period}`;
+    if (!time) {
 
-}
+      return '';
+
+    }
+
+
+    const parts =
+      time.split(':');
+
+
+    let hour =
+      Number(parts[0]);
+
+    const minutes =
+      parts[1];
+
+
+    const period =
+      hour >= 12
+        ? 'PM'
+        : 'AM';
+
+
+    if (hour === 0) {
+
+      hour = 12;
+
+    }
+    else if (hour > 12) {
+
+      hour -= 12;
+
+    }
+
+
+    return `${hour}:${minutes} ${period}`;
+
+  }
 
 createTimetable(): void {
 
-    if (!this.lunchLocked) {
-
+  if (!this.lunchLocked) {
     console.warn(
       'Lunch has not been locked by Admin.'
     );
-
     return;
   }
 
   if (!this.canEdit) {
-
     alert('You do not have permission to edit the timetable.');
-
     return;
-
   }
 
-
   if (!this.selectedProgram) {
-
     alert('Please select a program.');
-
     return;
-
   }
 
   if (!this.selectedDepartment) {
@@ -629,17 +715,56 @@ createTimetable(): void {
     return;
   }
 
-
   if (!this.selectedSemester) {
-
     alert('Please select a semester.');
-
     return;
-
   }
 
+  // -----------------------------------------
+  // GET SEMESTER ID
+  // -----------------------------------------
 
-  // Check whether admin has activated an academic session
+  const semesterId =
+    Number(this.selectedSemester);
+
+  // -----------------------------------------
+  // FIND ACTUAL SEMESTER NUMBER
+  // -----------------------------------------
+
+  const semester =
+    this.semesters.find(
+      s => Number(s.id) === semesterId
+    );
+
+  if (!semester) {
+    console.error(
+      'Selected semester not found:',
+      semesterId
+    );
+
+    alert('Invalid semester selected.');
+    return;
+  }
+
+  const semesterNumber =
+    Number(semester.semester_number);
+
+  if (
+    !semesterNumber ||
+    Number.isNaN(semesterNumber)
+  ) {
+    console.error(
+      'Invalid semester number:',
+      semester.semester_number
+    );
+
+    alert('Invalid semester number.');
+    return;
+  }
+
+  // -----------------------------------------
+  // CHECK ACTIVE ACADEMIC SESSION
+  // -----------------------------------------
 
   this.academicSessionService
     .getActiveSession()
@@ -647,8 +772,10 @@ createTimetable(): void {
 
       next: (response) => {
 
-        // No active session
-        if (!response.active || !response.session) {
+        if (
+          !response.active ||
+          !response.session
+        ) {
 
           alert(
             'Timetable creation is currently disabled. ' +
@@ -656,43 +783,54 @@ createTimetable(): void {
           );
 
           return;
-
         }
-
-
-        // Active session exists
 
         const activeSession =
           response.session;
 
+        // -----------------------------------------
+        // NAVIGATE TO TIMETABLE
+        // -----------------------------------------
 
         this.router.navigate(
           ['/teacher/timetable'],
           {
             queryParams: {
 
+              // Display information
               program:
                 this.getProgramCode(),
 
-              department: 
-                this.selectedDepartment,
+              department:
+                this.getSelectedDepartmentName(),
 
+              // IMPORTANT:
+              // Actual semester NUMBER, NOT semester ID
               semester:
-                Number(this.selectedSemester),
+                semesterNumber,
+
+              // Database IDs
+              programId:
+                Number(this.selectedProgram),
+
+              departmentId:
+                Number(this.selectedDepartment),
+
+              // Database semester ID
+              semesterId:
+                semesterId,
 
               lunch:
                 this.selectedLunch,
 
               academicSessionId:
-                activeSession.id
+                Number(activeSession.id)
 
             }
-
           }
         );
 
       },
-
 
       error: (error) => {
 
@@ -708,7 +846,6 @@ createTimetable(): void {
       }
 
     });
-
 }
 
 }

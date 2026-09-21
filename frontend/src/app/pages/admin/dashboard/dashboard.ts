@@ -1,15 +1,11 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
 import { DashboardService } from '../../../services/dashboard';
 import { ChangeDetectorRef } from '@angular/core';
-import { AuthService } from '../../../services/auth';
 import { CommonModule } from '@angular/common';
 import { AcademicSessionService } from '../../../services/academic-session';
 @Component({
   selector: 'app-dashboard',
   imports: [
-    RouterLink,
-    RouterLinkActive,
     CommonModule
   ],
   templateUrl: './dashboard.html',
@@ -19,18 +15,17 @@ export class Dashboard {
 
   programCount = 0;
 
-batchCount = 0;
+  batchCount = 0;
 
-roomCount = 0;
+  roomCount = 0;
 
-facultyCount = 0;
-academicSessionName = '';
-academicSessionLoading = true;
-academicSessionError = '';
+  facultyCount = 0;
+  academicSessionName = '';
+  academicSessionLoading = true;
+  academicSessionError = '';
 
 constructor(
   private dashboardService: DashboardService,
-  private authService: AuthService,
   private academicSessionService: AcademicSessionService,
   private cdr: ChangeDetectorRef
 ) {}
@@ -42,8 +37,6 @@ ngOnInit(): void {
 
 }
 
-showLogout = false;
-
 
 loadActiveAcademicSession(): void {
   this.academicSessionLoading = true;
@@ -51,7 +44,6 @@ loadActiveAcademicSession(): void {
 
   this.academicSessionService.getActiveSession().subscribe({
     next: (response) => {
-      console.log('ACTIVE ACADEMIC SESSION:', response);
 
       if (response?.active && response?.session) {
         this.academicSessionName = response.session.session_name;
@@ -116,12 +108,6 @@ loadDashboardStats(): void {
 }
 
 
-toggleAdminMenu(): void {
-  this.showLogout = !this.showLogout;
-}
 
-logout(): void {
-  this.authService.logout();
-}
 
 }

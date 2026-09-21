@@ -49,4 +49,5 @@ router.put(
     timetableConfigController.changeLunch
 );
 
+
 module.exports = router;

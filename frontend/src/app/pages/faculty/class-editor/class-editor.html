@@ -320,40 +320,119 @@
        SUBJECT
        ====================================== -->
 
-  <div class="form-section">
+<!-- ======================================
+     SUBJECT
+     ====================================== -->
 
-    <label>
-      Subject
-    </label>
+<div class="form-section">
 
-    <select
-      [(ngModel)]="selectedSubject">
+  <label>
+    Subject
+  </label>
 
-      <option
-        [ngValue]="null">
+  <!-- SUBJECT DROPDOWN -->
 
-        Select Subject
+  <div class="room-dropdown">
 
-      </option>
+    <!-- SELECTED SUBJECT -->
 
-      <option
-        *ngFor="
-          let subject of subjects
-        "
-        [ngValue]="subject">
+    <button
+      type="button"
+      class="room-select"
+      (click)="toggleSubjectDropdown()">
 
-        {{ subject.code }}
+      <ng-container *ngIf="selectedSubject; else noSubjectSelected">
 
-        -
+        <span class="room-selected-content">
 
-        {{ subject.name }}
+          <strong>
+            {{ selectedSubject.course_code }}
+          </strong>
 
-      </option>
+          <span>
+            {{ selectedSubject.subject_name }}
+          </span>
 
-    </select>
+        </span>
+
+      </ng-container>
+
+
+      <ng-template #noSubjectSelected>
+
+        <span class="room-placeholder">
+          Select Subject
+        </span>
+
+      </ng-template>
+
+
+      <span class="dropdown-arrow">
+        ▾
+      </span>
+
+    </button>
+
+
+    <!-- DROPDOWN PANEL -->
+
+    <div
+      class="room-dropdown-panel"
+      *ngIf="isSubjectDropdownOpen">
+
+      <!-- SEARCH -->
+
+      <div class="room-search">
+
+        <input
+          type="text"
+          placeholder="Search subject..."
+          [(ngModel)]="subjectSearch"
+          (input)="searchSubjects()"
+          (click)="$event.stopPropagation()"
+        />
+
+      </div>
+
+
+      <!-- SUBJECT LIST -->
+
+      <div class="room-list">
+
+        <div
+          *ngFor="let subject of filteredSubjects"
+          class="room-option subject-option"
+          (click)="selectSubject(subject)"
+        >
+
+          <span class="subject-code">
+            {{ subject.course_code }}
+          </span>
+
+          <span class="subject-name">
+            {{ subject.subject_name }}
+          </span>
+
+        </div>
+
+
+        <!-- NO SEARCH RESULTS -->
+
+        <div
+          class="empty-message"
+          *ngIf="filteredSubjects.length === 0">
+
+          No subjects found.
+
+        </div>
+
+      </div>
+
+    </div>
 
   </div>
 
+</div>
 <!-- ======================================
      ROOM
      ====================================== -->
@@ -580,7 +659,7 @@
     <button
       type="button"
       class="room-select"
-      (click)="toggleTeacherDropdown()">
+      (click)="toggleFacultyDropdown()">
 
       <span class="room-placeholder">
         Select Teacher
@@ -630,7 +709,7 @@
 
           <button
             type="button"
-            (click)="toggleTeacher(teacher)"
+            (click)="toggleFaculty(teacher)"
             title="Remove teacher">
 
             ×
@@ -691,8 +770,8 @@
 
           <input
             type="checkbox"
-            [checked]="isTeacherSelected(teacher)"
-            (change)="toggleTeacher(teacher)"
+            [checked]="isFacultySelected(teacher)"
+            (change)="toggleFaculty(teacher)"
           />
 
 

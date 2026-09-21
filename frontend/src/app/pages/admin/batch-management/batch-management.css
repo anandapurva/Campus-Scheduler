@@ -1,7 +1,14 @@
 .batch-page {
-  padding: 24px;
-  background: #f7f8fc;
-  min-height: 100vh;
+  width: 100%;
+  max-width: none;
+
+  margin: 0;
+  padding: 0;
+
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+
+  box-sizing: border-box;
 }
 
 /* =====================================================

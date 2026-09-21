@@ -408,12 +408,9 @@ toastMessage = '';
 
         next: (data) => {
 
-          this.subjects =
-            data || [];
-
-          this.cdr.detectChanges();
-
+          this.subjects = data || [];
           this.applySearch();
+          this.cdr.detectChanges();
 
         },
 

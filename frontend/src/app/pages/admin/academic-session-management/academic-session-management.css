@@ -1,10 +1,15 @@
 /* Main container */
 .academic-session-container {
-  max-width: 1200px;
-  margin: 30px auto;
-  padding: 0 24px 40px;
+  width: 100%;
+  max-width: none;
+
+  margin: 0;
+  padding: 0;
+
   font-family: Arial, sans-serif;
   color: #1f2937;
+
+  box-sizing: border-box;
 }
 
 /* Page heading */

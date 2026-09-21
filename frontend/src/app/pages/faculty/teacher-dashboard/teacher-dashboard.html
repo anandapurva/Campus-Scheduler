@@ -37,7 +37,7 @@
 
 <div
   class="teacher-profile"
-  (click)="toggleTeacherMenu()"
+  (click)="toggleFacultyMenu()"
 >
   <div class="avatar">
     {{ teacherName.charAt(0).toUpperCase() }}
@@ -267,7 +267,7 @@
 
      <option
   *ngFor="let semester of semesters"
-  [ngValue]="semester.emester_number">
+  [ngValue]="semester.id">
 
   {{ semester.semester_name }}
 
@@ -457,7 +457,7 @@
 
     <option
       *ngFor="let department of departments"
-      [value]="department.abbreviation">
+      [value]="department.id">
 
       {{ department.name }}
 
@@ -490,7 +490,7 @@
 
   <option
     *ngFor="let semester of semesters"
-    [value]="semester.semester_number">
+    [value]="semester.id">
 
     {{ semester.semester_name }}
 

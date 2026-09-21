@@ -4,9 +4,9 @@
 ========================================================= */
 
 .query-page {
-  min-height: 100vh;
+  min-height: none;
   background: #f5f7fb;
-  padding: 35px;
+  padding: 0;
   box-sizing: border-box;
 
   font-family:

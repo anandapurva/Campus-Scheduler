@@ -56,13 +56,6 @@ getLunchConfiguration(
   );
 }
 
-updateLunchConfiguration(data: any) {
-  return this.http.put(
-    `${this.apiUrl}/lunch`,
-    data
-  );
-}
-
 // ============================================================
 // CHANGE LUNCH
 // ============================================================

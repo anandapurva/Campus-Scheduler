@@ -4,16 +4,17 @@
 
 .lunch-lock-container {
   width: 100%;
-  max-width: 1000px;
-  margin: 30px auto;
+  max-width: none;
+  margin: 0;
   padding: 30px;
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
 }
-
 
 /* =========================================================
    HEADER

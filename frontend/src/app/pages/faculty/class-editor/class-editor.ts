@@ -5,11 +5,8 @@ import { forkJoin } from 'rxjs';
 import { FacultyService } from '../../../services/faculty';
 import { RoomService } from '../../../services/room';
 import { AcademicSessionService } from '../../../services/academic-session';
-import {
-  BatchService,
-  Batch
-} from '../../../services/batch';
-
+import { BatchService, Batch } from '../../../services/batch';
+import { SubjectService } from '../../../services/subject';
 @Component({
   selector: 'app-class-editor',
   standalone: true,
@@ -85,7 +82,7 @@ export class ClassEditor implements OnInit, OnChanges {
 
   lunchMessage = '';
 
-lunchChecking = false;
+  lunchChecking = false;
 
   // ==================================================
   // LECTURE TYPE
@@ -129,6 +126,12 @@ lunchChecking = false;
   // ==================================================
   // SELECTED DATA
   // ==================================================
+
+  isSubjectDropdownOpen = false;
+
+  subjectSearch = '';
+
+  filteredSubjects: any[] = [];
 
   selectedSubject: any = null;
 
@@ -186,6 +189,7 @@ lunchChecking = false;
     private facultyService: FacultyService,
     private roomService: RoomService,
     private batchService: BatchService,
+    private subjectService: SubjectService,
     private academicSessionService: AcademicSessionService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -203,35 +207,37 @@ ngOnInit(): void {
 
   this.loadFaculty();
   this.loadRooms();
+  this.loadSubjects();
   this.loadEligibleBatches();
 }
 
-ngOnChanges(changes: SimpleChanges): void {
-  if (changes['academicSessionId']) {
-    this.selectedAcademicSessionId =
-      this.academicSessionId;
-  }
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['academicSessionId']) {
+      this.selectedAcademicSessionId =
+        this.academicSessionId;
+    }
 
-  if (changes['academicSessionStartYear']) {
-    this.selectedAcademicSessionStartYear =
-      this.academicSessionStartYear;
-  }
+    if (changes['academicSessionStartYear']) {
+      this.selectedAcademicSessionStartYear =
+        this.academicSessionStartYear;
+    }
 
-  if (
-    changes['program'] ||
-    changes['semester'] ||
-    changes['department'] ||
-    changes['academicSessionStartYear'] ||
-    changes['academicSessionId']
-  ) {
-    this.loadEligibleBatches();
-  }
+    if (
+      changes['program'] ||
+      changes['semester'] ||
+      changes['department'] ||
+      changes['academicSessionStartYear'] ||
+      changes['academicSessionId']
+    ) {
+      this.loadEligibleBatches();
+      this.loadSubjects();
+    }
 
-  if (changes['department']) {
-    this.sortFaculty();
-    this.filteredTeachers = [...this.teachers];
+    if (changes['department']) {
+      this.sortFaculty();
+      this.filteredTeachers = [...this.teachers];
+    }
   }
-}
 
   loadActiveAcademicSession(): void {
   this.academicSessionLoading = true;
@@ -274,234 +280,173 @@ ngOnChanges(changes: SimpleChanges): void {
           'Unable to load the active academic session.';
       }
     });
-}
+  }
 
   // ==================================================
   // LOAD ELIGIBLE BATCHES
   // ==================================================
 
-loadEligibleBatches(): void {
+  loadEligibleBatches(): void {
 
-  if (
-    !this.program ||
-    !this.semester ||
-    !this.department ||
-    !this.selectedAcademicSessionStartYear
-  ) {
-    return;
-  }
-
-  this.loadingBatches = true;
-  this.batchError = '';
-
-  this.batchService.getEligibleBatches(
-    this.program,
-    Number(this.semester),
-    this.department,
-    Number(this.selectedAcademicSessionStartYear)
-  ).subscribe({
-
-    next: (response: any) => {
-
-      this.eligibleBatches =
-        Array.isArray(response?.batches)
-          ? response.batches
-          : [];
-
-      // IMPORTANT:
-      // The HTML displays filteredBatches.
-      // Initially show all eligible batches.
-      this.filteredBatches =
-        [...this.eligibleBatches];
-
-      this.loadingBatches = false;
-
-      console.log( 'Eligible batches:', this.eligibleBatches);
-
-      console.log('Filtered batches:', this.filteredBatches );
-
-      /*
-       * Check lunch configuration
-       * for every eligible batch.
-       */
-      this.eligibleBatches.forEach(
-        (batch: any) => {
-          this.checkBatchLunch(batch);
-        }
-      );
-
-      this.cdr.detectChanges();
-    },
-
-    error: (error) => {
-
-      console.error(
-        'Failed to load eligible batches:',
-        error
-      );
-
-      this.eligibleBatches = [];
-      this.filteredBatches = [];
-
-      this.loadingBatches = false;
-
-      this.batchError =
-        'Unable to load eligible batches.';
-
-      this.cdr.detectChanges();
+    if (
+      !this.program ||
+      !this.semester ||
+      !this.department ||
+      !this.selectedAcademicSessionStartYear
+    ) {
+      return;
     }
 
-  });
-}
+    this.loadingBatches = true;
+    this.batchError = '';
 
+    this.batchService.getEligibleBatches(
+      this.program,
+      Number(this.semester),
+      this.department,
+      Number(this.selectedAcademicSessionStartYear)
+    ).subscribe({
 
+      next: (response: any) => {
 
-  checkLunchForEligibleBatches(): void {
+        this.eligibleBatches =
+          Array.isArray(response?.batches)
+            ? response.batches
+            : [];
 
-  if (
-    !this.eligibleBatches?.length ||
-    !this.selectedAcademicSessionStartYear
-  ) {
-    return;
-  }
+        // IMPORTANT:
+        // The HTML displays filteredBatches.
+        // Initially show all eligible batches.
+        this.filteredBatches =
+          [...this.eligibleBatches];
 
-  this.checkingLunch = true;
+        this.loadingBatches = false;
+        this.eligibleBatches.forEach(
+          (batch: any) => {
+            this.checkBatchLunch(batch);
+          }
+        );
 
-  const requests = this.eligibleBatches
-    .filter(batch => batch?.id != null)
-    .map(batch =>
-      this.batchService.getLunchForBatch(
-        Number(batch.id),
-        Number(this.selectedAcademicSessionStartYear)
-      )
-    );
+        this.cdr.detectChanges();
+      },
 
-  if (!requests.length) {
-    this.checkingLunch = false;
-    return;
-  }
+      error: (error) => {
 
-  forkJoin(requests).subscribe({
+        console.error(
+          'Failed to load eligible batches:',
+          error
+        );
 
-    next: (responses: any[]) => {
+        this.eligibleBatches = [];
+        this.filteredBatches = [];
 
-      const lockedLunches = responses.filter(
-        response => response?.locked === true
-      );
+        this.loadingBatches = false;
 
-      if (lockedLunches.length === 0) {
+        this.batchError =
+          'Unable to load eligible batches.';
 
-        this.lunchLocked = false;
-        this.lunchMessage = '';
-
-        this.checkingLunch = false;
-        return;
+        this.cdr.detectChanges();
       }
 
-      /*
-       * If any selected batch has a lunch lock,
-       * the selected timetable slot must respect it.
-       */
-      this.lunchLocked = true;
+    });
+  }
 
-      const firstLocked = lockedLunches[0];
+  // ==================================================
+  // BATCHES SEARCH
+  // ==================================================
 
-      this.lunchStart =
-        firstLocked.lunchStart ||
-        firstLocked.lunch_start ||
-        '';
+  searchBatches(): void {
+  const searchText = this.batchSearch
+    .trim()
+    .toLowerCase();
 
-      this.lunchEnd =
-        firstLocked.lunchEnd ||
-        firstLocked.lunch_end ||
-        '';
-
-      this.lunchSource =
-        firstLocked.lunchSource || null;
-
-      this.lunchMessage =
-        `Lunch is locked from ${this.lunchStart} to ${this.lunchEnd}.`;
-
-      this.checkingLunch = false;
-    },
-
-    error: (error:any) => {
-
-      console.error(
-        'Failed to check lunch configuration:',
-        error
-      );
-
-      this.lunchLocked = false;
-      this.lunchMessage = '';
-      this.checkingLunch = false;
-    }
-  });
-}
-
-checkBatchLunch(batch: any): void {
-  if (!this.selectedAcademicSessionStartYear || !batch?.id) {
-    batch.lunchLocked = false;
+  if (!searchText) {
+    this.filteredBatches = [...this.eligibleBatches];
     return;
   }
 
-  this.batchService.getLunchForBatch(
-    Number(batch.id),
-    Number(this.selectedAcademicSessionStartYear)
-  ).subscribe({
-    next: (response: any) => {
+  this.filteredBatches = this.eligibleBatches.filter(
+    (batch: any) => {
+      const batchCode =
+        String(batch.batch_code || '').toLowerCase();
 
-      batch.lunchLocked = response?.locked === true;
+      const program =
+        String(batch.program || '').toLowerCase();
 
-      const configurations = Array.isArray(response?.configuration)
-        ? response.configuration
-        : [];
+      const batchType =
+        String(batch.batch_type || '').toLowerCase();
 
-      /*
-       * For a batch, both semester configurations have
-       * the same lunch period, so the first one is enough.
-       */
-      const config = configurations[0];
+      const enrollmentYear =
+        String(batch.enrollment_year || '').toLowerCase();
 
-      batch.lunchStart =
-        config?.lunchStart ||
-        config?.lunch_start ||
-        '';
+      const department =
+        String(batch.department || '').toLowerCase();
 
-      batch.lunchEnd =
-        config?.lunchEnd ||
-        config?.lunch_end ||
-        '';
-
-      batch.lunchSource = response?.lunchSource || null;
-
-      console.log('BATCH LUNCH APPLIED:', {
-        id: batch.id,
-        lunchLocked: batch.lunchLocked,
-        lunchStart: batch.lunchStart,
-        lunchEnd: batch.lunchEnd,
-        lunchSource: batch.lunchSource,
-        integratedYear: response?.integratedYear
-      });
-
-      this.cdr.detectChanges();
-    },
-
-    error: (error) => {
-      console.error(
-        `Failed to check lunch for batch ${batch.id}:`,
-        error
+      return (
+        batchCode.includes(searchText) ||
+        program.includes(searchText) ||
+        batchType.includes(searchText) ||
+        enrollmentYear.includes(searchText) ||
+        department.includes(searchText)
       );
-
-      batch.lunchLocked = false;
-      batch.lunchStart = '';
-      batch.lunchEnd = '';
-      batch.lunchSource = null;
-
-      this.cdr.detectChanges();
     }
-  });
-}
+  );
+  }
+
+  checkBatchLunch(batch: any): void {
+    if (!this.selectedAcademicSessionStartYear || !batch?.id) {
+      batch.lunchLocked = false;
+      return;
+    }
+
+    this.batchService.getLunchForBatch(
+      Number(batch.id),
+      Number(this.selectedAcademicSessionStartYear)
+    ).subscribe({
+      next: (response: any) => {
+
+        batch.lunchLocked = response?.locked === true;
+
+        const configurations = Array.isArray(response?.configuration)
+          ? response.configuration
+          : [];
+
+        /*
+        * For a batch, both semester configurations have
+        * the same lunch period, so the first one is enough.
+        */
+        const config = configurations[0];
+
+        batch.lunchStart =
+          config?.lunchStart ||
+          config?.lunch_start ||
+          '';
+
+        batch.lunchEnd =
+          config?.lunchEnd ||
+          config?.lunch_end ||
+          '';
+
+        batch.lunchSource = response?.lunchSource || null;
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error(
+          `Failed to check lunch for batch ${batch.id}:`,
+          error
+        );
+
+        batch.lunchLocked = false;
+        batch.lunchStart = '';
+        batch.lunchEnd = '';
+        batch.lunchSource = null;
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   // ==================================================
   // BATCH SELECTION
@@ -513,10 +458,53 @@ checkBatchLunch(batch: any): void {
     );
   }
 
-  onBatchChange(
-    batch: Batch,
-    event: Event
-  ): void {
+  isBatchLunchLocked(batch: any): boolean {
+
+  if (!batch?.lunchLocked) {
+    return false;
+  }
+
+  // Your selected cell stores time inside selectedCell.slot
+  const slotStart =
+    this.selectedCell?.slot?.start ||
+    this.selectedCell?.startTime ||
+    this.selectedCell?.start ||
+    '';
+
+  const slotEnd =
+    this.selectedCell?.slot?.end ||
+    this.selectedCell?.endTime ||
+    this.selectedCell?.end ||
+    '';
+
+  if (!slotStart || !slotEnd) {
+    console.log('NO SLOT TIME FOUND:', {
+      batchId: batch.id,
+      selectedCell: this.selectedCell
+    });
+
+    return false;
+  }
+
+  const toMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const lunchStart = toMinutes(batch.lunchStart);
+  const lunchEnd = toMinutes(batch.lunchEnd);
+
+  const slotStartMinutes = toMinutes(slotStart);
+  const slotEndMinutes = toMinutes(slotEnd);
+
+  const locked =
+    slotStartMinutes < lunchEnd &&
+    slotEndMinutes > lunchStart;
+
+  return locked;
+  }
+
+  onBatchChange(batch: Batch, event: Event): void {
     const checkbox =
       event.target as HTMLInputElement;
 
@@ -549,57 +537,106 @@ checkBatchLunch(batch: any): void {
     }
   }
 
-  calculateStudents(): void {
-    /*
-     * Every batch contains exactly 30 students.
-     */
-    this.totalStudents =
-      this.selectedBatches.length * 30;
+  toggleBatch(batch: any): void {
+
+  // Do not allow a batch whose lunch overlaps
+  // the currently selected timetable slot.
+  if (
+    !this.isBatchSelected(batch) &&
+    this.isBatchLunchLocked(batch)
+  ) {
+    console.warn(
+      'Cannot select batch because of lunch:',
+      batch.batch_code,
+      batch.lunchStart,
+      batch.lunchEnd
+    );
+
+    return;
   }
 
-  getRequiredCapacity(): number {
-    return this.selectedBatches.length * 30;
+  const alreadySelected =
+    this.isBatchSelected(batch);
+
+  if (alreadySelected) {
+
+    this.selectedBatches =
+      this.selectedBatches.filter(
+        (selectedBatch: any) =>
+          selectedBatch.id !== batch.id
+      );
+
+  } else {
+
+    this.selectedBatches = [
+      ...this.selectedBatches,
+      batch
+    ];
+
+  }
+
+  this.calculateStudents();
+
+  this.filterRooms();
+
+  if (
+    this.selectedRoom &&
+    this.totalStudents > 0 &&
+    Number(this.selectedRoom.capacity || 0) <
+      this.totalStudents
+  ) {
+    this.selectedRoom = null;
+  }
+
+  this.cdr.detectChanges();
+  }
+
+  toggleBatchDropdown(): void {
+    this.isBatchDropdownOpen = !this.isBatchDropdownOpen;
+  }
+
+  calculateStudents(): void {
+    // Every batch contains exactly 30 students.
+    this.totalStudents = this.selectedBatches.length * 30;
   }
 
   // ==================================================
   // LOAD FACULTY
   // ==================================================
 
-loadFaculty(): void {
-  this.loadingFaculty = true;
+  loadFaculty(): void {
+    this.loadingFaculty = true;
 
-  this.facultyService.getFaculty().subscribe({
-    next: (response: any) => {
+    this.facultyService.getFaculty().subscribe({
+      next: (response: any) => {
 
-      if (Array.isArray(response)) {
-        this.teachers = response;
-      } else if (Array.isArray(response?.faculty)) {
-        this.teachers = response.faculty;
-      } else if (Array.isArray(response?.data)) {
-        this.teachers = response.data;
-      } else {
+        if (Array.isArray(response)) {
+          this.teachers = response;
+        } else if (Array.isArray(response?.faculty)) {
+          this.teachers = response.faculty;
+        } else if (Array.isArray(response?.data)) {
+          this.teachers = response.data;
+        } else {
+          this.teachers = [];
+        }
+
+        this.loadingFaculty = false;
+
+        this.sortFaculty();
+        this.filteredTeachers = [...this.teachers];
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        this.loadingFaculty = false;
         this.teachers = [];
+        this.filteredTeachers = [];
+
+        console.error('Failed to load faculty:', error);
       }
-
-      console.log('Faculty count:', this.teachers.length);
-
-      this.loadingFaculty = false;
-
-      this.sortFaculty();
-      this.filteredTeachers = [...this.teachers];
-
-      this.cdr.detectChanges();
-    },
-
-    error: (error) => {
-      this.loadingFaculty = false;
-      this.teachers = [];
-      this.filteredTeachers = [];
-
-      console.error('Failed to load faculty:', error);
-    }
-  });
-}
+    });
+  }
 
   // ==================================================
   // SORT FACULTY
@@ -683,206 +720,77 @@ loadFaculty(): void {
   }
 
   // ==================================================
-  // BATCHES SEARCH
+  // TEACHER SELECTION
   // ==================================================
 
-  searchBatches(): void {
-  const searchText = this.batchSearch
-    .trim()
-    .toLowerCase();
-
-  if (!searchText) {
-    this.filteredBatches = [...this.eligibleBatches];
-    return;
-  }
-
-  this.filteredBatches = this.eligibleBatches.filter(
-    (batch: any) => {
-      const batchCode =
-        String(batch.batch_code || '').toLowerCase();
-
-      const program =
-        String(batch.program || '').toLowerCase();
-
-      const batchType =
-        String(batch.batch_type || '').toLowerCase();
-
-      const enrollmentYear =
-        String(batch.enrollment_year || '').toLowerCase();
-
-      const department =
-        String(batch.department || '').toLowerCase();
-
-      return (
-        batchCode.includes(searchText) ||
-        program.includes(searchText) ||
-        batchType.includes(searchText) ||
-        enrollmentYear.includes(searchText) ||
-        department.includes(searchText)
-      );
-    }
-  );
-}
-
-  toggleBatch(batch: any): void {
-
-    // Do not allow a batch whose lunch overlaps
-    // the currently selected timetable slot.
-    if (
-      !this.isBatchSelected(batch) &&
-      this.isBatchLunchLocked(batch)
-    ) {
-      console.warn(
-        'Cannot select batch because of lunch:',
-        batch.batch_code,
-        batch.lunchStart,
-        batch.lunchEnd
+  toggleFaculty(teacher: any): void {
+    const exists =
+      this.selectedTeachers.some(
+        t => t.id === teacher.id
       );
 
-      return;
-    }
-
-    const alreadySelected =
-      this.isBatchSelected(batch);
-
-    if (alreadySelected) {
-
-      this.selectedBatches =
-        this.selectedBatches.filter(
-          (selectedBatch: any) =>
-            selectedBatch.id !== batch.id
+    if (exists) {
+      this.selectedTeachers =
+        this.selectedTeachers.filter(
+          t => t.id !== teacher.id
         );
-
     } else {
-
-      this.selectedBatches = [
-        ...this.selectedBatches,
-        batch
-      ];
-
+      this.selectedTeachers.push(teacher);
     }
-
-    this.calculateStudents();
-
-    this.filterRooms();
-
-    if (
-      this.selectedRoom &&
-      this.totalStudents > 0 &&
-      Number(this.selectedRoom.capacity || 0) <
-        this.totalStudents
-    ) {
-      this.selectedRoom = null;
-    }
-
-    this.cdr.detectChanges();
   }
 
-isBatchLunchLocked(batch: any): boolean {
-
-  if (!batch?.lunchLocked) {
-    return false;
+  toggleFacultyDropdown(): void {
+    this.isTeacherDropdownOpen = !this.isTeacherDropdownOpen;
   }
 
-  // Your selected cell stores time inside selectedCell.slot
-  const slotStart =
-    this.selectedCell?.slot?.start ||
-    this.selectedCell?.startTime ||
-    this.selectedCell?.start ||
-    '';
+  // ==================================================
+  // CHECK TEACHER
+  // ==================================================
 
-  const slotEnd =
-    this.selectedCell?.slot?.end ||
-    this.selectedCell?.endTime ||
-    this.selectedCell?.end ||
-    '';
-
-  if (!slotStart || !slotEnd) {
-    console.log('NO SLOT TIME FOUND:', {
-      batchId: batch.id,
-      selectedCell: this.selectedCell
-    });
-
-    return false;
+  isFacultySelected(teacher: any): boolean {
+    return this.selectedTeachers.some(
+      t => t.id === teacher.id
+    );
   }
-
-  const toMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  const lunchStart = toMinutes(batch.lunchStart);
-  const lunchEnd = toMinutes(batch.lunchEnd);
-
-  const slotStartMinutes = toMinutes(slotStart);
-  const slotEndMinutes = toMinutes(slotEnd);
-
-  const locked =
-    slotStartMinutes < lunchEnd &&
-    slotEndMinutes > lunchStart;
-
-  return locked;
-}
-
 
   // ==================================================
   // LOAD ROOMS
   // ==================================================
 
-loadRooms(): void {
-  this.loadingRooms = true;
+  loadRooms(): void {
+    this.loadingRooms = true;
 
-  this.roomService.getRooms().subscribe({
-    next: (response: any) => {
+    this.roomService.getRooms().subscribe({
+      next: (response: any) => {
 
-      if (Array.isArray(response)) {
-        this.rooms = response;
-      } else if (Array.isArray(response?.rooms)) {
-        this.rooms = response.rooms;
-      } else if (Array.isArray(response?.data)) {
-        this.rooms = response.data;
-      } else {
+        if (Array.isArray(response)) {
+          this.rooms = response;
+        } else if (Array.isArray(response?.rooms)) {
+          this.rooms = response.rooms;
+        } else if (Array.isArray(response?.data)) {
+          this.rooms = response.data;
+        } else {
+          this.rooms = [];
+        }
+
+        this.loadingRooms = false;
+
+        this.filterRooms();
+        this.filterRoomsBySearch();
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        this.loadingRooms = false;
         this.rooms = [];
+        this.availableRooms = [];
+        this.filteredRooms = [];
+
+        console.error('Failed to load rooms:', error);
       }
-
-      console.log('Room count:', this.rooms.length);
-
-      this.loadingRooms = false;
-
-      this.filterRooms();
-      this.filterRoomsBySearch();
-
-      this.cdr.detectChanges();
-    },
-
-    error: (error) => {
-      this.loadingRooms = false;
-      this.rooms = [];
-      this.availableRooms = [];
-      this.filteredRooms = [];
-
-      console.error('Failed to load rooms:', error);
-    }
-  });
-}
-
-getProgramCode(): string {
-  const value = String(this.program).trim().toUpperCase();
-
-  if (value === 'BTECH' || value === 'MTECH') {
-    return value;
+    });
   }
-
-  if (value === '1') {
-    return 'BTECH';
-  }
-
-  if (value === '2') {
-    return 'MTECH';
-  }
-
-  return value;
-}
 
   // ==================================================
   // LECTURE TYPE CHANGE
@@ -999,7 +907,7 @@ getProgramCode(): string {
     this.filterRoomsBySearch();
   }
 
-  // ==================================================
+    // ==================================================
   // ROOM SELECTION
   // ==================================================
 
@@ -1057,42 +965,166 @@ getProgramCode(): string {
       });
   }
 
-  toggleBatchDropdown(): void {
-  this.isBatchDropdownOpen = !this.isBatchDropdownOpen;
+// ==================================================
+// LOAD SUBJECTS
+// ==================================================
+
+  loadSubjects(): void {
+
+    if (
+      !this.program ||
+      !this.semester ||
+      !this.department
+    ) {
+
+      this.subjects = [];
+      return;
+    }
+
+    this.subjectService
+      .getSubjects(
+        this.program,
+        this.department,
+        Number(this.semester)
+      )
+      .subscribe({
+
+        next: (response: any) => {
+
+          if (Array.isArray(response)) {
+
+            this.subjects = response;
+
+          } else if (Array.isArray(response?.subjects)) {
+
+            this.subjects = response.subjects;
+
+          } else if (Array.isArray(response?.data)) {
+
+            this.subjects = response.data;
+
+          } else {
+
+            this.subjects = [];
+
+          }
+          this.cdr.detectChanges();
+
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Failed to load subjects:',
+            error
+          );
+
+          this.subjects = [];
+
+          this.cdr.detectChanges();
+
+        }
+
+      });
+  }
+
+  getProgramCode(): string {
+    const value = String(this.program).trim().toUpperCase();
+
+    if (value === 'BTECH' || value === 'MTECH') {
+      return value;
+    }
+
+    if (value === '1') {
+      return 'BTECH';
+    }
+
+    if (value === '2') {
+      return 'MTECH';
+    }
+
+    return value;
+  }
+
+  // ==================================================
+// SUBJECT DROPDOWN
+// ==================================================
+
+toggleSubjectDropdown(): void {
+
+  this.isSubjectDropdownOpen =
+    !this.isSubjectDropdownOpen;
+
+  if (this.isSubjectDropdownOpen) {
+
+    this.subjectSearch = '';
+
+    this.filteredSubjects =
+      [...this.subjects];
+
+  }
+
 }
 
-  // ==================================================
-  // TEACHER SELECTION
-  // ==================================================
 
-  toggleTeacher(teacher: any): void {
-    const exists =
-      this.selectedTeachers.some(
-        t => t.id === teacher.id
+// ==================================================
+// SEARCH SUBJECTS
+// ==================================================
+
+searchSubjects(): void {
+
+  const search =
+    this.subjectSearch
+      .trim()
+      .toLowerCase();
+
+  if (!search) {
+
+    this.filteredSubjects =
+      [...this.subjects];
+
+    return;
+  }
+
+  this.filteredSubjects =
+    this.subjects.filter(subject => {
+
+      const code =
+        String(
+          subject.course_code || ''
+        ).toLowerCase();
+
+      const name =
+        String(
+          subject.subject_name || ''
+        ).toLowerCase();
+
+      return (
+        code.includes(search) ||
+        name.includes(search)
       );
 
-    if (exists) {
-      this.selectedTeachers =
-        this.selectedTeachers.filter(
-          t => t.id !== teacher.id
-        );
-    } else {
-      this.selectedTeachers.push(teacher);
-    }
-  }
+    });
 
-  toggleTeacherDropdown(): void {
-    this.isTeacherDropdownOpen = !this.isTeacherDropdownOpen;
-  }
+}
 
-  // ==================================================
-  // CHECK TEACHER
-  // ==================================================
 
-  isTeacherSelected(teacher: any): boolean {
-    return this.selectedTeachers.some(
-      t => t.id === teacher.id
-    );
+// ==================================================
+// SELECT SUBJECT
+// ==================================================
+
+  selectSubject(subject: any): void {
+
+    this.selectedSubject = subject;
+
+    this.isSubjectDropdownOpen = false;
+
+    this.subjectSearch = '';
+
+    this.filteredSubjects =
+      [...this.subjects];
+
+    this.cdr.detectChanges();
   }
 
   // ==================================================
@@ -1105,13 +1137,10 @@ getProgramCode(): string {
       alert(
         'Timetable creation is disabled because no academic session is active.'
       );
-
       return;
     }
 
-    const selectedBatches = this.selectedBatches;
-
-    if (selectedBatches.length === 0) {
+    if (this.selectedBatches.length === 0) {
       alert('Please select at least one batch.');
       return;
     }
@@ -1127,27 +1156,85 @@ getProgramCode(): string {
     }
 
     const data = {
-      lectureType: this.lectureType,
 
-      batches: selectedBatches,
+      // Academic session
+      academicSessionId:
+        Number(this.selectedAcademicSessionId),
 
-      subjectCode: this.selectedSubject.code,
+      // Program / Department / Semester
+      programId:
+        Number(this.selectedSubject.program_id),
 
-      subjectName: this.selectedSubject.name,
+      departmentId:
+        Number(this.selectedSubject.department_id),
 
-      room: this.selectedRoom.room_id,
+      semesterId:
+        Number(this.selectedSubject.semester_id),
 
-      roomId: this.selectedRoom.id,
+      // Timetable position
+      day:
+        this.selectedCell?.day,
 
-      roomName: this.selectedRoom.room_name,
+      slotId:
+        Number(this.selectedCell?.slot?.id),
 
-      roomType: this.selectedRoom.room_type,
+      startTime:
+        this.selectedCell?.slot?.start,
 
-      roomCapacity: this.selectedRoom.capacity,
+      endTime:
+        this.selectedCell?.slot?.end,
 
-      teachers: this.selectedTeachers,
+      // Subject
+      subjectId:
+        Number(this.selectedSubject.id),
 
-      totalStudents: this.totalStudents
+      subjectCode:
+        this.selectedSubject.course_code,
+
+      subjectName:
+        this.selectedSubject.subject_name,
+
+      // Lecture type
+      lectureType:
+        this.lectureType,
+
+      // Room
+      roomId:
+        Number(this.selectedRoom.id),
+
+      room:
+        this.selectedRoom.room_id,
+
+      roomName:
+        this.selectedRoom.room_name,
+
+      roomType:
+        this.selectedRoom.room_type,
+
+      roomCapacity:
+        Number(this.selectedRoom.capacity),
+
+      // Batches
+      batches:
+        this.selectedBatches,
+
+      batchIds:
+        this.selectedBatches.map(
+          batch => Number(batch.id)
+        ),
+
+      // Faculty
+      teachers:
+        this.selectedTeachers,
+
+      teacherIds:
+        this.selectedTeachers.map(
+          teacher => Number(teacher.id)
+        ),
+
+      // Students
+      totalStudents:
+        Number(this.totalStudents)
     };
 
     this.save.emit(data);

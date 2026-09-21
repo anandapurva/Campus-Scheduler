@@ -18,6 +18,7 @@ const subjectRoutes = require("./routes/subject.routes");
 const dashboardRoutes = require('./routes/dashboard.route');
 const batchRoutes = require('./routes/batch.routes');
 const academicSessionRoutes = require('./routes/academicSessionRoutes');
+const timetableRoutes = require('./routes/timetable.route');
 
 app.use('/api/academic-sessions', academicSessionRoutes);
 app.use('/api/batches', batchRoutes);
@@ -29,6 +30,7 @@ app.use( '/api/programs', programRoutes );
 app.use( "/api/rooms", roomRoutes );
 app.use( "/api/departments", departmentRoutes );
 app.use( "/api/subjects", subjectRoutes );
+app.use( '/api/timetable', timetableRoutes );
 
 app.listen(process.env.PORT, ()=>{
     console.log(`Server running on port ${process.env.PORT}`);

@@ -73,12 +73,7 @@ function isValidLunchSlot(lunchStart, lunchEnd) {
     );
 }
 
-
-
-// ============================================================
-// LOCK LUNCH
-// ADMIN ONLY
-// ============================================================
+// LOCK LUNCH - ADMIN ONLY
 
 exports.lockLunch = async (req, res) => {
 
@@ -439,23 +434,6 @@ exports.lockLunch = async (req, res) => {
     }
 
 };
-
-// ============================================================
-// CHANGE LUNCH
-// ADMIN ONLY
-//
-// Changes the already locked lunch of a complete year.
-//
-// Example:
-//
-// BTECH Year 1
-// Sem 1 + Sem 2
-//
-// 12-1
-//   ↓
-// 1-2
-//
-// ============================================================
 
 exports.changeLunch = async (req, res) => {
 
@@ -828,8 +806,6 @@ exports.changeLunch = async (req, res) => {
     }
 
 };
-
-
 
 // ============================================================
 // GET LUNCH CONFIGURATION BY PROGRAM + YEAR
@@ -1486,3 +1462,4 @@ exports.getLunchForBatch = async (req, res) => {
     }
 
 };
+

@@ -795,3 +795,18 @@ select {
   overflow-y: auto;
 }
 
+.subject-option {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.subject-code {
+  width: 90px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.subject-name {
+  flex: 1;
+}

@@ -830,166 +830,295 @@ exports.importSubjects = async (req, res) => {
 
 };
 
-
-/*
-==================================================
-GET SUBJECTS
-==================================================
-*/
+// ==================================================
+// GET SUBJECTS
+// ==================================================
 
 exports.getSubjects = async (req, res) => {
 
   try {
 
-    const {
-      program,
-      department,
-      semester
-    } = req.query;
+    const { program, department, semester } = req.query;
 
+    // ==================================================
+    // VALIDATION
+    // ==================================================
 
-    let sql = `
+    if (!program || !department || !semester) {
 
-      SELECT
+      return res.status(400).json({
 
-        s.id,
-        s.course_code,
-        s.subject_name,
+        success: false,
 
-        s.program_id,
-        s.department_id,
-        s.semester_id,
+        message: "Program, department and semester are required"
 
-        p.program_name AS program,
+      });
 
-        d.name AS department,
+    }
+    const semesterNumber = Number(semester);
 
-        sem.semester_number,
-        sem.semester_name AS semester,
+    if (
+      !Number.isInteger(semesterNumber) ||
+      semesterNumber <= 0
+    ) {
 
-        s.course_type,
-        s.elective_group,
-
-        s.lecture_hours,
-        s.tutorial_hours,
-        s.practical_hours,
-
-        s.credits
-
-      FROM subjects s
-
-      INNER JOIN programs p
-        ON p.id = s.program_id
-
-      INNER JOIN departments d
-        ON d.id = s.department_id
-
-      INNER JOIN semesters sem
-        ON sem.id = s.semester_id
-
-      WHERE 1 = 1
-
-    `;
-
-    const params = [];
-
-
-    // ==========================================
-    // PROGRAM FILTER
-    // ==========================================
-
-    if (program) {
-
-      sql += `
-        AND p.program_name = ?
-      `;
-
-      params.push(
-        String(program).trim()
-      );
+      return res.status(400).json({
+        success: false,
+        message: "Invalid semester number"
+      });
 
     }
 
 
-    // ==========================================
-    // DEPARTMENT FILTER
-    // ==========================================
+    // ==================================================
+    // GET PROGRAM
+    // ==================================================
 
-    if (department) {
+    const [programRows] = await db.query(
+        `
+        SELECT
+          id,
+          program_name
 
-      sql += `
-        AND d.name = ?
-      `;
+        FROM programs
 
-      params.push(
-        String(department).trim()
+        WHERE
+          (
+            program_name = ?
+
+            OR
+
+            UPPER(
+              REPLACE(
+                program_name,
+                '.',
+                ''
+              )
+            ) = ?
+          )
+
+          AND is_active = 1
+
+        LIMIT 1
+        `,
+
+        [
+
+          String(program).trim(),
+
+          String(program)
+            .trim()
+            .toUpperCase()
+            .replace(/\./g, '')
+
+        ]
+
       );
+
+    if (programRows.length === 0) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: `Program "${program}" not found`
+
+      });
 
     }
 
 
-    // ==========================================
-    // SEMESTER FILTER
-    // ==========================================
-
-    if (semester) {
-
-      sql += `
-        AND sem.id = ?
-      `;
-
-      params.push(
-        Number(semester)
-      );
-
-    }
+    const programId = programRows[0].id;
 
 
-    // ==========================================
-    // ORDER
-    // ==========================================
+    // ==================================================
+    // GET DEPARTMENT
+    // ==================================================
 
-    sql += `
-      ORDER BY s.course_code
-    `;
-
-
-    const [rows] =
+    const normalizedDepartment = String(department).trim();
+    const [departmentRows] =
       await db.query(
-        sql,
-        params
+
+        `
+        SELECT d.id, d.name, d.abbreviation FROM departments d
+
+        INNER JOIN program_departments pd
+          ON pd.department_id = d.id
+        WHERE
+
+          (
+            d.name = ?
+            OR
+            d.abbreviation = ?
+          )
+
+          AND pd.program_id = ?
+          AND d.is_active = 1
+          AND pd.is_active = 1
+
+        LIMIT 1
+        `,
+
+        [
+
+          normalizedDepartment,
+          normalizedDepartment,
+          programId
+
+        ]
+
       );
 
+    if (departmentRows.length === 0) {
 
-    res.json(rows);
+      return res.status(404).json({
+        success: false,
+        message: `Department "${department}" not found for program "${program}"`
+
+      });
+
+    }
+
+
+    const departmentId = departmentRows[0].id;
+
+
+    // ==================================================
+    // GET SEMESTER ID FROM SEMESTER NUMBER
+    // ==================================================
+
+    const [semesterRows] = await db.query(
+        `
+        SELECT id, semester_number, semester_name
+        FROM semesters
+        WHERE
+
+          program_id = ?
+          AND semester_number = ?
+
+        LIMIT 1
+        `,
+
+        [
+
+          programId,
+          semesterNumber
+
+        ]
+
+      );
+
+    if (semesterRows.length === 0) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: `Semester ${semesterNumber} not found for program "${program}"`
+
+      });
+
+    }
+
+
+    const semesterId =semesterRows[0].id;
+
+    // ==================================================
+    // GET SUBJECTS
+    // ==================================================
+
+    const [rows] = await db.query(
+
+        `
+        SELECT
+          s.id,
+          s.course_code,
+          s.subject_name,
+          s.program_id,
+          s.department_id,
+          s.semester_id,
+          p.program_name AS program,
+          d.name AS department,
+          d.abbreviation AS department_abbreviation,
+          sem.semester_number,
+          sem.semester_name AS semester,
+          s.course_type,
+          s.elective_group,
+          s.lecture_hours,
+          s.tutorial_hours,
+          s.practical_hours,
+          s.credits
+
+        FROM subjects s
+
+        INNER JOIN programs p
+
+          ON p.id = s.program_id
+
+        INNER JOIN departments d
+
+          ON d.id = s.department_id
+
+        INNER JOIN semesters sem
+
+          ON sem.id = s.semester_id
+
+        WHERE
+
+          s.program_id = ?
+
+          AND s.department_id = ?
+
+          AND s.semester_id = ?
+
+          AND s.is_active = 1
+
+        ORDER BY
+
+          s.course_code
+
+        `,
+
+        [
+
+          programId,
+
+          departmentId,
+
+          semesterId
+
+        ]
+
+      );
+
+    return res.json(rows);
 
   }
+
 
   catch (error) {
 
     console.error(
-      'GET SUBJECTS ERROR:',
+      "GET SUBJECTS ERROR:",
       error
     );
 
-    res.status(500).json({
+
+    return res.status(500).json({
+
+      success: false,
 
       message:
-        'Failed to load subjects'
+        "Failed to load subjects",
+
+      error:
+        error.message
 
     });
 
   }
 
 };
-
-// ==================================================
-// ADD SUBJECT
-// ==================================================
-
-// ==================================================
-// ADD SUBJECT
-// ==================================================
 
 exports.addSubject = async (req, res) => {
 

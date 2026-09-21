@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { TimetableConfigService } from './timetable-config';
 
 @Injectable({
   providedIn: 'root'
@@ -8,11 +9,12 @@ import { Observable } from 'rxjs';
 export class TimetableService {
 
   private apiUrl =
-    'http://localhost:5000/api/timetable-config';
+    'http://localhost:5000/api/timetable';
 
 
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
+    private timetableConfigService: TimetableConfigService
   ) {}
 
 
@@ -20,45 +22,87 @@ export class TimetableService {
   // LOCK LUNCH
   // ==================================================
 
-  // lockLunch(data: any): Observable<any> {
-
-  //   return this.http.post(
-  //     `${this.apiUrl}/lock-lunch`,
-  //     data
-  //   );
-
-  // }
-
   lockLunch(data: any): Observable<any> {
 
-  console.log('LOCK LUNCH SERVICE CALLED');
-  console.log('API URL:', `${this.apiUrl}/lock-lunch`);
-  console.log('DATA:', data);
-
-  return this.http.post(
-    `${this.apiUrl}/lock-lunch`,
-    data
-  );
-
-}
+    return this.timetableConfigService.lockLunch(data);
+  }
 
 
   // ==================================================
-  // GET LUNCH
+  // GET LUNCH CONFIGURATION
   // ==================================================
 
- getLunchConfiguration(
-  program: string,
-  year: number
+  getLunchConfiguration(
+    program: string,
+    year: number
+  ): Observable<any> {
+
+    return this.timetableConfigService.getLunchConfiguration(
+      program,
+      year
+    );
+  }
+
+
+  // ==================================================
+  // CHANGE LUNCH
+  // ==================================================
+
+  changeLunch(data: {
+    program: string;
+    year: number;
+    lunchStart: string;
+    lunchEnd: string;
+    facultyId: string;
+  }): Observable<any> {
+
+    return this.timetableConfigService.changeLunch(data);
+  }
+
+
+  // ==================================================
+  // CREATE TIMETABLE ENTRY
+  // ==================================================
+
+  createTimetableEntry(
+    data: any
+  ): Observable<any> {
+
+    return this.http.post(
+      this.apiUrl,
+      data
+    );
+  }
+
+
+  // ==================================================
+  // GET TIMETABLE
+  // ==================================================
+
+getTimetable(
+  academicSessionId: number,
+  programId: number,
+  departmentId: number,
+  semesterId: number
 ): Observable<any> {
 
-  const params = new HttpParams()
-    .set('program', program)
-    .set('year', year.toString());
-
   return this.http.get(
-    `${this.apiUrl}/lunch`,
-    { params }
+    `${this.apiUrl}`,
+    {
+      params: {
+        academicSessionId:
+          academicSessionId.toString(),
+
+        programId:
+          programId.toString(),
+
+        departmentId:
+          departmentId.toString(),
+
+        semesterId:
+          semesterId.toString()
+      }
+    }
   );
 
 }
