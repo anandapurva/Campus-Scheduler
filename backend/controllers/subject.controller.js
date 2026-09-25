@@ -361,56 +361,58 @@ exports.importSubjects = async (req, res) => {
       departmentRows[0].id;
 
 
-    // ==================================================
-    // GET SEMESTER ID
-    // ==================================================
+ // ==================================================
+// GET SEMESTER ID FROM SEMESTER NUMBER
+// ==================================================
 
-    const semesterId =
-      Number(semester);
+const semesterNumber = Number(semester);
 
+if (
+  !Number.isInteger(semesterNumber) ||
+  semesterNumber <= 0
+) {
 
-    if (
-      !Number.isInteger(semesterId) ||
-      semesterId <= 0
-    ) {
+  return res.status(400).json({
+    message: "Invalid semester number"
+  });
 
-      return res.status(400).json({
-        message:
-          "Invalid semester"
-      });
+}
 
-    }
+const [semesterRows] = await db.query(
 
+  `
+  SELECT
+    id,
+    semester_number,
+    semester_name
 
-    const [semesterRows] = await db.query(
+  FROM semesters
 
-      `
-      SELECT id
+  WHERE
+    program_id = ?
+    AND semester_number = ?
 
-      FROM semesters
+  LIMIT 1
+  `,
 
-      WHERE id = ?
-        AND program_id = ?
+  [
+    programId,
+    semesterNumber
+  ]
 
-      LIMIT 1
-      `,
+);
 
-      [
-        semesterId,
-        programId
-      ]
+if (semesterRows.length === 0) {
 
-    );
+  return res.status(400).json({
+    message:
+      `${semesterNumber} not found for selected program`
+  });
 
+}
 
-    if (semesterRows.length === 0) {
-
-      return res.status(400).json({
-        message:
-          "Invalid semester for selected program"
-      });
-
-    }
+const semesterId =
+  semesterRows[0].id;
 
 
     // ==================================================
