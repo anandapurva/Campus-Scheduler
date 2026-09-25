@@ -1,15 +1,13 @@
-.program-management,
 .department-management {
-
-  padding: 24px;
-
-  width: 100%;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
 
   box-sizing: border-box;
-
 }
 
-.program-management .page-header,
 .department-management .page-header {
 
   display: flex;
