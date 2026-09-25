@@ -17,13 +17,27 @@ export class ProgramService {
 
 
   // ==========================================
-  // GET PROGRAMS
+  // GET ACTIVE PROGRAMS
   // ==========================================
 
   getPrograms(): Observable<any[]> {
 
     return this.http.get<any[]>(
       this.apiUrl
+    );
+
+  }
+
+
+  // ==========================================
+  // GET ALL PROGRAMS
+  // ADMIN
+  // ==========================================
+
+  getAllPrograms(): Observable<any[]> {
+
+    return this.http.get<any[]>(
+      `${this.apiUrl}/all`
     );
 
   }
@@ -39,6 +53,62 @@ export class ProgramService {
 
     return this.http.get<any[]>(
       `${this.apiUrl}/${programId}/semesters`
+    );
+
+  }
+
+
+  // ==========================================
+  // CREATE PROGRAM
+  // ==========================================
+
+  createProgram(data: {
+    program_name: string;
+    total_semesters: number;
+  }): Observable<any> {
+
+    return this.http.post<any>(
+      this.apiUrl,
+      data
+    );
+
+  }
+
+
+  // ==========================================
+  // UPDATE PROGRAM
+  // ==========================================
+
+  updateProgram(
+    id: number,
+    data: {
+      program_name: string;
+      total_semesters: number;
+    }
+  ): Observable<any> {
+
+    return this.http.put<any>(
+      `${this.apiUrl}/${id}`,
+      data
+    );
+
+  }
+
+
+  // ==========================================
+  // ACTIVATE / DEACTIVATE
+  // ==========================================
+
+  updateStatus(
+    id: number,
+    isActive: boolean
+  ): Observable<any> {
+
+    return this.http.patch<any>(
+      `${this.apiUrl}/${id}/status`,
+      {
+        is_active: isActive ? 1 : 0
+      }
     );
 
   }

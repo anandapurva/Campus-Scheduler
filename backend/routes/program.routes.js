@@ -6,14 +6,62 @@ const programController =
     require('../controllers/program.controller');
 
 
-// GET ALL PROGRAMS
+// ==========================================
+// ACTIVE PROGRAMS
+// ==========================================
+
 router.get(
     '/',
     programController.getPrograms
 );
 
 
-// GET SEMESTERS FOR PROGRAM
+// ==========================================
+// ADMIN - ALL PROGRAMS
+// ==========================================
+
+router.get(
+    '/all',
+    programController.getAllPrograms
+);
+
+
+// ==========================================
+// CREATE PROGRAM
+// ==========================================
+
+router.post(
+    '/',
+    programController.createProgram
+);
+
+
+// ==========================================
+// UPDATE PROGRAM
+// ==========================================
+
+router.put(
+    '/:id',
+    programController.updateProgram
+);
+
+
+// ==========================================
+// ACTIVATE / DEACTIVATE
+// ==========================================
+
+router.patch(
+    '/:id/status',
+    programController.updateProgramStatus
+);
+
+
+// ==========================================
+// GET SEMESTERS
+// IMPORTANT: keep this BEFORE nothing
+// that would conflict with :id
+// ==========================================
+
 router.get(
     '/:programId/semesters',
     programController.getSemestersByProgram
