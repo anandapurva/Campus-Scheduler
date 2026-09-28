@@ -65,10 +65,8 @@ router.post(
 
 router.post(
     "/import",
-    upload.single("file"),
     subjectController.importSubjects
 );
-
 
 // ==========================================
 // GET ALL SUBJECTS
