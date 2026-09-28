@@ -1,1 +1,545 @@
-<p>users works!</p>
+<div class="users-page">
+
+  <!-- ========================================================
+       HEADER
+  ======================================================== -->
+
+  <div class="page-header">
+
+    <div>
+
+      <h1>
+        User Management
+      </h1>
+
+      <p>
+        Manage teachers who are allowed to edit the timetable.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================
+       MESSAGES
+  ======================================================== -->
+
+  <div
+    class="message success-message"
+    *ngIf="successMessage"
+  >
+    {{ successMessage }}
+  </div>
+
+
+  <div
+    class="message error-message"
+    *ngIf="errorMessage"
+  >
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- ========================================================
+       SELECTION CONTROLS
+  ======================================================== -->
+
+  <div class="selection-panel">
+
+    <!-- ======================================================
+         PROGRAM
+    ====================================================== -->
+
+    <div class="selection-field">
+
+      <label for="program">
+        Program
+      </label>
+
+      <select
+        id="program"
+        name="program"
+        [(ngModel)]="selectedProgram"
+        (change)="onProgramChange()"
+        [disabled]="loadingPrograms"
+      >
+
+        <!-- User must select manually -->
+
+        <option
+          [ngValue]="null"
+          disabled
+        >
+          Select Program
+        </option>
+
+        <option
+          *ngFor="let program of programs"
+          [ngValue]="program.id"
+        >
+          {{ program.name }}
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <!-- ======================================================
+         DEPARTMENT
+
+         IMPORTANT:
+         This is intentionally NOT dependent on selectedProgram.
+         Therefore department dropdown appears immediately.
+    ====================================================== -->
+
+    <div class="selection-field">
+
+      <label for="department">
+        Department
+      </label>
+
+      <select
+        id="department"
+        name="department"
+        [(ngModel)]="selectedDepartment"
+        (change)="onDepartmentChange()"
+        [disabled]="loadingDepartments || departments.length === 0"
+      >
+
+        <option
+          [ngValue]="null"
+          disabled
+        >
+          Select Department
+        </option>
+
+        <option
+          *ngFor="let department of departments"
+          [ngValue]="department.id"
+        >
+          {{ department.name }}
+          ({{ department.abbreviation }})
+        </option>
+
+      </select>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================
+       LOADING DEPARTMENTS
+  ======================================================== -->
+
+  <div
+    class="loading"
+    *ngIf="loadingDepartments"
+  >
+
+    <span class="loading-spinner"></span>
+
+    Loading departments...
+
+  </div>
+
+
+  <!-- ========================================================
+       LOADING TEACHERS
+  ======================================================== -->
+
+  <div
+    class="loading"
+    *ngIf="
+      selectedDepartment !== null &&
+      !loadingDepartments &&
+      loadingTeachers
+    "
+  >
+
+    <span class="loading-spinner"></span>
+
+    Loading teachers...
+
+  </div>
+
+
+  <!-- ========================================================
+       TEACHER SECTION
+  ======================================================== -->
+
+  <div
+    class="teacher-section"
+    *ngIf="
+      selectedDepartment !== null &&
+      !loadingTeachers &&
+      !loadingDepartments
+    "
+  >
+
+
+    <!-- ======================================================
+         TEACHER SECTION HEADER
+    ====================================================== -->
+
+    <div class="teacher-section-header">
+
+      <div>
+
+        <h2>
+          Teachers
+        </h2>
+
+        <p
+          *ngIf="selectedDepartmentObject"
+        >
+          {{ selectedDepartmentObject.name }}
+          ({{ selectedDepartmentObject.abbreviation }})
+        </p>
+
+      </div>
+
+
+      <div class="teacher-total">
+
+        {{ displayedTeachers.length }}
+
+        <span>
+          teachers
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         SEARCH
+    ====================================================== -->
+
+    <div class="teacher-toolbar">
+
+      <div class="search-box">
+
+        <span class="search-icon">
+          🔍
+        </span>
+
+        <input
+          type="text"
+          [(ngModel)]="teacherSearch"
+          name="teacherSearch"
+          placeholder="Search by name, faculty ID or abbreviation..."
+        />
+
+      </div>
+
+
+      <div class="access-summary">
+
+        Selected:
+
+        <strong>
+          {{ selectedTeacherCount }}
+        </strong>
+
+      </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         TEACHER TABLE
+    ====================================================== -->
+
+    <div
+      class="teacher-table-wrapper"
+      *ngIf="displayedTeachers.length > 0"
+    >
+
+      <table class="teacher-table">
+
+        <thead>
+
+          <tr>
+
+            <th class="checkbox-column">
+              Access
+            </th>
+
+            <th>
+              Faculty ID
+            </th>
+
+            <th>
+              Teacher
+            </th>
+
+            <th>
+              Abbreviation
+            </th>
+
+            <th>
+              Status
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          <tr
+            *ngFor="let teacher of displayedTeachers"
+            [class.teacher-selected]="isSelected(teacher.id)"
+          >
+
+            <!-- CHECKBOX -->
+
+            <td class="checkbox-column">
+
+              <input
+                type="checkbox"
+                [checked]="isSelected(teacher.id)"
+                (change)="toggleTeacher(teacher.id)"
+                [id]="'teacher-' + teacher.id"
+              />
+
+            </td>
+
+
+            <!-- FACULTY ID -->
+
+            <td>
+
+              <span class="faculty-id">
+                {{ teacher.faculty_id }}
+              </span>
+
+            </td>
+
+
+            <!-- TEACHER NAME -->
+
+            <td>
+
+              <label
+                class="teacher-name"
+                [for]="'teacher-' + teacher.id"
+              >
+                {{ teacher.name }}
+              </label>
+
+            </td>
+
+
+            <!-- ABBREVIATION -->
+
+            <td>
+
+              <span class="teacher-abbreviation">
+                {{ teacher.abbreviation }}
+              </span>
+
+            </td>
+
+
+            <!-- STATUS -->
+
+            <td>
+
+              <span
+                class="access-badge"
+                [class.access-granted]="isSelected(teacher.id)"
+                [class.access-not-granted]="!isSelected(teacher.id)"
+              >
+
+                {{
+                  isSelected(teacher.id)
+                    ? 'Edit Access'
+                    : 'View Only'
+                }}
+
+              </span>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+
+    <!-- ======================================================
+         NO TEACHERS
+    ====================================================== -->
+
+    <div
+      class="empty-teachers"
+      *ngIf="
+        displayedTeachers.length === 0 &&
+        !teacherSearch
+      "
+    >
+
+      <div class="empty-icon">
+        👤
+      </div>
+
+      <h3>
+        No Teachers Found
+      </h3>
+
+      <p>
+        No teachers are available for this department.
+      </p>
+
+    </div>
+
+
+    <!-- ======================================================
+         NO SEARCH RESULTS
+    ====================================================== -->
+
+    <div
+      class="empty-teachers"
+      *ngIf="
+        displayedTeachers.length === 0 &&
+        teacherSearch
+      "
+    >
+
+      <div class="empty-icon">
+        🔍
+      </div>
+
+      <h3>
+        No Matching Teachers
+      </h3>
+
+      <p>
+        No teachers match
+        "{{ teacherSearch }}".
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================
+       INITIAL STATE
+
+       Only shown before a department is selected.
+       Program is NOT required.
+  ======================================================== -->
+
+  <div
+    class="initial-state"
+    *ngIf="
+      selectedDepartment === null &&
+      !loadingDepartments &&
+      departments.length > 0
+    "
+  >
+
+    <div class="initial-icon">
+      👥
+    </div>
+
+    <h3>
+      Select a Department
+    </h3>
+
+    <p>
+      Select a department to view its teachers
+      and manage TT edit access.
+    </p>
+
+  </div>
+
+
+  <!-- ========================================================
+       NO DEPARTMENTS
+  ======================================================== -->
+
+  <div
+    class="initial-state"
+    *ngIf="
+      !loadingDepartments &&
+      !loadingTeachers &&
+      departments.length === 0
+    "
+  >
+
+    <div class="initial-icon">
+      🏢
+    </div>
+
+    <h3>
+      No Departments Found
+    </h3>
+
+    <p>
+      No departments are available.
+    </p>
+
+  </div>
+
+
+  <!-- ========================================================
+       SAVE BAR
+  ======================================================== -->
+
+  <div
+    class="save-bar"
+    *ngIf="
+      selectedDepartment !== null &&
+      !loadingTeachers &&
+      selectedDepartmentObject
+    "
+  >
+
+    <div class="selection-summary">
+
+      <span>
+        Teachers with TT Edit Access
+      </span>
+
+      <strong>
+        {{ selectedTeacherCount }}
+      </strong>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="save-button"
+      [disabled]="savingAccess"
+      (click)="saveAccess()"
+    >
+
+      <span
+        *ngIf="!savingAccess"
+      >
+        Edit Access
+      </span>
+
+      <span
+        *ngIf="savingAccess"
+      >
+        Saving...
+      </span>
+
+    </button>
+
+  </div>
+
+</div>

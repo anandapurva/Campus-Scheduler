@@ -1,0 +1,760 @@
+/* ============================================================
+   PAGE
+============================================================ */
+
+.users-page {
+  padding: 32px;
+  min-height: 100%;
+  background: #f7f8fc;
+  box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.page-header p {
+  margin: 7px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+
+/* ============================================================
+   MESSAGES
+============================================================ */
+
+.message {
+  padding: 13px 16px;
+  border-radius: 9px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.success-message {
+  background: #ecfdf3;
+  color: #067647;
+  border: 1px solid #abefc6;
+}
+
+.error-message {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+}
+
+
+/* ============================================================
+   SELECTION PANEL
+============================================================ */
+
+.selection-panel {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 22px;
+
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+
+/* ============================================================
+   SELECTION FIELD
+============================================================ */
+
+.selection-field {
+  width: 280px;
+}
+
+.selection-field label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  color: #374151;
+}
+
+
+/* ============================================================
+   DROPDOWN
+============================================================ */
+
+.selection-field select {
+  width: 100%;
+
+  height: 44px;
+
+  padding: 0 13px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #111827;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.selection-field select:hover {
+  border-color: #9ca3af;
+}
+
+.selection-field select:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.12);
+}
+
+.selection-field select:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+
+/* ============================================================
+   LOADING
+============================================================ */
+
+.loading {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  padding: 28px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 12px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+
+  margin-bottom: 22px;
+}
+
+.loading-spinner {
+  width: 17px;
+  height: 17px;
+
+  border: 2px solid #e5e7eb;
+  border-top-color: #6366f1;
+
+  border-radius: 50%;
+
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ============================================================
+   TEACHER SECTION
+============================================================ */
+
+.teacher-section {
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 2px 8px
+    rgba(15, 23, 42, 0.04);
+
+  margin-bottom: 100px;
+}
+
+
+/* ============================================================
+   TEACHER SECTION HEADER
+============================================================ */
+
+.teacher-section-header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 22px 24px;
+
+  border-bottom: 1px solid #eef0f3;
+}
+
+.teacher-section-header h2 {
+  margin: 0;
+
+  font-size: 19px;
+  font-weight: 700;
+
+  color: #1f2937;
+}
+
+.teacher-section-header p {
+  margin: 5px 0 0;
+
+  font-size: 13px;
+
+  color: #6b7280;
+}
+
+.teacher-total {
+  padding: 7px 12px;
+
+  border-radius: 20px;
+
+  background: #f3f4f6;
+
+  color: #374151;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.teacher-total span {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+
+/* ============================================================
+   TOOLBAR
+============================================================ */
+
+.teacher-toolbar {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 16px 24px;
+
+  background: #fafafa;
+
+  border-bottom: 1px solid #eef0f3;
+}
+
+
+/* ============================================================
+   SEARCH
+============================================================ */
+
+.search-box {
+  position: relative;
+
+  width: 420px;
+}
+
+.search-box input {
+  width: 100%;
+
+  height: 40px;
+
+  box-sizing: border-box;
+
+  padding: 0 14px 0 40px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  font-size: 13px;
+
+  color: #111827;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.search-box input:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+
+  left: 13px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  font-size: 14px;
+
+  color: #9ca3af;
+
+  pointer-events: none;
+}
+
+
+/* ============================================================
+   ACCESS SUMMARY
+============================================================ */
+
+.access-summary {
+  font-size: 13px;
+
+  color: #6b7280;
+
+  white-space: nowrap;
+}
+
+.access-summary strong {
+  color: #111827;
+
+  font-size: 15px;
+
+  margin-left: 4px;
+}
+
+
+/* ============================================================
+   TABLE WRAPPER
+============================================================ */
+
+.teacher-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.teacher-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  min-width: 700px;
+}
+
+.teacher-table thead {
+  background: #f9fafb;
+}
+
+.teacher-table th {
+  padding: 13px 18px;
+
+  text-align: left;
+
+  font-size: 11px;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.04em;
+
+  font-weight: 700;
+
+  color: #6b7280;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.teacher-table td {
+  padding: 15px 18px;
+
+  border-bottom: 1px solid #f0f1f3;
+
+  font-size: 14px;
+
+  color: #374151;
+}
+
+.teacher-table tbody tr {
+  transition:
+    background 0.12s ease;
+}
+
+.teacher-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.teacher-table tbody tr.teacher-selected {
+  background: #f8faff;
+}
+
+
+/* ============================================================
+   CHECKBOX
+============================================================ */
+
+.checkbox-column {
+  width: 70px;
+
+  text-align: center !important;
+}
+
+.teacher-table input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+
+  cursor: pointer;
+
+  accent-color: #6366f1;
+}
+
+
+/* ============================================================
+   FACULTY ID
+============================================================ */
+
+.faculty-id {
+  font-family: monospace;
+
+  font-size: 13px;
+
+  color: #4b5563;
+}
+
+
+/* ============================================================
+   TEACHER NAME
+============================================================ */
+
+.teacher-name {
+  font-weight: 600;
+
+  color: #1f2937;
+
+  cursor: pointer;
+}
+
+
+/* ============================================================
+   ABBREVIATION
+============================================================ */
+
+.teacher-abbreviation {
+  display: inline-block;
+
+  padding: 4px 8px;
+
+  border-radius: 6px;
+
+  background: #f3f4f6;
+
+  color: #374151;
+
+  font-family: monospace;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+/* ============================================================
+   ACCESS BADGE
+============================================================ */
+
+.access-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  padding: 5px 9px;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+.access-granted {
+  background: #ecfdf3;
+
+  color: #067647;
+}
+
+.access-not-granted {
+  background: #f3f4f6;
+
+  color: #6b7280;
+}
+
+
+/* ============================================================
+   EMPTY STATES
+============================================================ */
+
+.initial-state {
+  padding: 55px 20px;
+
+  text-align: center;
+
+  background: #ffffff;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  color: #6b7280;
+}
+
+.initial-icon {
+  width: 50px;
+  height: 50px;
+
+  margin: 0 auto 15px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #f3f4f6;
+
+  font-size: 22px;
+}
+
+.initial-state h3 {
+  margin: 0 0 7px;
+
+  color: #374151;
+
+  font-size: 17px;
+}
+
+.initial-state p {
+  margin: 0;
+
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   EMPTY TEACHERS
+============================================================ */
+
+.empty-teachers {
+  padding: 50px 20px;
+
+  text-align: center;
+
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 26px;
+
+  margin-bottom: 12px;
+}
+
+.empty-teachers h3 {
+  margin: 0 0 6px;
+
+  font-size: 16px;
+
+  color: #374151;
+}
+
+.empty-teachers p {
+  margin: 0;
+
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   SAVE BAR
+============================================================ */
+
+.save-bar {
+  position: fixed;
+
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  z-index: 100;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 32px;
+
+  background: #ffffff;
+
+  border-top: 1px solid #e5e7eb;
+
+  box-shadow:
+    0 -4px 15px
+    rgba(15, 23, 42, 0.07);
+}
+
+.selection-summary {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  font-size: 13px;
+
+  color: #6b7280;
+}
+
+.selection-summary strong {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 30px;
+  height: 28px;
+
+  padding: 0 8px;
+
+  border-radius: 20px;
+
+  background: #eef2ff;
+
+  color: #4f46e5;
+
+  font-size: 13px;
+}
+
+
+/* ============================================================
+   SAVE BUTTON
+============================================================ */
+
+.save-button {
+  height: 40px;
+
+  padding: 0 20px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #4f46e5;
+
+  color: #ffffff;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.save-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.save-button:disabled {
+  background: #a5b4fc;
+
+  cursor: not-allowed;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 800px) {
+
+  .users-page {
+    padding: 20px;
+  }
+
+  .selection-panel {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .selection-field {
+    width: 100%;
+  }
+
+  .teacher-toolbar {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .save-bar {
+    padding: 12px 20px;
+  }
+
+}
