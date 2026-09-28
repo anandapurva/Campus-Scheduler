@@ -485,9 +485,10 @@
    ===================================================== */
 
 .batch-info {
-  font-size: 8px;
+  font-size: 10px;
+  font-weight: 600;
 
-  color: #52708e;
+  color: black;
 
   max-width: 100%;
 

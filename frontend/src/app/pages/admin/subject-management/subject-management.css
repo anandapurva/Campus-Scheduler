@@ -1,8 +1,13 @@
 .subject-page {
-  padding: 32px;
-  max-width: 1500px;
-  margin: auto;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+
+  box-sizing: border-box;
 }
+
 
 
 /* =========================================

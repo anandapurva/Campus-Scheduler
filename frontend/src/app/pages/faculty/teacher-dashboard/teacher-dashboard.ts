@@ -47,14 +47,16 @@ semesters: any[] = [];
 
 selectedProgram = '';
 
-
-
-
 onProgramChange(): void {
 
+  // Reset department
+  this.selectedDepartment = '';
 
   // Reset semester
   this.selectedSemester = '';
+
+  // Clear old departments
+  this.departments = [];
 
   // Clear old semesters
   this.semesters = [];
@@ -69,6 +71,52 @@ onProgramChange(): void {
 
   const programId = Number(this.selectedProgram);
 
+  // ==========================================
+  // LOAD DEPARTMENTS FOR SELECTED PROGRAM
+  // ==========================================
+
+  this.departmentService
+    .getDepartmentsByProgram(programId)
+    .subscribe({
+
+      next: (data) => {
+
+        this.departments = data;
+
+        this.cdr.detectChanges();
+
+      },
+
+      error: (error) => {
+
+        console.error(
+          'Failed to load departments:',
+          error
+        );
+
+      }
+
+    });
+}
+
+onDepartmentChange(): void {
+
+  // Reset semester
+  this.selectedSemester = '';
+
+  // Clear old semesters
+  this.semesters = [];
+
+  // Reset lunch
+  this.lunchLocked = false;
+  this.selectedLunch = '';
+
+  if (!this.selectedDepartment) {
+    return;
+  }
+
+  const programId = Number(this.selectedProgram);
+
   this.programService
     .getSemesters(programId)
     .subscribe({
@@ -76,6 +124,7 @@ onProgramChange(): void {
       next: (data) => {
 
         this.semesters = data;
+
         this.cdr.detectChanges();
 
       },
@@ -133,27 +182,6 @@ lunchLocked = false;
 lunchLoading = false;
 selectedSemester = '';       // semester ID
 selectedSemesterNumber = 0;  // semester number
-
-lunchOptions = [
-
-  {
-    value: '12:00:00-13:00:00',
-    label: '12:00 PM - 1:00 PM'
-  },
-
-  {
-    value: '13:00:00-14:00:00',
-    label: '1:00 PM - 2:00 PM'
-  },
-
-  {
-    value: '14:00:00-15:00:00',
-    label: '2:00 PM - 3:00 PM'
-  }
-
-];
-
-
 
   // -----------------------------------------
   // TEACHER SEARCH

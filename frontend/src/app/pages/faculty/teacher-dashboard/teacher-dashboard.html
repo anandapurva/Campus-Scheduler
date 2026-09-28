@@ -402,106 +402,100 @@
 
   <!-- ================= MANAGEMENT FORM ================= -->
 
-  <div class="management-form">
+<div class="management-form">
 
+  <!-- PROGRAM -->
 
-    <!-- ==========================================
-         PROGRAM
-         ========================================== -->
+  <div class="form-group">
 
-   <div class="form-group">
+    <label for="program">
+      Program
+    </label>
 
-  <label for="program">
-    Program
-  </label>
+    <select
+      id="program"
+      [(ngModel)]="selectedProgram"
+      (ngModelChange)="onProgramChange()">
 
-  <select
-    id="program"
-    [(ngModel)]="selectedProgram"
-    (ngModelChange)="onProgramChange()">
+      <option value="" disabled hidden>
+        Select Program
+      </option>
 
+      <option
+        *ngFor="let program of programs"
+        [ngValue]="program.id">
 
-    <option value="" disabled hidden>
-      Select Program
-    </option>
+        {{ program.program_name }}
 
-    <option
-      *ngFor="let program of programs"
-      [ngValue]="program.id">
+      </option>
 
-      {{ program.program_name }}
-
-    </option>
-
-  </select>
-
-</div>
-
-<!-- ==========================================
-     DEPARTMENT
-     ========================================== -->
-
-<div class="form-group">
-
-  <label for="department">
-    Department
-  </label>
-
-  <select
-    id="department"
-    [(ngModel)]="selectedDepartment">
-
-    <option value="" disabled hidden>
-      Select Department
-    </option>
-
-    <option
-      *ngFor="let department of departments"
-      [value]="department.id">
-
-      {{ department.name }}
-
-    </option>
-
-  </select>
-
-</div>
-
-
-
-    <!-- ==========================================
-         SEMESTER
-         ========================================== -->
-
-    <div class="form-group">
-
-      <label>
-        Semester
-      </label>
-
-      <select
-  [(ngModel)]="selectedSemester"
-  (ngModelChange)="onSemesterSelected($event)"
-  [disabled]="!selectedProgram">
-
-  <option value="" disabled hidden>
-    Select Semester
-  </option>
-
-  <option
-    *ngFor="let semester of semesters"
-    [value]="semester.id">
-
-    {{ semester.semester_name }}
-
-  </option>
-
-</select>
-
-    </div>
-
+    </select>
 
   </div>
+
+
+  <!-- DEPARTMENT -->
+
+  <div class="form-group">
+
+    <label for="department">
+      Department
+    </label>
+
+    <select
+      id="department"
+      [(ngModel)]="selectedDepartment"
+      (ngModelChange)="onDepartmentChange()"
+      [disabled]="!selectedProgram">
+
+      <option value="" disabled hidden>
+        Select Department
+      </option>
+
+      <option
+        *ngFor="let department of departments"
+        [ngValue]="department.id">
+
+        {{ department.name }}
+
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <!-- SEMESTER -->
+
+  <div class="form-group">
+
+    <label for="semester">
+      Semester
+    </label>
+
+    <select
+      id="semester"
+      [(ngModel)]="selectedSemester"
+      (ngModelChange)="onSemesterSelected($event)"
+      [disabled]="!selectedDepartment">
+
+      <option value="" disabled hidden>
+        Select Semester
+      </option>
+
+      <option
+        *ngFor="let semester of semesters"
+        [ngValue]="semester.id">
+
+        {{ semester.semester_name }}
+
+      </option>
+
+    </select>
+
+  </div>
+
+</div>
 
 
 

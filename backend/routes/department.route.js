@@ -1,9 +1,9 @@
-const express = require("express");
-
-const departmentController =
-    require("../controllers/department.controller");
+const express = require('express');
 
 const router = express.Router();
+
+const departmentController =
+    require('../controllers/department.controller');
 
 
 // ==========================================
@@ -11,13 +11,54 @@ const router = express.Router();
 // ==========================================
 
 router.get(
-    "/by-program",
+    '/by-program',
     departmentController.getDepartmentsByProgram
 );
 
+
+// ==========================================
+// GET ALL DEPARTMENTS
+// ADMIN
+// ==========================================
+
 router.get(
-    "/",
+    '/',
     departmentController.getAllDepartments
+);
+
+
+// ==========================================
+// CREATE
+// ==========================================
+
+router.post(
+    '/',
+    departmentController.createDepartment
+);
+
+
+// ==========================================
+// UPDATE
+// ==========================================
+
+router.put(
+    '/:id',
+    departmentController.updateDepartment
+);
+
+
+// ==========================================
+// ACTIVATE / DEACTIVATE
+// ==========================================
+
+router.patch(
+    '/:id/status',
+    departmentController.updateDepartmentStatus
+);
+
+router.get(
+    '/:departmentId/programs',
+    departmentController.getProgramsByDepartment
 );
 
 

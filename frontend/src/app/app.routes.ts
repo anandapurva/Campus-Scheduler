@@ -14,9 +14,10 @@ import { Timetables } from './pages/admin/timetables/timetables';
 import { AcademicSessionManagement } from './pages/admin/academic-session-management/academic-session-management';
 import { LunchConfiguration } from './pages/admin/lunch-configuration/lunch-configuration';
 import { QueryRetrievalComponent } from './pages/query-retrieval/query-retrieval';
-
 import { TeacherDashboard } from './pages/faculty/teacher-dashboard/teacher-dashboard';
 import { Timetable } from './pages/faculty/timetable/timetable';
+import { ProgramManagement } from './pages/admin/program-management/program-management';
+import { DepartmentManagement } from './pages/admin/department-management/department-management';
 
 export const routes: Routes = [
 
@@ -70,6 +71,16 @@ export const routes: Routes = [
       {
         path: 'faculty',
         component: Faculty
+      },
+
+      {
+        path: 'programs',
+        component: ProgramManagement
+      },
+
+      {
+        path: 'departments',
+        component: DepartmentManagement
       },
 
       {
