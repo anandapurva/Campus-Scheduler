@@ -27,6 +27,175 @@ const io = new Server(server, {
 app.set("io", io);
 
 // ======================================================
+// TEMPORARY TIMETABLE RESOURCE RESERVATIONS
+// ======================================================
+
+// reservationKey -> reservation
+const timetableReservations = new Map();
+
+const RESERVATION_TIMEOUT = 60 * 1000;
+
+// ======================================================
+// COORDINATOR ACTIVITY
+// ======================================================
+
+const coordinatorActivity = new Map();
+
+const INACTIVITY_TIMEOUT = 60 * 1000;
+
+
+// ------------------------------------------------------
+// RESOURCE KEY
+// ------------------------------------------------------
+
+function getReservationKey(
+    academicSessionId,
+    day,
+    slotId,
+    resourceType,
+    resourceId
+) {
+    return [
+        academicSessionId,
+        day,
+        slotId,
+        resourceType,
+        resourceId
+    ].join(":");
+}
+
+
+// ------------------------------------------------------
+// REMOVE EXPIRED RESERVATION
+// ------------------------------------------------------
+
+function removeReservation(key) {
+
+    const reservation =
+        timetableReservations.get(key);
+
+    if (!reservation) {
+        return;
+    }
+
+    clearTimeout(reservation.timer);
+
+    timetableReservations.delete(key);
+
+    io.to(reservation.roomName).emit(
+        "temporary-resource-lock-released",
+        {
+            resourceType:
+                reservation.resourceType,
+
+            resourceId:
+                reservation.resourceId
+        }
+    );
+
+    console.log(
+        "Temporary reservation expired:",
+        key
+    );
+}
+
+    function markCoordinatorActivity(socketId) {
+
+        coordinatorActivity.set(
+            socketId,
+            Date.now()
+        );
+
+    }
+
+
+    // ======================================================
+// INACTIVITY CHECKER
+// ======================================================
+
+setInterval(() => {
+
+    const now = Date.now();
+
+    for (
+        const [
+            socketId,
+            lastActivity
+        ]
+        of coordinatorActivity
+    ) {
+
+        if (
+            now - lastActivity <
+            INACTIVITY_TIMEOUT
+        ) {
+
+            continue;
+
+        }
+
+        console.log(
+            "Coordinator inactive for 60 seconds:",
+            socketId
+        );
+
+        // ------------------------------------------
+        // RELEASE ALL RESOURCES OF THIS COORDINATOR
+        // ------------------------------------------
+
+        for (
+            const [
+                key,
+                reservation
+            ]
+            of timetableReservations
+        ) {
+
+            if (
+                reservation.socketId !==
+                socketId
+            ) {
+
+                continue;
+
+            }
+
+            clearTimeout(
+                reservation.timer
+            );
+
+            timetableReservations.delete(
+                key
+            );
+
+            io.to(
+                reservation.roomName
+            ).emit(
+                "temporary-resource-lock-released",
+                {
+                    resourceType:
+                        reservation.resourceType,
+
+                    resourceId:
+                        reservation.resourceId
+                }
+            );
+
+            console.log(
+                "Released inactive resource:",
+                key
+            );
+
+        }
+
+        coordinatorActivity.delete(
+            socketId
+        );
+
+    }
+
+}, 5000);
+// ======================================================
 // SOCKET CONNECTION
 // ======================================================
 
@@ -37,46 +206,471 @@ io.on("connection", (socket) => {
         socket.id
     );
 
-    // --------------------------------------------------
+
+    // ==================================================
     // JOIN TIMETABLE CELL
-    // --------------------------------------------------
+    // ==================================================
 
-    socket.on("join-timetable-cell", (room) => {
+    socket.on(
+        "join-timetable-cell",
+        (data) => {
 
-        socket.join(room);
+            const {
+                academicSessionId,
+                day,
+                slotId
+            } = data;
 
-        console.log(
-            `Socket ${socket.id} joined ${room}`
-        );
+            if (
+                !academicSessionId ||
+                !day ||
+                !slotId
+            ) {
+                return;
+            }
 
-    });
+            const roomName =
+                `timetable:${academicSessionId}:${day}:${slotId}`;
 
-    // --------------------------------------------------
-    // LEAVE TIMETABLE CELL
-    // --------------------------------------------------
+            socket.join(roomName);
 
-    socket.on("leave-timetable-cell", (room) => {
+            console.log(
+                `Socket ${socket.id} joined ${roomName}`
+            );
 
-        socket.leave(room);
+            const currentReservations = [];
 
-        console.log(
-            `Socket ${socket.id} left ${room}`
-        );
+            for (
+                const reservation
+                of timetableReservations.values()
+            ) {
 
-    });
+                if (
+                    reservation.roomName === roomName
+                ) {
 
-    // --------------------------------------------------
+                    currentReservations.push({
+
+                        resourceType:
+                            reservation.resourceType,
+
+                        resourceId:
+                            reservation.resourceId
+
+                    });
+
+                }
+
+            }
+
+            socket.emit(
+                "temporary-resource-locks",
+                currentReservations
+            );
+        }
+    );
+
+
+    // ==================================================
+    // RESERVE RESOURCE
+    // ==================================================
+
+    socket.on(
+        "reserve-timetable-resource",
+        (data) => {
+
+            const {
+                academicSessionId,
+                day,
+                slotId,
+                resourceType,
+                resourceId
+            } = data;
+
+
+            if (
+                !academicSessionId ||
+                !day ||
+                !slotId ||
+                !resourceType ||
+                resourceId === undefined ||
+                resourceId === null
+            ) {
+
+                return;
+
+            }
+
+            markCoordinatorActivity(socket.id);
+            const roomName =
+                `timetable:${academicSessionId}:${day}:${slotId}`;
+
+
+            const key =
+                getReservationKey(
+                    academicSessionId,
+                    day,
+                    slotId,
+                    resourceType,
+                    resourceId
+                );
+
+
+            // ------------------------------------------
+            // ALREADY RESERVED
+            // ------------------------------------------
+
+            const existing =
+                timetableReservations.get(key);
+
+
+            if (
+                existing &&
+                existing.socketId !== socket.id
+            ) {
+
+                socket.emit(
+                    "resource-reservation-denied",
+                    {
+                        resourceType,
+                        resourceId
+                    }
+                );
+
+                return;
+
+            }
+
+
+            // ------------------------------------------
+            // RENEW EXISTING RESERVATION
+            // ------------------------------------------
+
+            if (existing) {
+
+                clearTimeout(
+                    existing.timer
+                );
+
+            }
+
+
+            // ------------------------------------------
+            // CREATE / RENEW RESERVATION
+            // ------------------------------------------
+
+            const timer =
+                setTimeout(
+                    () => {
+
+                        removeReservation(
+                            key
+                        );
+
+                    },
+                    RESERVATION_TIMEOUT
+                );
+
+
+            timetableReservations.set(
+                key,
+                {
+                    socketId:
+                        socket.id,
+
+                    roomName,
+
+                    resourceType,
+
+                    resourceId:
+
+                        Number(resourceId),
+
+                    timer,
+
+                    createdAt:
+                        Date.now(),
+                    lastActivityAt: Date.now()
+                }
+            );
+
+
+            // ------------------------------------------
+            // BROADCAST
+            // ------------------------------------------
+
+            socket.to(roomName).emit(
+                "temporary-resource-lock-acquired",
+                {
+                    resourceType,
+
+                    resourceId:
+                        Number(resourceId),
+
+                    socketId:
+                        socket.id
+                }
+            );
+
+
+            console.log(
+                "Temporary resource reserved:",
+                {
+                    key,
+                    socketId:
+                        socket.id
+                }
+            );
+
+        }
+    );
+
+
+    // ==================================================
+    // RELEASE RESOURCE
+    // ==================================================
+
+    socket.on(
+        "release-timetable-resource",
+        (data) => {
+
+            const {
+                academicSessionId,
+                day,
+                slotId,
+                resourceType,
+                resourceId
+            } = data;
+
+
+            const key =
+                getReservationKey(
+                    academicSessionId,
+                    day,
+                    slotId,
+                    resourceType,
+                    resourceId
+                );
+
+
+            const reservation =
+                timetableReservations.get(key);
+
+
+            // Only owner can release it
+            if (
+                !reservation ||
+                reservation.socketId !== socket.id
+            ) {
+
+                return;
+
+            }
+
+
+            clearTimeout(
+                reservation.timer
+            );
+
+
+            timetableReservations.delete(
+                key
+            );
+
+
+            io.to(
+                reservation.roomName
+            ).emit(
+                "temporary-resource-lock-released",
+                {
+                    resourceType,
+
+                    resourceId:
+                        Number(resourceId)
+                }
+            );
+
+
+            console.log(
+                "Temporary resource released:",
+                key
+            );
+
+        }
+    );
+
+
+    // ==================================================
+    // RELEASE ALL RESOURCES OWNED BY SOCKET
+    // ==================================================
+
+    socket.on(
+        "release-all-timetable-resources",
+        () => {
+
+            for (
+                const [
+                    key,
+                    reservation
+                ]
+                of timetableReservations
+            ) {
+
+                if (
+                    reservation.socketId !==
+                    socket.id
+                ) {
+
+                    continue;
+
+                }
+
+
+                clearTimeout(
+                    reservation.timer
+                );
+
+
+                timetableReservations.delete(
+                    key
+                );
+
+
+                io.to(
+                    reservation.roomName
+                ).emit(
+                    "temporary-resource-lock-released",
+                    {
+                        resourceType:
+                            reservation.resourceType,
+
+                        resourceId:
+                            reservation.resourceId
+                    }
+                );
+
+            }
+
+        }
+    );
+
+
+    // ==================================================
     // DISCONNECT
-    // --------------------------------------------------
+    // ==================================================
 
-    socket.on("disconnect", () => {
+    socket.on(
+        "disconnect",
+        () => {
 
-        console.log(
-            "Socket disconnected:",
-            socket.id
-        );
+            console.log(
+                "Socket disconnected:",
+                socket.id
+            );
 
-    });
+
+            // Release all temporary locks
+            // owned by this coordinator
+
+            for (
+                const [
+                    key,
+                    reservation
+                ]
+                of timetableReservations
+            ) {
+
+                if (
+                    reservation.socketId !==
+                    socket.id
+                ) {
+
+                    continue;
+
+                }
+
+
+                clearTimeout(
+                    reservation.timer
+                );
+
+
+                timetableReservations.delete(
+                    key
+                );
+
+
+                io.to(
+                    reservation.roomName
+                ).emit(
+                    "temporary-resource-lock-released",
+                    {
+                        resourceType:
+                            reservation.resourceType,
+
+                        resourceId:
+                            reservation.resourceId
+                    }
+                );
+
+            }
+
+            coordinatorActivity.delete(
+                socket.id
+            );
+
+        }
+    );
+
+    socket.on(
+        "timetable-heartbeat",
+        () => {}
+    );
+
+    // ==================================================
+// USER ACTIVITY
+// ==================================================
+
+    socket.on(
+        "timetable-activity",
+        () => {
+
+            markCoordinatorActivity(
+                socket.id
+            );
+
+        }
+    );
+
+    socket.on(
+        "leave-timetable-cell",
+        (data) => {
+
+            const {
+                academicSessionId,
+                day,
+                slotId
+            } = data;
+
+            if (
+                !academicSessionId ||
+                !day ||
+                !slotId
+            ) {
+                return;
+            }
+
+            const roomName =
+                `timetable:${academicSessionId}:${day}:${slotId}`;
+
+            socket.leave(roomName);
+
+            console.log(
+                `Socket ${socket.id} left ${roomName}`
+            );
+
+        }
+    );
 
 });
 
@@ -121,7 +715,7 @@ app.use( '/api/timetable', timetableRoutes );
 app.use('/api/query', queryRoutes);
 app.use("/api/teacher-edit-access", teacherEditAccessRoutes);
 
-app.listen(process.env.PORT, ()=>{
+server.listen(process.env.PORT, ()=>{
     console.log(`Server running on port ${process.env.PORT}`);
 });
 

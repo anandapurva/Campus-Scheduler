@@ -107,4 +107,29 @@ getTimetable(
 
 }
 
+getLockedResources(
+  academicSessionId: number,
+  day: string,
+  slotId: number,
+  excludeEntryId?: number
+) {
+
+  let params: any = {
+    academicSessionId,
+    day,
+    slotId
+  };
+
+  if (excludeEntryId) {
+    params.excludeEntryId = excludeEntryId;
+  }
+
+  return this.http.get<any>(
+    `${this.apiUrl}/locked-resources`,
+    {
+      params
+    }
+  );
+}
+
 }
