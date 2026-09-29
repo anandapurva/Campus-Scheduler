@@ -1266,7 +1266,7 @@ export class Users implements OnInit {
 
 
     this.successMessage =
-      'TT edit access updated successfully.';
+      'Updated successfully';
 
 
     // ----------------------------------------------------------
@@ -1399,15 +1399,21 @@ export class Users implements OnInit {
 
   }
 
+// ============================================================
+// DEPARTMENT-WISE SELECTED TEACHER COUNT
+// ============================================================
 
-  // ============================================================
-  // SELECTED TEACHER COUNT
-  // ============================================================
+getSelectedTeacherCount(
+  department: DepartmentGroup
+): number {
 
-  get selectedTeacherCount(): number {
+  return department.teachers.filter(
+    teacher =>
+      this.selectedTeachers.includes(
+        teacher.id
+      )
+  ).length;
 
-    return this.selectedTeachers.length;
-
-  }
+}
 
 }

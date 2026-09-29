@@ -758,3 +758,181 @@
   }
 
 }
+/* ============================================================
+   SUCCESS TOAST
+============================================================ */
+
+.success-toast {
+  position: fixed;
+
+  top: 18px;
+  right: 28px;
+
+  width: 560px;
+  min-height: 96px;
+
+  background: #ffffff;
+
+  border-left: 5px solid #16a34a;
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  display: flex;
+  align-items: center;
+
+  padding: 18px 18px 18px 20px;
+
+  z-index: 9999;
+
+  animation: successToastSlideIn 0.3s ease-out;
+}
+
+
+/* ============================================================
+   SUCCESS ICON
+============================================================ */
+
+.success-icon {
+  width: 44px;
+  height: 44px;
+
+  min-width: 44px;
+
+  border-radius: 50%;
+
+  background: #dcfce7;
+
+  color: #16a34a;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 27px;
+  font-weight: 600;
+
+  margin-right: 16px;
+}
+
+
+/* ============================================================
+   CONTENT
+============================================================ */
+
+.success-content {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+.success-title {
+  font-size: 18px;
+
+  font-weight: 700;
+
+  color: #1f2937;
+
+  margin-bottom: 5px;
+}
+
+
+.success-text {
+  font-size: 16px;
+
+  line-height: 1.45;
+
+  color: #6b7280;
+
+  word-break: break-word;
+}
+
+
+/* ============================================================
+   CLOSE BUTTON
+============================================================ */
+
+.success-close {
+  border: none;
+
+  background: transparent;
+
+  color: #6b7280;
+
+  font-size: 28px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  padding: 4px 5px;
+
+  margin-left: 12px;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.success-close:hover {
+  color: #111827;
+
+  transform: scale(1.08);
+}
+
+
+/* ============================================================
+   ANIMATION
+============================================================ */
+
+@keyframes successToastSlideIn {
+
+  from {
+    opacity: 0;
+
+    transform:
+      translateX(30px)
+      translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateX(0)
+      translateY(0);
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media (max-width: 700px) {
+
+  .success-toast {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+
+    width: auto;
+
+    min-height: 90px;
+  }
+
+  .success-title {
+    font-size: 16px;
+  }
+
+  .success-text {
+    font-size: 14px;
+  }
+
+}

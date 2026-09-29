@@ -24,13 +24,41 @@
   <!-- ========================================================
        MESSAGES
   ======================================================== -->
+<!-- ========================================================
+     SUCCESS TOAST
+======================================================== -->
 
-  <div
-    class="message success-message"
-    *ngIf="successMessage"
-  >
-    {{ successMessage }}
+<div
+  class="success-toast"
+  *ngIf="successMessage"
+>
+
+  <div class="success-icon">
+    ✓
   </div>
+
+  <div class="success-content">
+
+    <div class="success-title">
+      Success
+    </div>
+
+    <div class="success-text">
+      {{ successMessage }}
+    </div>
+
+  </div>
+
+  <button
+    type="button"
+    class="success-close"
+    (click)="successMessage = ''"
+    aria-label="Close"
+  >
+    ×
+  </button>
+
+</div>
 
 
   <div
@@ -223,9 +251,7 @@
 
       <div class="search-box">
 
-        <span class="search-icon">
-          🔍
-        </span>
+        
 
         <input
           type="text"
@@ -239,13 +265,17 @@
 
       <div class="access-summary">
 
-        Selected:
+  Selected:
 
-        <strong>
-          {{ selectedTeacherCount }}
-        </strong>
+  <strong>
+    {{
+      selectedDepartmentObject
+        ? getSelectedTeacherCount(selectedDepartmentObject)
+        : 0
+    }}
+  </strong>
 
-      </div>
+</div>
 
     </div>
 
@@ -388,10 +418,6 @@
       "
     >
 
-      <div class="empty-icon">
-        👤
-      </div>
-
       <h3>
         No Teachers Found
       </h3>
@@ -506,17 +532,19 @@
     "
   >
 
-    <div class="selection-summary">
+    <div class="access-summary">
 
-      <span>
-        Teachers with TT Edit Access
-      </span>
+  Selected:
 
-      <strong>
-        {{ selectedTeacherCount }}
-      </strong>
+  <strong>
+    {{
+      selectedDepartmentObject
+        ? getSelectedTeacherCount(selectedDepartmentObject)
+        : 0
+    }}
+  </strong>
 
-    </div>
+</div>
 
 
     <button
