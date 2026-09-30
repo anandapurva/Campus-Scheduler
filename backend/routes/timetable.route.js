@@ -17,5 +17,10 @@ router.get(
     timetableController.getTimetable
 );
 
+router.get(
+    '/locked-resources',
+    timetableController.getLockedResources
+);
+
 
 module.exports = router;
