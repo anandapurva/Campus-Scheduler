@@ -1262,41 +1262,44 @@ export class Users implements OnInit {
 
   private finishSave(): void {
 
-    this.savingAccess = false;
+  this.savingAccess = false;
 
+  this.successMessage = 'Updated successfully';
 
-    this.successMessage =
-      'Updated successfully';
+  // ----------------------------------------------------------
+  // UPDATE ORIGINAL STATE
+  // ----------------------------------------------------------
 
+  this.originalSelectedTeachers = [
+    ...this.selectedTeachers
+  ];
 
-    // ----------------------------------------------------------
-    // UPDATE ORIGINAL STATE
-    // ----------------------------------------------------------
+  // ----------------------------------------------------------
+  // UPDATE LOCAL ACCESS STATE
+  // ----------------------------------------------------------
 
-    this.originalSelectedTeachers =
-      [
-        ...this.selectedTeachers
-      ];
+  this.allTeachers.forEach(
+    teacher => {
 
+      teacher.can_edit =
+        this.selectedTeachers.includes(
+          teacher.id
+        );
 
-    // ----------------------------------------------------------
-    // UPDATE LOCAL ACCESS STATE
-    // ----------------------------------------------------------
+    }
+  );
 
-    this.allTeachers.forEach(
-      teacher => {
+  this.cdr.detectChanges();
 
-        teacher.can_edit =
-          this.selectedTeachers
-            .includes(teacher.id);
+  // ----------------------------------------------------------
+  // RELOAD PAGE AFTER SAVE
+  // ----------------------------------------------------------
 
-      }
-    );
+  setTimeout(() => {
+    window.location.reload();
+  }, 800);
 
-
-    this.cdr.detectChanges();
-
-  }
+}
 
 
   // ============================================================
