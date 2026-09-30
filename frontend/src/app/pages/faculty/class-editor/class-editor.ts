@@ -1694,17 +1694,21 @@ if (exists) {
   // LECTURE TYPE CHANGE
   // ==================================================
 
-  onLectureTypeChange(): void {
+onLectureTypeChange(): void {
 
-    this.selectedRoom = null;
+  // Clear room selection because room type may change
+  this.selectedRoom = null;
 
-    this.roomSearch = '';
+  this.roomSearch = '';
 
-    this.roomDropdownOpen = false;
+  this.roomDropdownOpen = false;
 
-    this.filterRooms();
+  // Refresh rooms
+  this.filterRooms();
 
-  }
+  // Refresh subjects according to L/T/P
+  this.filterSubjects();
+}
 
 
   // ==================================================
@@ -2048,7 +2052,88 @@ isRoomLocked(room: any): boolean {
 
   }
 
+  filterSubjects(): void {
 
+  const selectedType =
+    String(this.lectureType || '')
+      .trim()
+      .toUpperCase();
+
+  let subjects = [...this.subjects];
+
+  switch (selectedType) {
+
+    case 'L':
+
+      subjects = subjects.filter(
+        (subject: any) =>
+          Number(subject.lecture_hours || 0) > 0
+      );
+
+      break;
+
+
+    case 'T':
+
+      subjects = subjects.filter(
+        (subject: any) =>
+          Number(subject.tutorial_hours || 0) > 0
+      );
+
+      break;
+
+
+    case 'P':
+
+      subjects = subjects.filter(
+        (subject: any) =>
+          Number(subject.practical_hours || 0) > 0
+      );
+
+      break;
+
+  }
+
+
+  // Apply search after L/T/P filtering
+  const search =
+    this.subjectSearch
+      .trim()
+      .toLowerCase();
+
+
+  if (search) {
+
+    subjects =
+      subjects.filter(
+        (subject: any) => {
+
+          const code =
+            String(
+              subject.course_code || ''
+            ).toLowerCase();
+
+          const name =
+            String(
+              subject.subject_name || ''
+            ).toLowerCase();
+
+          return (
+            code.includes(search) ||
+            name.includes(search)
+          );
+
+        }
+      );
+
+  }
+
+
+  this.filteredSubjects = subjects;
+
+  this.cdr.detectChanges();
+
+}
   // ==================================================
   // LOAD SUBJECTS
   // ==================================================
@@ -2113,8 +2198,7 @@ isRoomLocked(room: any): boolean {
           }
 
 
-          this.filteredSubjects =
-            [...this.subjects];
+          this.filterSubjectsByLectureType();
 
 
           this.cdr.detectChanges();
@@ -2202,8 +2286,8 @@ isRoomLocked(room: any): boolean {
 
       this.subjectSearch = '';
 
-      this.filteredSubjects =
-        [...this.subjects];
+      this.filterSubjects();
+
 
     }
 
@@ -2214,50 +2298,65 @@ isRoomLocked(room: any): boolean {
   // SUBJECT SEARCH
   // ==================================================
 
-  searchSubjects(): void {
+searchSubjects(): void {
+  this.filterSubjects();
+}
+// ==================================================
+// FILTER SUBJECTS BY LECTURE TYPE
+// ==================================================
 
-    const search =
-      this.subjectSearch
-        .trim()
-        .toLowerCase();
+filterSubjectsByLectureType(): void {
 
+  const selectedType =
+    String(this.lectureType || '')
+      .trim()
+      .toUpperCase();
 
-    if (!search) {
+  this.filteredSubjects =
+    this.subjects.filter((subject: any) => {
 
-      this.filteredSubjects =
-        [...this.subjects];
+      /*
+       * Change these field names if your API uses
+       * a different property for L/T/P.
+       */
 
-      return;
+      const subjectType =
+        String(
+          subject.lecture_type ||
+          subject.lectureType ||
+          subject.type ||
+          subject.types ||
+          ''
+        )
+          .trim()
+          .toUpperCase();
 
-    }
+      /*
+       * Example:
+       *
+       * subjectType = "L,T"
+       *  -> visible for L and T
+       *
+       * subjectType = "P"
+       *  -> visible only for P
+       *
+       * subjectType = "L"
+       *  -> visible only for L
+       */
 
+      const types =
+        subjectType
+          .split(',')
+          .map((type: string) =>
+            type.trim()
+          )
+          .filter(Boolean);
 
-    this.filteredSubjects =
-      this.subjects.filter(
-        (subject: any) => {
+      return types.includes(selectedType);
 
-          const code =
-            String(
-              subject.course_code || ''
-            ).toLowerCase();
+    });
 
-
-          const name =
-            String(
-              subject.subject_name || ''
-            ).toLowerCase();
-
-
-          return (
-            code.includes(search) ||
-            name.includes(search)
-          );
-
-        }
-      );
-
-  }
-
+}
 
   // ==================================================
   // SELECT SUBJECT
