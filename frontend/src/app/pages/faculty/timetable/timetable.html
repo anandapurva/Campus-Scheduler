@@ -70,6 +70,7 @@
           ">
 
 
+          
           <!-- =================================================
                DAY NAME
                ================================================= -->
@@ -98,7 +99,7 @@
             class="schedule-cell"
 
             [class.has-class]="
-              timetable[dayIndex][slotIndex].data
+              timetable[dayIndex][slotIndex].data.length > 0
             "
 
             [class.lunch-slot]="
@@ -136,7 +137,7 @@
             >
 
               <div class="lunch-text">
-
+                
                 LUNCH
 
               </div>
@@ -154,7 +155,7 @@
                   timetable[dayIndex][slotIndex].slot
                 )
                 &&
-                !timetable[dayIndex][slotIndex].data
+                timetable[dayIndex][slotIndex].data.length === 0
               "
 
               class="empty-cell"
@@ -168,7 +169,7 @@
 
 
             <!-- =================================================
-                 CLASS CONTENT
+                 CELL WITH ONE OR MORE CLASSES
                  ================================================= -->
 
             <div
@@ -177,127 +178,162 @@
                   timetable[dayIndex][slotIndex].slot
                 )
                 &&
-                timetable[dayIndex][slotIndex].data
+                timetable[dayIndex][slotIndex].data.length > 0
               "
 
               class="class-content"
             >
 
 
-              <!-- ===============================================
-                   SUBJECT CODE
-                   =============================================== -->
-
-              <div class="subject-code">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.subjectCode
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   SUBJECT NAME
-                   =============================================== -->
-
-              <!-- <div class="subject-name">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.subjectName
-                }}
-
-              </div> -->
-
-
-              <!-- ===============================================
-                   LECTURE TYPE
-                   =============================================== -->
-
-              <div class="lecture-type">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.lectureType
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   BATCHES
-                   =============================================== -->
+              <!-- =================================================
+                   EACH TIMETABLE ENTRY
+                   ================================================= -->
 
               <div
-                class="batch-info"
-
-                *ngIf="
-                  timetable[dayIndex][slotIndex]
-                    .data.batches?.length
+                *ngFor="
+                  let entry of timetable[dayIndex][slotIndex].data;
+                  let entryIndex = index;
+                  let entryLast = last
                 "
+                class="timetable-entry"
               >
 
-                <ng-container
-                  *ngFor="
-                    let batch of
-                    timetable[dayIndex][slotIndex]
-                      .data.batches
-                  "
-                >
+                <div class="timetable-cell-text">
 
-                  {{ batch.batch_code }} 
 
-                </ng-container>
+                  <!-- ============================================
+                       LECTURE TYPE
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.lectureType"
+                    class="lecture-type-text"
+                  >
+                    {{ entry.lectureType }}
+                  </span>
+
+
+                  <!-- ============================================
+                       BATCH CODES
+                       ============================================ -->
+
+                  <ng-container
+                    *ngIf="
+                      entry.batches &&
+                      entry.batches.length > 0
+                    "
+                  >
+
+                    <ng-container
+                      *ngFor="
+                        let batch of entry.batches;
+                        let batchLast = last
+                      "
+                    >
+
+                      <span class="batch-text">
+                        {{ batch.batch_code }}
+                      </span>
+
+                      <span
+                        *ngIf="!batchLast"
+                      >
+                        ,
+                      </span>
+
+                    </ng-container>
+
+                  </ng-container>
+
+
+                  <!-- ============================================
+                       SUBJECT CODE
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.subjectCode"
+                  >
+                    ({{ entry.subjectCode }})
+                  </span>
+
+
+                  <!-- ============================================
+                       ROOM
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.room"
+                  >
+                    -{{ entry.room }}
+                  </span>
+
+
+                  <!-- ============================================
+                       TEACHERS
+                       ============================================ -->
+
+                  <ng-container
+                    *ngIf="
+                      entry.teachers &&
+                      entry.teachers.length > 0
+                    "
+                  >
+
+                    <span>
+                      /
+                    </span>
+
+                    <ng-container
+                      *ngFor="
+                        let teacher of entry.teachers;
+                        let teacherLast = last
+                      "
+                    >
+
+                      <span>
+                        {{ teacher.abbreviation }}
+                      </span>
+
+                      <span
+                        *ngIf="!teacherLast"
+                      >
+                        ,
+                      </span>
+
+                    </ng-container>
+
+                  </ng-container>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     SEPARATOR BETWEEN MULTIPLE CLASSES
+                     ================================================= -->
+
+                <div
+                  *ngIf="!entryLast"
+                  class="class-separator"
+                ></div>
+
 
               </div>
 
 
-              <!-- ===============================================
-                   ROOM
-                   =============================================== -->
-
-              <div class="room-info">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.room
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   TEACHER
-                   =============================================== -->
+              <!-- =================================================
+                   ADD ANOTHER ENTRY INDICATOR
+                   ================================================= -->
 
               <div
-                class="teacher-info-small"
-
-                *ngIf="
-                  timetable[dayIndex][slotIndex]
-                    .data.teachers?.length
-                "
+                *ngIf="canEdit"
+                class="add-entry-indicator"
               >
-
-                <ng-container
-                  *ngFor="
-                    let teacher of
-                    timetable[dayIndex][slotIndex]
-                      .data.teachers
-                  "
-                >
-
-                  {{ teacher.abbreviation }}
-
-                </ng-container>
-
+                +
               </div>
 
 
             </div>
-
 
           </td>
 
@@ -347,7 +383,7 @@
     </span>
 
 
-    <!-- LUNCH INFORMATION -->
+     <!-- LUNCH INFORMATION -->
 
     <span
       *ngIf="lunchStart && lunchEnd"
@@ -378,6 +414,7 @@
     <div class="editor-modal">
 
 
+
       <!-- =================================================
            MODAL HEADER
            ================================================= -->
@@ -405,15 +442,16 @@
         </div>
 
 
-        <!-- CLOSE -->
+         <!-- CLOSE -->
 
         <button
           type="button"
-
+          
           class="close-button"
 
           (click)="closeEditor()"
         >
+
 
           ×
 
@@ -427,17 +465,17 @@
            CLASS EDITOR
            ================================================= -->
 
-<app-class-editor
-  *ngIf="academicSessionId !== null"
-  [selectedCell]="selectedCell"
-  [program]="program"
-  [semester]="semester"
-  [academicSessionStartYear]="academicSessionStartYear"
-  [academicSessionId]="academicSessionId"
-  [department]="department"
-  (save)="saveCell($event)"
-  (cancel)="closeEditor()"
-></app-class-editor>
+      <app-class-editor
+        *ngIf="academicSessionId !== null"
+        [selectedCell]="selectedCell"
+        [program]="program"
+        [semester]="semester"
+        [academicSessionStartYear]="academicSessionStartYear"
+        [academicSessionId]="academicSessionId"
+        [department]="department"
+        (save)="saveCell($event)"
+        (cancel)="closeEditor()"
+      ></app-class-editor>
 
 
     </div>

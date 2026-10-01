@@ -22,7 +22,7 @@ interface TimetableCell {
 
   day: string;
   slot: TimeSlot;
-  data: any | null;
+  data: any[];
 
 }
 
@@ -627,88 +627,135 @@ loadSelection(): void {
 
   populateTimetable(entries: any[]): void {
 
-    // Start with an empty grid
-    this.createEmptyTimetable();
+  // Always start with a completely empty grid.
+  this.createEmptyTimetable();
 
 
-    for (const entry of entries) {
+  for (const entry of entries) {
 
-      const dayIndex =
-        this.days.findIndex(
-          day =>
-            day.toLowerCase() ===
-            String(entry.day)
-              .trim()
-              .toLowerCase()
-        );
-
-
-      const slotIndex =
-        this.timeSlots.findIndex(
-          slot =>
-            Number(slot.id) ===
-            Number(entry.slot_id)
-        );
+    const dayIndex =
+      this.days.findIndex(
+        day =>
+          day.toLowerCase() ===
+          String(entry.day || '')
+            .trim()
+            .toLowerCase()
+      );
 
 
-      if (
-        dayIndex === -1 ||
-        slotIndex === -1
-      ) {
-
-        console.warn(
-          'Could not map timetable entry:',
-          entry
-        );
-
-        continue;
-      }
+    const slotIndex =
+      this.timeSlots.findIndex(
+        slot =>
+          Number(slot.id) ===
+          Number(
+            entry.slot_id ??
+            entry.slotId
+          )
+      );
 
 
-      this.timetable[dayIndex][slotIndex].data = {
+    if (
+      dayIndex === -1 ||
+      slotIndex === -1
+    ) {
 
-        id:
-          entry.id,
+      console.warn(
+        'Could not map timetable entry:',
+        entry
+      );
 
-        lectureType:
-          entry.lecture_type,
-
-        subjectCode:
-          entry.subject_code,
-
-        subjectName:
-          entry.subject_name,
-
-        room:
-          entry.room_code ||
-          entry.room_name,
-
-        roomId:
-          entry.room_id,
-
-        roomName:
-          entry.room_name,
-
-        roomType:
-          entry.room_type,
-
-        roomCapacity:
-          entry.room_capacity,
-
-        totalStudents:
-          entry.total_students,
-
-        batches:
-          entry.batches || [],
-
-        teachers:
-          entry.teachers || []
-
-      };
+      continue;
 
     }
 
+
+    const cell =
+      this.timetable[dayIndex][slotIndex];
+
+
+    // Convert database entry into the object
+    // used by the timetable HTML.
+    const timetableEntry = {
+
+      id:
+        entry.id,
+
+      lectureType:
+        entry.lecture_type ??
+        entry.lectureType,
+
+      subjectId:
+        entry.subject_id ??
+        entry.subjectId,
+
+      subjectCode:
+        entry.subject_code ??
+        entry.subjectCode,
+
+      subjectName:
+        entry.subject_name ??
+        entry.subjectName,
+
+      room:
+        entry.room_code ??
+        entry.room_id ??
+        entry.room_name ??
+        entry.room,
+
+      roomId:
+        entry.room_id ??
+        entry.roomId,
+
+      roomName:
+        entry.room_name ??
+        entry.roomName,
+
+      roomType:
+        entry.room_type ??
+        entry.roomType,
+
+      roomCapacity:
+        entry.room_capacity ??
+        entry.roomCapacity,
+
+      totalStudents:
+        Number(
+          entry.total_students ??
+          entry.totalStudents ??
+          0
+        ),
+
+      batches:
+        Array.isArray(entry.batches)
+          ? entry.batches
+          : [],
+
+      teachers:
+        Array.isArray(entry.teachers)
+          ? entry.teachers
+          : []
+
+    };
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT do:
+     *
+     * cell.data = timetableEntry;
+     *
+     * because that would replace an existing class.
+     *
+     * Push allows multiple classes in the same slot.
+     */
+    cell.data.push(
+      timetableEntry
+    );
+
   }
+
+}
 
 
   // ==========================================
@@ -717,34 +764,33 @@ loadSelection(): void {
 
   createEmptyTimetable(): void {
 
-    this.timetable = [];
+  this.timetable = [];
 
+  this.days.forEach(day => {
 
-    this.days.forEach(day => {
+    const row: TimetableCell[] = [];
 
-      const row: TimetableCell[] = [];
+    this.timeSlots.forEach(slot => {
 
+      row.push({
 
-      this.timeSlots.forEach(slot => {
+        day: day,
 
-        row.push({
+        slot: slot,
 
-          day: day,
-
-          slot: slot,
-
-          data: null
-
-        });
+        // IMPORTANT:
+        // Every cell starts with an empty array.
+        data: []
 
       });
 
-
-      this.timetable.push(row);
-
     });
 
-  }
+    this.timetable.push(row);
+
+  });
+
+}
 
 
   // ==========================================
@@ -795,139 +841,204 @@ loadSelection(): void {
 
   saveCell(data: any): void {
 
-    if (!this.selectedCell) {
-      return;
-    }
-
-    if (!this.academicSessionId) {
-
-      alert(
-        'No active academic session found.'
-      );
-
-      return;
-    }
-
-    const payload = {
-
-      academicSessionId:
-        Number(this.academicSessionId),
-
-      programId:
-        Number(data.programId),
-
-      departmentId:
-        Number(data.departmentId),
-
-      semesterId:
-        Number(data.semesterId),
-
-      day:
-        this.selectedCell.day,
-
-      slotId:
-        Number(this.selectedCell.slot.id),
-
-      startTime:
-        this.selectedCell.slot.start,
-
-      endTime:
-        this.selectedCell.slot.end,
-
-      subjectId:
-        Number(data.subjectId),
-
-      lectureType:
-        data.lectureType,
-
-      roomId:
-        Number(data.roomId),
-
-      batchIds:
-        data.batchIds || [],
-
-      teacherIds:
-        data.teacherIds || [],
-
-      totalStudents:
-        Number(data.totalStudents || 0)
-
-    };
-
-    this.timetableService
-      .createTimetableEntry(payload)
-      .subscribe({
-
-        next: (response) => {
-
-          this.selectedCell!.data = {
-
-            lectureType:
-              data.lectureType,
-
-            batches:
-              data.batches,
-
-            subjectCode:
-              data.subjectCode,
-
-            subjectName:
-              data.subjectName,
-
-            room:
-              data.room,
-
-            roomId:
-              data.roomId,
-
-            roomName:
-              data.roomName,
-
-            roomType:
-              data.roomType,
-
-            roomCapacity:
-              data.roomCapacity,
-
-            teachers:
-              data.teachers,
-
-            totalStudents:
-              data.totalStudents
-
-          };
+  if (!this.selectedCell) {
+    return;
+  }
 
 
-          this.closeEditor();
+  if (!this.academicSessionId) {
 
-          this.cdr.detectChanges();
+    alert(
+      'No active academic session found.'
+    );
 
-
-          alert(
-            'Class added to timetable successfully.'
-          );
-
-        },
-
-
-        error: (error) => {
-
-          console.error(
-            'Failed to save timetable:',
-            error
-          );
-
-
-          alert(
-            error?.error?.message ||
-            'Failed to save timetable.'
-          );
-
-        }
-
-      });
+    return;
 
   }
+
+
+  const payload = {
+
+    academicSessionId:
+      Number(
+        this.academicSessionId
+      ),
+
+    programId:
+      Number(
+        data.programId
+      ),
+
+    departmentId:
+      Number(
+        data.departmentId
+      ),
+
+    semesterId:
+      Number(
+        data.semesterId
+      ),
+
+    day:
+      this.selectedCell.day,
+
+    slotId:
+      Number(
+        this.selectedCell.slot.id
+      ),
+
+    startTime:
+      this.selectedCell.slot.start,
+
+    endTime:
+      this.selectedCell.slot.end,
+
+    subjectId:
+      Number(
+        data.subjectId
+      ),
+
+    lectureType:
+      data.lectureType,
+
+    roomId:
+      Number(
+        data.roomId
+      ),
+
+    batchIds:
+      data.batchIds || [],
+
+    teacherIds:
+      data.teacherIds || [],
+
+    totalStudents:
+      Number(
+        data.totalStudents || 0
+      )
+
+  };
+
+
+  console.log(
+    'CREATE TIMETABLE ENTRY:',
+    payload
+  );
+
+
+  this.timetableService
+    .createTimetableEntry(payload)
+    .subscribe({
+
+      next: (response: any) => {
+
+        /*
+         * The backend may return the newly-created
+         * database record.
+         */
+        const createdEntry =
+          response?.entry ||
+          response?.data ||
+          response?.timetableEntry ||
+          null;
+
+
+        /*
+         * Add the new entry to the existing cell.
+         *
+         * NEVER replace cell.data here.
+         */
+        this.selectedCell!.data.push({
+
+          id:
+            createdEntry?.id ??
+            response?.id ??
+            null,
+
+          lectureType:
+            data.lectureType,
+
+          batches:
+            data.batches || [],
+
+          batchIds:
+            data.batchIds || [],
+
+          subjectId:
+            data.subjectId,
+
+          subjectCode:
+            data.subjectCode,
+
+          subjectName:
+            data.subjectName,
+
+          room:
+            data.room,
+
+          roomId:
+            data.roomId,
+
+          roomName:
+            data.roomName,
+
+          roomType:
+            data.roomType,
+
+          roomCapacity:
+            data.roomCapacity,
+
+          teachers:
+            data.teachers || [],
+
+          teacherIds:
+            data.teacherIds || [],
+
+          totalStudents:
+            Number(
+              data.totalStudents || 0
+            )
+
+        });
+
+
+        /*
+         * Close only the editor.
+         *
+         * The cell itself remains populated with all
+         * previous entries plus the new one.
+         */
+        this.closeEditor();
+
+
+        this.cdr.detectChanges();
+
+
+        alert(
+          'Class added to timetable successfully.'
+        );
+
+      },
+
+
+      error: (error) => {
+
+        console.error(
+          'Failed to save timetable:',
+          error
+        );
+
+
+        alert(
+          error?.error?.message ||
+          'Failed to save timetable.'
+        );
+
+      }
+
+    });
+
+}
 
 
   // ==========================================

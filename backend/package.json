@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.25.0",
+    "ajv": "^8.20.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -21,7 +23,8 @@
     "multer": "^2.2.0",
     "mysql2": "^3.23.3",
     "socket.io": "^4.8.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
