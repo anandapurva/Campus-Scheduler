@@ -182,6 +182,7 @@ departmentId: number | null = null;
 
   selectedCell: TimetableCell | null = null;
 
+  editingEntry: any = null;
 
   constructor(
 
@@ -241,6 +242,41 @@ departmentId: number | null = null;
 
   }
 
+  onDelete(entryId: number): void {
+
+  this.timetableService
+    .deleteTimetableEntry(entryId)
+    .subscribe({
+
+      next: () => {
+
+        alert('Class deleted successfully.');
+
+        // Close editor
+        this.closeEditor();
+
+        // Reload timetable
+        this.loadTimetable();
+
+      },
+
+      error: (error) => {
+
+        console.error(
+          'Failed to delete timetable entry:',
+          error
+        );
+
+        alert(
+          error?.error?.message ||
+          'Failed to delete class.'
+        );
+
+      }
+
+    });
+
+}
   // PROGRAM / SEMESTER
 loadSelection(): void {
 
@@ -817,8 +853,63 @@ loadSelection(): void {
     this.showEditor =
       true;
 
+    this.showEditor= true;
+
+    
+  }
+// ==========================================
+// EDIT EXISTING ENTRY
+// ==========================================
+
+editTimetableEntry(
+  cell: TimetableCell,
+  entry: any
+): void {
+
+  if (!this.canEdit) {
+    return;
   }
 
+  if (!entry?.id) {
+    console.error(
+      'Cannot edit timetable entry: missing entry ID',
+      entry
+    );
+
+    return;
+  }
+
+  this.selectedCell = cell;
+
+ // Make a copy so the original timetable entry
+  // is not modified while editing.
+  this.editingEntry = {
+    ...entry,
+    id: Number(entry.id),
+
+    subjectId: entry.subjectId
+      ? Number(entry.subjectId)
+      : null,
+
+    roomId: entry.roomId
+      ? Number(entry.roomId)
+      : null,
+
+    batchIds: Array.isArray(entry.batchIds)
+      ? [...entry.batchIds]
+      : (Array.isArray(entry.batches)
+          ? entry.batches.map((b: any) => Number(b.id))
+          : []),
+
+    teacherIds: Array.isArray(entry.teacherIds)
+      ? [...entry.teacherIds]
+      : (Array.isArray(entry.teachers)
+          ? entry.teachers.map((t: any) => Number(t.id))
+          : [])
+  };
+
+  this.showEditor = true;
+}
 
   // ==========================================
   // CLOSE EDITOR
@@ -831,6 +922,9 @@ loadSelection(): void {
 
     this.selectedCell =
       null;
+    this.editingEntry = 
+      null;
+    
 
   }
 
@@ -925,118 +1019,177 @@ loadSelection(): void {
     payload
   );
 
+  const entryId =
+  this.editingEntry?.id
+    ? Number(this.editingEntry.id)
+    : null;
 
-  this.timetableService
-    .createTimetableEntry(payload)
-    .subscribe({
+  console.log(
+  entryId
+    ? `UPDATING TIMETABLE ENTRY ID: ${entryId}`
+    : 'CREATING NEW TIMETABLE ENTRY'
+    );
 
-      next: (response: any) => {
+const request$ =
+  entryId
+    ? this.timetableService.updateTimetableEntry(
+        entryId,
+        payload
+      )
+    : this.timetableService.createTimetableEntry(
+        payload
+      );
 
-        /*
-         * The backend may return the newly-created
-         * database record.
-         */
-        const createdEntry =
-          response?.entry ||
-          response?.data ||
-          response?.timetableEntry ||
-          null;
+request$.subscribe({
 
+  next: (response: any) => {
 
-        /*
-         * Add the new entry to the existing cell.
-         *
-         * NEVER replace cell.data here.
-         */
-        this.selectedCell!.data.push({
-
-          id:
-            createdEntry?.id ??
-            response?.id ??
-            null,
-
-          lectureType:
-            data.lectureType,
-
-          batches:
-            data.batches || [],
-
-          batchIds:
-            data.batchIds || [],
-
-          subjectId:
-            data.subjectId,
-
-          subjectCode:
-            data.subjectCode,
-
-          subjectName:
-            data.subjectName,
-
-          room:
-            data.room,
-
-          roomId:
-            data.roomId,
-
-          roomName:
-            data.roomName,
-
-          roomType:
-            data.roomType,
-
-          roomCapacity:
-            data.roomCapacity,
-
-          teachers:
-            data.teachers || [],
-
-          teacherIds:
-            data.teacherIds || [],
-
-          totalStudents:
-            Number(
-              data.totalStudents || 0
-            )
-
-        });
+    const savedEntry =
+      response?.entry ||
+      response?.data ||
+      response?.timetableEntry ||
+      response?.id
+        ? (
+            response?.entry ||
+            response?.data ||
+            response?.timetableEntry ||
+            response
+          )
+        : null;
 
 
-        /*
-         * Close only the editor.
-         *
-         * The cell itself remains populated with all
-         * previous entries plus the new one.
-         */
-        this.closeEditor();
+    const finalId =
+      Number(
+        response?.timetableEntryId ??
+        entryId
+      );
 
 
-        this.cdr.detectChanges();
+    const updatedEntry = {
+
+      id: finalId,
+
+      lectureType:
+        data.lectureType,
+
+      batches:
+        data.batches || [],
+
+      batchIds:
+        data.batchIds || [],
+
+      subjectId:
+        data.subjectId,
+
+      subjectCode:
+        data.subjectCode,
+
+      subjectName:
+        data.subjectName,
+
+      room:
+        data.room,
+
+      roomId:
+        data.roomId,
+
+      roomName:
+        data.roomName,
+
+      roomType:
+        data.roomType,
+
+      roomCapacity:
+        data.roomCapacity,
+
+      teachers:
+        data.teachers || [],
+
+      teacherIds:
+        data.teacherIds || [],
+
+      totalStudents:
+        Number(
+          data.totalStudents || 0
+        )
+
+    };
 
 
-        alert(
-          'Class added to timetable successfully.'
+    // ------------------------------------------
+    // UPDATE EXISTING ENTRY
+    // ------------------------------------------
+
+    if (entryId) {
+
+      const index =
+        this.selectedCell!.data.findIndex(
+          (entry: any) =>
+            Number(entry.id) ===
+            Number(entryId)
         );
 
-      },
 
+      if (index !== -1) {
 
-      error: (error) => {
+            this.selectedCell!.data[index] = {
+        ...this.selectedCell!.data[index],
 
-        console.error(
-          'Failed to save timetable:',
-          error
-        );
+        ...updatedEntry,
 
-
-        alert(
-          error?.error?.message ||
-          'Failed to save timetable.'
-        );
+        id: Number(entryId)
+      };
 
       }
 
-    });
+    }
+
+
+    // ------------------------------------------
+    // CREATE NEW ENTRY
+    // ------------------------------------------
+
+    else {
+
+      this.selectedCell!.data.push(
+        updatedEntry
+      );
+
+    }
+
+
+    this.closeEditor();
+
+    this.cdr.detectChanges();
+
+    alert(
+      entryId
+        ? 'Class updated successfully.'
+        : 'Class added to timetable successfully.'
+    );
+
+  },
+
+  error: (error) => {
+
+    console.error(
+      'Failed to save timetable:',
+      error
+    );
+
+    alert(
+      error?.error?.message ||
+      (
+        entryId
+          ? 'Failed to update timetable entry.'
+          : 'Failed to save timetable.'
+      )
+    );
+
+  }
+
+});
+
 
 }
 

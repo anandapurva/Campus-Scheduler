@@ -73,6 +73,20 @@ export class TimetableService {
       data
     );
   }
+// ==================================================
+// UPDATE TIMETABLE ENTRY
+// ==================================================
+
+updateTimetableEntry(
+  entryId: number,
+  data: any
+): Observable<any> {
+
+  return this.http.put(
+    `${this.apiUrl}/${entryId}`,
+    data
+  );
+}
 
 
   // ==================================================
@@ -107,6 +121,11 @@ getTimetable(
 
 }
 
+deleteTimetableEntry(entryId: number) {
+  return this.http.delete(
+    `${this.apiUrl}/${entryId}`
+  );
+}
 getLockedResources(
   academicSessionId: number,
   day: string,

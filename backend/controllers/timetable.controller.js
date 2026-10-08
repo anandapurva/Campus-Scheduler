@@ -12,6 +12,225 @@ function getTimetableCellRoom(
     return `timetable:${academicSessionId}:${day}:${slotId}`;
 }
 
+exports.deleteTimetableEntry = async (req, res) => {
+
+    const connection = await db.getConnection();
+
+    try {
+
+        const entryId = Number(req.params.id);
+
+        // ==================================================
+        // VALIDATION
+        // ==================================================
+
+        if (!entryId) {
+
+            return res.status(400).json({
+                success: false,
+                message: 'Timetable entry ID is required.'
+            });
+
+        }
+
+
+        // ==================================================
+        // START TRANSACTION
+        // ==================================================
+
+        await connection.beginTransaction();
+
+
+        // ==================================================
+        // CHECK ENTRY EXISTS + GET CELL INFORMATION
+        // ==================================================
+
+        const [existingEntry] =
+            await connection.query(
+                `
+                SELECT
+                    id,
+                    academic_session_id,
+                    day,
+                    slot_id
+                FROM timetable_entries
+                WHERE id = ?
+                LIMIT 1
+                `,
+                [entryId]
+            );
+
+
+        if (existingEntry.length === 0) {
+
+            await connection.rollback();
+
+            return res.status(404).json({
+                success: false,
+                message: 'Timetable entry not found.'
+            });
+
+        }
+
+
+        const entry = existingEntry[0];
+
+
+        // ==================================================
+        // DELETE BATCH RELATIONSHIPS
+        // ==================================================
+
+        await connection.query(
+            `
+            DELETE FROM timetable_entry_batches
+            WHERE timetable_entry_id = ?
+            `,
+            [entryId]
+        );
+
+
+        // ==================================================
+        // DELETE FACULTY RELATIONSHIPS
+        // ==================================================
+
+        await connection.query(
+            `
+            DELETE FROM timetable_entry_faculty
+            WHERE timetable_entry_id = ?
+            `,
+            [entryId]
+        );
+
+
+        // ==================================================
+        // DELETE MAIN TIMETABLE ENTRY
+        // ==================================================
+
+        await connection.query(
+            `
+            DELETE FROM timetable_entries
+            WHERE id = ?
+            `,
+            [entryId]
+        );
+
+
+        // ==================================================
+        // COMMIT
+        // ==================================================
+
+        await connection.commit();
+
+
+        // ==================================================
+        // REAL-TIME UPDATE
+        // ==================================================
+
+        const io = req.app.get('io');
+
+        if (io) {
+
+            const roomName =
+                getTimetableCellRoom(
+                    entry.academic_session_id,
+                    entry.day,
+                    entry.slot_id
+                );
+
+
+            io.to(roomName).emit(
+                'timetable-entry-deleted',
+                {
+                    academicSessionId:
+                        entry.academic_session_id,
+
+                    day:
+                        entry.day,
+
+                    slotId:
+                        entry.slot_id,
+
+                    timetableEntryId:
+                        entryId
+                }
+            );
+
+
+            io.to(roomName).emit(
+                'resource-lock-updated',
+                {
+                    academicSessionId:
+                        entry.academic_session_id,
+
+                    day:
+                        entry.day,
+
+                    slotId:
+                        entry.slot_id,
+
+                    timetableEntryId:
+                        entryId
+                }
+            );
+
+        }
+
+
+        // ==================================================
+        // RESPONSE
+        // ==================================================
+
+        return res.json({
+
+            success: true,
+
+            message:
+                'Timetable entry deleted successfully.',
+
+            timetableEntryId:
+                entryId
+
+        });
+
+
+    } catch (error) {
+
+        try {
+            await connection.rollback();
+        } catch (rollbackError) {
+            console.error(
+                'ROLLBACK ERROR:',
+                rollbackError
+            );
+        }
+
+
+        console.error(
+            'DELETE TIMETABLE ERROR:',
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                'Failed to delete timetable entry.',
+
+            error:
+                error.message
+
+        });
+
+
+    } finally {
+
+        connection.release();
+
+    }
+
+};
 
 // ======================================================
 // CREATE TIMETABLE ENTRY
@@ -512,6 +731,492 @@ exports.createTimetableEntry = async (req, res) => {
 
 };
 
+// ======================================================
+// UPDATE TIMETABLE ENTRY
+// ======================================================
+
+exports.updateTimetableEntry = async (req, res) => {
+
+    const connection = await db.getConnection();
+
+    try {
+
+        const entryId = Number(req.params.id);
+
+        const {
+            academicSessionId,
+            programId,
+            departmentId,
+            semesterId,
+            day,
+            slotId,
+            startTime,
+            endTime,
+            subjectId,
+            lectureType,
+            roomId,
+            batchIds,
+            teacherIds,
+            totalStudents
+        } = req.body;
+
+
+        // ==================================================
+        // VALIDATION
+        // ==================================================
+
+        if (!entryId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Timetable entry ID is required.'
+            });
+        }
+
+        const sessionId = Number(academicSessionId);
+        const program = Number(programId);
+        const department = Number(departmentId);
+        const semester = Number(semesterId);
+        const slot = Number(slotId);
+        const subject = Number(subjectId);
+        const room = Number(roomId);
+
+        const batches = Array.isArray(batchIds)
+            ? batchIds.map(id => Number(id))
+            : [];
+
+        const teachers = Array.isArray(teacherIds)
+            ? teacherIds.map(id => Number(id))
+            : [];
+
+        const students = Number(totalStudents || 0);
+
+
+        if (!sessionId ||
+            !program ||
+            !department ||
+            !semester ||
+            !slot ||
+            !subject ||
+            !room ||
+            !day ||
+            !lectureType) {
+
+            return res.status(400).json({
+                success: false,
+                message: 'Required timetable fields are missing.'
+            });
+        }
+
+        if (batches.length === 0) {
+
+            return res.status(400).json({
+                success: false,
+                message: 'At least one batch is required.'
+            });
+
+        }
+
+
+        // ==================================================
+        // START TRANSACTION
+        // ==================================================
+
+        await connection.beginTransaction();
+
+
+        // ==================================================
+        // CHECK ENTRY EXISTS
+        // ==================================================
+
+        const [existingEntry] =
+            await connection.query(
+                `
+                SELECT id
+                FROM timetable_entries
+                WHERE id = ?
+                LIMIT 1
+                `,
+                [entryId]
+            );
+
+
+        if (existingEntry.length === 0) {
+
+            await connection.rollback();
+
+            return res.status(404).json({
+                success: false,
+                message: 'Timetable entry not found.'
+            });
+
+        }
+
+
+        // ==================================================
+        // ROOM CONFLICT
+        // EXCLUDE CURRENT ENTRY
+        // ==================================================
+
+        const [roomConflict] =
+            await connection.query(
+                `
+                SELECT te.id
+                FROM timetable_entries te
+                WHERE
+                    te.academic_session_id = ?
+                    AND te.day = ?
+                    AND te.slot_id = ?
+                    AND te.room_id = ?
+                    AND te.id != ?
+                LIMIT 1
+                `,
+                [
+                    sessionId,
+                    day,
+                    slot,
+                    room,
+                    entryId
+                ]
+            );
+
+
+        if (roomConflict.length > 0) {
+
+            await connection.rollback();
+
+            return res.status(409).json({
+                success: false,
+                message:
+                    'Room is already booked for this time slot.'
+            });
+
+        }
+
+
+        // ==================================================
+        // FACULTY CONFLICT
+        // EXCLUDE CURRENT ENTRY
+        // ==================================================
+
+        if (teachers.length > 0) {
+
+            const [facultyConflict] =
+                await connection.query(
+                    `
+                    SELECT
+                        f.id,
+                        f.name,
+                        f.abbreviation
+
+                    FROM timetable_entry_faculty tef
+
+                    INNER JOIN timetable_entries te
+                        ON te.id = tef.timetable_entry_id
+
+                    INNER JOIN faculty f
+                        ON f.id = tef.faculty_id
+
+                    WHERE
+                        te.academic_session_id = ?
+                        AND te.day = ?
+                        AND te.slot_id = ?
+                        AND tef.faculty_id IN (?)
+                        AND te.id != ?
+
+                    LIMIT 1
+                    `,
+                    [
+                        sessionId,
+                        day,
+                        slot,
+                        teachers,
+                        entryId
+                    ]
+                );
+
+
+            if (facultyConflict.length > 0) {
+
+                await connection.rollback();
+
+                const faculty =
+                    facultyConflict[0];
+
+                return res.status(409).json({
+                    success: false,
+                    message:
+                        `Faculty ${faculty.name} is already teaching during this time slot.`
+                });
+
+            }
+
+        }
+
+
+        // ==================================================
+        // BATCH CONFLICT
+        // EXCLUDE CURRENT ENTRY
+        // ==================================================
+
+        const [batchConflict] =
+            await connection.query(
+                `
+                SELECT
+                    b.id,
+                    b.batch_code
+
+                FROM timetable_entry_batches teb
+
+                INNER JOIN timetable_entries te
+                    ON te.id = teb.timetable_entry_id
+
+                INNER JOIN batches b
+                    ON b.id = teb.batch_id
+
+                WHERE
+                    te.academic_session_id = ?
+                    AND te.day = ?
+                    AND te.slot_id = ?
+                    AND teb.batch_id IN (?)
+                    AND te.id != ?
+
+                LIMIT 1
+                `,
+                [
+                    sessionId,
+                    day,
+                    slot,
+                    batches,
+                    entryId
+                ]
+            );
+
+
+        if (batchConflict.length > 0) {
+
+            await connection.rollback();
+
+            return res.status(409).json({
+                success: false,
+                message:
+                    `Batch ${batchConflict[0].batch_code} is already scheduled during this time slot.`
+            });
+
+        }
+
+
+        // ==================================================
+        // UPDATE MAIN ENTRY
+        // ==================================================
+
+        await connection.query(
+            `
+            UPDATE timetable_entries
+
+            SET
+                academic_session_id = ?,
+
+                program_id = ?,
+                department_id = ?,
+                semester_id = ?,
+
+                day = ?,
+
+                slot_id = ?,
+                start_time = ?,
+                end_time = ?,
+
+                subject_id = ?,
+
+                lecture_type = ?,
+
+                room_id = ?,
+
+                total_students = ?
+
+            WHERE id = ?
+            `,
+            [
+                sessionId,
+
+                program,
+                department,
+                semester,
+
+                day,
+
+                slot,
+                startTime,
+                endTime,
+
+                subject,
+
+                lectureType,
+
+                room,
+
+                students,
+
+                entryId
+            ]
+        );
+
+
+        // ==================================================
+        // REPLACE BATCHES
+        // ==================================================
+
+        await connection.query(
+            `
+            DELETE FROM timetable_entry_batches
+            WHERE timetable_entry_id = ?
+            `,
+            [entryId]
+        );
+
+
+        for (const batchId of batches) {
+
+            await connection.query(
+                `
+                INSERT INTO timetable_entry_batches
+                (
+                    timetable_entry_id,
+                    batch_id
+                )
+
+                VALUES (?, ?)
+                `,
+                [
+                    entryId,
+                    batchId
+                ]
+            );
+
+        }
+
+
+        // ==================================================
+        // REPLACE FACULTY
+        // ==================================================
+
+        await connection.query(
+            `
+            DELETE FROM timetable_entry_faculty
+            WHERE timetable_entry_id = ?
+            `,
+            [entryId]
+        );
+
+
+        for (const facultyId of teachers) {
+
+            await connection.query(
+                `
+                INSERT INTO timetable_entry_faculty
+                (
+                    timetable_entry_id,
+                    faculty_id
+                )
+
+                VALUES (?, ?)
+                `,
+                [
+                    entryId,
+                    facultyId
+                ]
+            );
+
+        }
+
+
+        // ==================================================
+        // COMMIT
+        // ==================================================
+
+        await connection.commit();
+
+
+        // ==================================================
+        // SOCKET UPDATE
+        // ==================================================
+
+        const io = req.app.get('io');
+
+        if (io) {
+
+            const roomName =
+                getTimetableCellRoom(
+                    sessionId,
+                    day,
+                    slot
+                );
+
+            io.to(roomName).emit(
+                'resource-lock-updated',
+                {
+                    academicSessionId: sessionId,
+                    day,
+                    slotId: slot,
+                    timetableEntryId: entryId
+                }
+            );
+
+        }
+
+
+        // ==================================================
+        // RESPONSE
+        // ==================================================
+
+        return res.json({
+
+            success: true,
+
+            message:
+                'Timetable entry updated successfully.',
+
+            timetableEntryId:
+                entryId
+
+        });
+
+
+    } catch (error) {
+
+        try {
+            await connection.rollback();
+        } catch (rollbackError) {
+            console.error(
+                'ROLLBACK ERROR:',
+                rollbackError
+            );
+        }
+
+        console.error(
+            'UPDATE TIMETABLE ERROR:',
+            error
+        );
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                'Failed to update timetable entry.',
+
+            error:
+                error.message
+
+        });
+
+    } finally {
+
+        connection.release();
+
+    }
+
+};
 
 // ======================================================
 // GET TIMETABLE

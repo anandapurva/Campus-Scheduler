@@ -986,7 +986,16 @@
         academicSessionLoading
       "
     >
-      Add to Timetable
+        {{ editingEntry ? 'Update Timetable' : 'Add to Timetable' }}
+    </button>
+
+        <button 
+      type="button"
+      class="submit-button"
+      *ngIf="editingEntry?.id"
+      (click)="deleteEntry()"
+    >
+      Delete
     </button>
 
   </div>

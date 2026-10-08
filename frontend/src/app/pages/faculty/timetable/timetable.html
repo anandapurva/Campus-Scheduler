@@ -196,6 +196,13 @@
                   let entryLast = last
                 "
                 class="timetable-entry"
+                (click)="
+                    editTimetableEntry(
+                      timetable[dayIndex][slotIndex],
+                      entry
+                    );
+                    $event.stopPropagation()
+                  "
               >
 
                 <div class="timetable-cell-text">
@@ -425,7 +432,8 @@
         <div>
 
           <h2>
-            Add Class
+            {{ editingEntry ? 'Edit Class' : 'Add Class' }}
+
           </h2>
 
 
@@ -473,8 +481,12 @@
         [academicSessionStartYear]="academicSessionStartYear"
         [academicSessionId]="academicSessionId"
         [department]="department"
+        [editingEntry]="editingEntry"
         (save)="saveCell($event)"
         (cancel)="closeEditor()"
+        (delete)="onDelete($event)"
+        
+
       ></app-class-editor>
 
 

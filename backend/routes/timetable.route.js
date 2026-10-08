@@ -11,6 +11,15 @@ router.post(
     timetableController.createTimetableEntry
 );
 
+router.put(
+    '/:id',
+    timetableController.updateTimetableEntry
+);
+
+router.delete(
+    '/:id',
+    timetableController.deleteTimetableEntry
+);
 
 router.get(
     '/',
