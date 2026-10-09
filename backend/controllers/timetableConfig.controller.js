@@ -1,6 +1,5 @@
 const db = require("../config/db");
 
-
 // ============================================================
 // YEAR → SEMESTERS MAPPING
 // ============================================================
@@ -37,12 +36,6 @@ function getSemesters(program, year) {
 
     return null;
 }
-
-
-
-// ============================================================
-// VALIDATE LUNCH SLOT
-// ============================================================
 
 function isValidLunchSlot(lunchStart, lunchEnd) {
 
@@ -1017,13 +1010,6 @@ exports.getLunchConfiguration = async (req, res) => {
     }
 
 };
-
-
-
-// ============================================================
-// GET ALL LOCKED LUNCH CONFIGURATIONS
-// ADMIN DASHBOARD
-// ============================================================
 
 exports.getAllLunchConfigurations = async (req, res) => {
 

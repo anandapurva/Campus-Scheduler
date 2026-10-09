@@ -8,10 +8,6 @@
 
     <div>
 
-      <span class="page-label">
-        ACADEMIC DATA
-      </span>
-
       <h1>
         Subject Management
       </h1>
@@ -64,21 +60,15 @@
           [(ngModel)]="selectedProgram"
           (change)="onProgramChange()">
 
-          <option value="">
+          <option value = "" disabled hidden>
             Select Program
           </option>
 
           <option
             *ngFor="let program of programs"
-            [value]="
-              program.program_name ||
-              program.value
-            ">
+            [ngValue]="program.id">
 
-            {{
-              program.label ||
-              program.program_name
-            }}
+            {{ program.program_name }}
 
           </option>
 
@@ -95,26 +85,20 @@
           Department
         </label>
 
-        <select
-          [(ngModel)]="selectedDepartment"
-          (change)="onDepartmentChange()"
-          [disabled]="!selectedProgram">
+          <select
+            [(ngModel)]="selectedDepartment"
+            (ngModelChange)="onDepartmentChange()"
+            [disabled]="!selectedProgram">
 
-          <option value="">
+          <option value="" disabled hidden>
             Select Department
           </option>
 
           <option
             *ngFor="let department of departments"
-            [value]="
-              department.name ||
-              department.department
-            ">
+            [ngValue]="department.id">
 
-            {{
-              department.name ||
-              department.department
-            }}
+            {{ department.name }}
 
           </option>
 
@@ -131,23 +115,24 @@
           Semester
         </label>
 
-        <select
-        [(ngModel)]="selectedSemester"
-        (change)="onSemesterChange()">
+          <select
+            [(ngModel)]="selectedSemester"
+            (change)="onSemesterChange()"
+            [disabled]="!selectedDepartment">
 
-        <option [ngValue]="null">
-            Select Semester
-        </option>
+            <option [ngValue] = null disabled hidden>
+              Select Semester
+            </option>
 
-        <option
-            *ngFor="let semester of semesters"
-            [ngValue]="semester.semester_number">
+            <option
+              *ngFor="let semester of semesters"
+              [ngValue]="semester.semester_number">
 
-            {{ semester.semester_name }}
+              {{ semester.semester_name }}
 
-        </option>
+            </option>
 
-        </select>
+          </select>
 
       </div>
 

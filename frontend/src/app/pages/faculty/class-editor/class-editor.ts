@@ -1,19 +1,9 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  ChangeDetectorRef,
-  OnChanges,
-  OnInit,
-  OnDestroy,
-  SimpleChanges
-} from '@angular/core';
+import { Component, EventEmitter, Input, Output, ChangeDetectorRef, OnChanges, OnInit, OnDestroy, SimpleChanges } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-import { Subject } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { FacultyService } from '../../../services/faculty';
@@ -23,7 +13,7 @@ import { BatchService, Batch } from '../../../services/batch';
 import { SubjectService } from '../../../services/subject';
 import { TimetableSocketService } from '../../../services/timetable-socket';
 import { TimetableService } from '../../../services/timetable';
-
+import { TimeSlot } from '../timetable/timetable';
 
 @Component({
   selector: 'app-class-editor',
@@ -59,6 +49,9 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
   selectedCell: any;
 
   @Input()
+  nextSlot: any = null;
+
+  @Input()
   program = '';
 
   @Input()
@@ -72,6 +65,8 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   @Input()
   department = '';
+
+  @Input() availableTimeSlots: TimeSlot[] = [];
 
 
   // ==================================================
@@ -215,17 +210,11 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   loadingRooms = false;
 
-
-  // ==================================================
   // DROPDOWNS
-  // ==================================================
 
   isBatchDropdownOpen = false;
 
-
-  // ==================================================
   // REAL-TIME RESOURCE LOCKS
-  // ==================================================
 
   lockedRoomIds = new Set<number>();
 
@@ -235,10 +224,7 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   private heartbeatTimer: any;
 
-
-  // ==================================================
   // LOADING
-  // ==================================================
 
   loadingFaculty = false;
 
@@ -248,6 +234,19 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   temporaryBatchIds = new Set<number>();
 
+  subjectHours: {
+    L: number;
+    T: number;
+    P: number;
+  } | null = null;
+
+  PRACTICAL_DURATION = 2;
+
+  selectedPracticalSlots: any[] = [];
+
+  checkingPracticalAvailability = false;
+
+practicalAvailabilityError = '';
   // ==================================================
   // CONSTRUCTOR
   // ==================================================
@@ -269,146 +268,76 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
   // ==================================================
 
   ngOnInit(): void {
+  this.selectedAcademicSessionId = this.academicSessionId;
+  this.selectedAcademicSessionStartYear =
+    this.academicSessionStartYear;
 
-    /*
-     * Get values from parent.
-     */
-    this.selectedAcademicSessionId =
-      this.academicSessionId;
+  this.loadFaculty();
+  this.loadRooms();
+  this.loadSubjects();
+  this.loadEligibleBatches();
 
-    this.selectedAcademicSessionStartYear =
-      this.academicSessionStartYear;
-
-
-    /*
-     * Load master data.
-     */
-    this.loadFaculty();
-
-    this.loadRooms();
-
-    this.loadSubjects();
-
-    this.loadEligibleBatches();
-
-    this.timetableSocketService
-      .onResourceReservationUpdate(
-        (data: any) => {
-
-          console.log(
-            'REAL-TIME RESERVATION UPDATE:',
-            data
-          );
-
-
-          const resourceId =
-            Number(data.resourceId);
-
-
-          if (
-            data.action === 'reserved'
-          ) {
-
-            this.addTemporaryLock(
-              data.resourceType,
-              resourceId
-            );
-
-          }
-
-
-          if (
-            data.action === 'released'
-          ) {
-
-            this.removeTemporaryLock(
-              data.resourceType,
-              resourceId
-            );
-
-          }
-
-
-          this.cdr.detectChanges();
-
-        }
-      );
-
-
-    this.timetableSocketService
-  .onResourceReservationSnapshot(
+  this.timetableSocketService.onResourceReservationUpdate(
     (data: any) => {
+      console.log('REAL-TIME RESERVATION UPDATE:', data);
 
-      console.log(
-        'RESERVATION SNAPSHOT:',
-        data
-      );
-
-
-      this.clearTemporaryLocks();
-
-
+      // Ignore this client's own reservation event.
       if (
-        Array.isArray(
-          data?.reservations
-        )
+        data?.socketId &&
+        data.socketId === this.timetableSocketService.getSocketId()
       ) {
-
-        data.reservations.forEach(
-          (reservation: any) => {
-
-            this.addTemporaryLock(
-              reservation.resourceType,
-              Number(
-                reservation.resourceId
-              )
-            );
-
-          }
-        );
-
+        return;
       }
 
+      const resourceId = Number(data?.resourceId);
 
+      if (!Number.isFinite(resourceId)) {
+        return;
+      }
+
+      // Keep your existing reservation update logic here.
+      // It should add/remove the appropriate temporary lock.
       this.cdr.detectChanges();
-
     }
   );
 
-  this.timetableSocketService
-  .onResourceReservationRejected(
+  this.timetableSocketService.onResourceReservationSnapshot(
     (data: any) => {
+      this.clearTemporaryLocks();
 
-      console.warn(
-        'RESERVATION REJECTED:',
-        data
-      );
+      if (Array.isArray(data?.reservations)) {
+        data.reservations.forEach((reservation: any) => {
+          this.addTemporaryLock(
+            reservation.resourceType,
+            Number(reservation.resourceId)
+          );
+        });
+      }
 
+      this.cdr.detectChanges();
+    }
+  );
+
+  this.timetableSocketService.onResourceReservationRejected(
+    (data: any) => {
+      console.warn('RESERVATION REJECTED:', data);
       this.loadLockedResources();
 
       alert(
         data?.message ||
         'This resource is already being used by another coordinator.'
       );
-
     }
   );
 
-    // If the component is already opened for a cell, load locks immediately
+  this.loadLockedResources();
+  this.joinTimetableCell();
+  this.timetableSocketService.activity();
 
-    this.loadLockedResources();
-
-    this.joinTimetableCell();
-
-    this.timetableSocketService.activity();
-
-    this.heartbeatTimer =
-    setInterval(() => {
-
-      this.timetableSocketService.heartbeat();
-
-    }, 20000);
-  }
+  this.heartbeatTimer = setInterval(() => {
+    this.timetableSocketService.heartbeat();
+  }, 20000);
+}
 
   // ==================================================
   // INPUT CHANGES
@@ -672,6 +601,451 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   }
 
+  loadSubjectHours(): void {
+
+    if (
+      !this.selectedSubject ||
+      !this.selectedBatches.length ||
+      !this.selectedAcademicSessionId
+    ) {
+      this.subjectHours = null;
+      return;
+    }
+
+    const requests =
+      this.selectedBatches.map(batch =>
+        this.timetableService.getSubjectHours(
+          Number(batch.id),
+          Number(this.selectedSubject.id),
+          Number(this.selectedAcademicSessionId)
+        )
+      );
+
+    forkJoin(requests)
+      .pipe(
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+
+        next: (results: any[]) => {
+
+          if (!results.length) {
+            this.subjectHours = null;
+            return;
+          }
+
+          /*
+          * We use the MINIMUM remaining hours.
+          *
+          * Example:
+          *
+          * B1 → L remaining = 2
+          * B2 → L remaining = 1
+          * B3 → L remaining = 2
+          *
+          * Therefore L can only be selected once,
+          * because B2 has only 1 remaining hour.
+          */
+
+          this.subjectHours = {
+
+            L: Math.min(
+              ...results.map(
+                result =>
+                  Number(result?.remaining?.L || 0)
+              )
+            ),
+
+            T: Math.min(
+              ...results.map(
+                result =>
+                  Number(result?.remaining?.T || 0)
+              )
+            ),
+
+            P: Math.min(
+              ...results.map(
+                result =>
+                  Number(result?.remaining?.P || 0)
+              )
+            )
+
+          };
+
+          this.cdr.detectChanges();
+
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Failed to load subject hours:',
+            error
+          );
+
+          this.subjectHours = null;
+
+        }
+
+      });
+  }
+
+  canSelectLectureType(
+  type: 'L' | 'T' | 'P'
+): boolean {
+
+  if (!this.subjectHours) {
+    return true;
+  }
+
+  if (type === 'P') {
+
+    return (
+      this.subjectHours.P >=
+      this.PRACTICAL_DURATION
+    );
+
+  }
+
+  return this.subjectHours[type] >= 1;
+}
+getRemainingHoursLabel(
+  type: 'L' | 'T' | 'P'
+): string {
+
+  if (!this.subjectHours) {
+    return '';
+  }
+
+  const remaining =
+    Number(
+      this.subjectHours[type] || 0
+    );
+
+  if (type === 'P') {
+
+    if (remaining < 2) {
+      return 'Less than 2 hours remaining';
+    }
+
+    return `${remaining} hours remaining`;
+
+  }
+
+  return `${remaining} hour(s) remaining`;
+}
+
+
+isPracticalSlotLunchBlocked(
+  slot: any
+): boolean {
+
+  if (!slot) {
+    return true;
+  }
+
+  /*
+   * Check every selected batch.
+   *
+   * Practical class is allowed only when
+   * BOTH slots are available for ALL batches.
+   */
+
+  for (
+    const batch of this.selectedBatches
+  ) {
+
+    if (!batch?.lunchStart || !batch?.lunchEnd) {
+      continue;
+    }
+
+    const slotStart =
+      this.convertTimeToMinutes(
+        slot.start
+        || slot.start_time
+      );
+
+    const slotEnd =
+      this.convertTimeToMinutes(
+        slot.end
+        || slot.end_time
+      );
+
+    const lunchStart =
+      this.convertTimeToMinutes(
+        batch.lunchStart
+      );
+
+    const lunchEnd =
+      this.convertTimeToMinutes(
+        batch.lunchEnd
+      );
+
+    const overlapsLunch =
+      slotStart < lunchEnd &&
+      slotEnd > lunchStart;
+
+    if (overlapsLunch) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+selectPracticalClass(): void {
+   console.log('selectPracticalClass() called');
+  console.log('Selected cell:', this.selectedCell);
+console.log('First slot:', this.selectedCell?.slot);
+console.log('Next slot:', this.nextSlot);
+console.log('Selected practical slots:', this.selectedPracticalSlots);
+
+  if (this.lectureType !== 'P') {
+    return;
+  }
+
+  if (!this.selectedCell?.slot) {
+    alert('Please select a timetable slot.');
+    return;
+  }
+
+  if (!this.nextSlot) {
+    alert(
+      'Practical class requires 2 consecutive timetable slots.'
+    );
+    return;
+  }
+
+  // ------------------------------------------
+  // L/T/P HOURS
+  // ------------------------------------------
+
+  if (!this.subjectHours) {
+    this.loadSubjectHours();
+
+    alert(
+      'Please wait while subject hour information is loaded.'
+    );
+
+    return;
+  }
+
+  if (
+    Number(this.subjectHours.P) <
+    this.PRACTICAL_DURATION
+  ) {
+
+    alert(
+      'Cannot schedule practical. ' +
+      'Less than 2 practical hours remain for one or more selected batches.'
+    );
+
+    return;
+  }
+
+  const firstSlot = this.selectedCell.slot;
+  const secondSlot = this.nextSlot;
+
+  // ------------------------------------------
+  // SAME DAY
+  // ------------------------------------------
+
+  if (
+    this.selectedCell.day !==
+    this.nextSlot.day
+  ) {
+
+    alert(
+      'Practical class must be on the same day.'
+    );
+
+    return;
+  }
+
+  // ------------------------------------------
+  // CONSECUTIVE SLOT CHECK
+  // ------------------------------------------
+
+  if (
+    !this.areConsecutiveSlots(
+      firstSlot,
+      secondSlot
+    )
+  ) {
+
+    alert(
+      'Practical class requires 2 consecutive slots.'
+    );
+
+    return;
+  }
+
+  // ------------------------------------------
+  // LUNCH CHECK
+  // ------------------------------------------
+
+  if (
+    this.isPracticalSlotLunchBlocked(firstSlot) ||
+    this.isPracticalSlotLunchBlocked(secondSlot)
+  ) {
+
+    alert(
+      'Practical class cannot overlap lunch.'
+    );
+
+    return;
+  }
+
+  // ------------------------------------------
+  // BACKEND AVAILABILITY CHECK
+  // ------------------------------------------
+
+  this.checkingPracticalAvailability = true;
+
+  this.practicalAvailabilityError = '';
+
+  this.timetableService
+    .checkPracticalAvailability({
+
+      academicSessionId:
+        Number(this.selectedAcademicSessionId),
+
+      day:
+        this.selectedCell.day,
+
+      firstSlotId:
+        Number(firstSlot.id),
+
+      secondSlotId:
+        Number(secondSlot.id),
+
+      batchIds:
+        this.selectedBatches.map(
+          batch => Number(batch.id)
+        ),
+
+      teacherIds:
+        this.selectedTeachers.map(
+          teacher => Number(teacher.id)
+        ),
+
+      roomId:
+        Number(this.selectedRoom?.id)
+
+    })
+    .pipe(
+      takeUntil(this.destroy$)
+    )
+    .subscribe({
+
+      next: (response: any) => {
+
+        this.checkingPracticalAvailability = false;
+
+        if (!response?.available) {
+
+          this.practicalAvailabilityError =
+            response?.message ||
+            'The two consecutive slots are not available.';
+
+          this.selectedPracticalSlots = [];
+
+          alert(
+            this.practicalAvailabilityError
+          );
+
+          return;
+        }
+
+        // ------------------------------------------
+        // VALID PRACTICAL
+        // ------------------------------------------
+
+        this.selectedPracticalSlots = [
+          firstSlot,
+          secondSlot
+        ];
+        console.log('Practical availability response:', response);
+console.log('Slots being validated:', firstSlot, secondSlot);
+
+        this.cdr.detectChanges();
+
+      },
+
+      error: (error) => {
+
+        this.checkingPracticalAvailability = false;
+
+        console.error(
+          'Practical availability check failed:',
+          error
+        );
+
+        alert(
+          error?.error?.message ||
+          'Unable to check practical availability.'
+        );
+
+      }
+
+    });
+}
+
+private areConsecutiveSlots(
+  firstSlot: any,
+  secondSlot: any
+): boolean {
+
+  return (
+    Number(secondSlot.id) ===
+    Number(firstSlot.id) + 1
+  );
+}
+
+
+
+isLunchSlot(slot: any): boolean {
+
+  if (
+    !this.lunchStart ||
+    !this.lunchEnd
+  ) {
+    return false;
+  }
+
+  const slotStart =
+    this.convertTimeToMinutes(slot.start_time);
+
+  const slotEnd =
+    this.convertTimeToMinutes(slot.end_time);
+
+  const lunchStart =
+    this.convertTimeToMinutes(this.lunchStart);
+
+  const lunchEnd =
+    this.convertTimeToMinutes(this.lunchEnd);
+
+  return (
+    slotStart < lunchEnd &&
+    slotEnd > lunchStart
+  );
+}
+
+
+
+convertTimeToMinutes(time: string): number {
+
+  if (!time) {
+    return 0;
+  }
+
+  const [hours, minutes] =
+    time.substring(0, 5)
+      .split(':')
+      .map(Number);
+
+  return hours * 60 + minutes;
+}
 
   // ==================================================
   // BATCH SEARCH
@@ -889,56 +1263,56 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   }
 
-}
+  }
 
-removeTemporaryLock(
-  resourceType: string,
-  resourceId: number
-): void {
+  removeTemporaryLock(
+    resourceType: string,
+    resourceId: number
+  ): void {
 
-  if (
-    resourceType === 'room'
-  ) {
+    if (
+      resourceType === 'room'
+    ) {
 
-    this.temporaryRoomIds.delete(
-      Number(resourceId)
-    );
+      this.temporaryRoomIds.delete(
+        Number(resourceId)
+      );
+
+    }
+
+
+    if (
+      resourceType === 'faculty'
+    ) {
+
+      this.temporaryFacultyIds.delete(
+        Number(resourceId)
+      );
+
+    }
+
+
+    if (
+      resourceType === 'batch'
+    ) {
+
+      this.temporaryBatchIds.delete(
+        Number(resourceId)
+      );
+
+    }
 
   }
 
+  clearTemporaryLocks(): void {
 
-  if (
-    resourceType === 'faculty'
-  ) {
+    this.temporaryRoomIds.clear();
 
-    this.temporaryFacultyIds.delete(
-      Number(resourceId)
-    );
+    this.temporaryFacultyIds.clear();
 
-  }
-
-
-  if (
-    resourceType === 'batch'
-  ) {
-
-    this.temporaryBatchIds.delete(
-      Number(resourceId)
-    );
+    this.temporaryBatchIds.clear();
 
   }
-
-}
-
-clearTemporaryLocks(): void {
-
-  this.temporaryRoomIds.clear();
-
-  this.temporaryFacultyIds.clear();
-
-  this.temporaryBatchIds.clear();
-
-}
 
   // ==================================================
   // BATCH LUNCH LOCK
@@ -1149,6 +1523,7 @@ if (alreadySelected) {
 
     }
 
+    this.loadSubjectHours();
 
     this.cdr.detectChanges();
 
@@ -1695,21 +2070,33 @@ if (exists) {
   // ==================================================
 
 onLectureTypeChange(): void {
+  console.log('Lecture type changed:', this.lectureType);
 
-  // Clear room selection because room type may change
+  if (this.selectedRoom) {
+    this.releaseResource('room', Number(this.selectedRoom.id));
+  }
+
   this.selectedRoom = null;
-
   this.roomSearch = '';
-
   this.roomDropdownOpen = false;
 
-  // Refresh rooms
+  this.selectedPracticalSlots = [];
+  this.nextSlot = null;
+
+  if (this.lectureType === 'P' && this.selectedCell?.slot) {
+    this.nextSlot = this.timetableService.getNextSlot(
+      this.selectedCell,
+      this.availableTimeSlots
+    );
+  }
+
   this.filterRooms();
-
-  // Refresh subjects according to L/T/P
   this.filterSubjects();
-}
+  this.loadSubjectHours();
 
+  this.timetableSocketService.activity();
+  this.cdr.detectChanges();
+}
 
   // ==================================================
   // FILTER ROOMS
@@ -2198,7 +2585,7 @@ isRoomLocked(room: any): boolean {
           }
 
 
-          this.filterSubjectsByLectureType();
+          this.filterSubjects();
 
 
           this.cdr.detectChanges();
@@ -2362,28 +2749,28 @@ filterSubjectsByLectureType(): void {
   // SELECT SUBJECT
   // ==================================================
 
-  selectSubject(
-    subject: any
-  ): void {
+  selectSubject(subject: any): void {
 
-    this.selectedSubject =
-      subject;
+  this.selectedSubject = subject;
 
-    this.timetableSocketService.activity();
-    this.isSubjectDropdownOpen =
-      false;
+  this.isSubjectDropdownOpen = false;
 
+  this.subjectSearch = '';
 
-    this.subjectSearch = '';
+  this.timetableSocketService.activity();
 
+  this.filteredSubjects = [
+    ...this.subjects
+  ];
 
-    this.filteredSubjects =
-      [...this.subjects];
+  /*
+   * Load required/remaining L/T/P hours
+   * for all selected batches.
+   */
+  this.loadSubjectHours();
 
-
-    this.cdr.detectChanges();
-
-  }
+  this.cdr.detectChanges();
+}
 
 
   // ==================================================
@@ -2529,12 +2916,6 @@ filterSubjectsByLectureType(): void {
       .subscribe({
 
         next: (response: any) => {
-
-          console.log(
-            'LOCKED RESOURCES:',
-            response
-          );
-
 
           this.lockedRoomIds =
             new Set<number>(
@@ -2701,7 +3082,105 @@ joinTimetableCell(): void {
   // SUBMIT
   // ==================================================
 
-  submit(): void {
+submit(): void {
+  if (this.lectureType === 'P') {
+    this.validatePracticalThenSubmit();
+    return;
+  }
+
+  this.submitValidatedEntry();
+}
+
+private validatePracticalThenSubmit(): void {
+  if (!this.selectedCell?.slot) {
+    alert('Please select a timetable slot.');
+    return;
+  }
+
+  this.nextSlot = this.timetableService.getNextSlot(
+    this.selectedCell,
+    this.availableTimeSlots
+  );
+
+  if (!this.nextSlot) {
+    alert('Practical class requires 2 consecutive timetable slots.');
+    return;
+  }
+
+  if (!this.subjectHours) {
+    this.loadSubjectHours();
+    alert('Please wait while subject hour information is loaded.');
+    return;
+  }
+
+  if (Number(this.subjectHours.P) < this.PRACTICAL_DURATION) {
+    alert('Less than 2 practical hours remain for the selected batch(es).');
+    return;
+  }
+
+  const firstSlot = this.selectedCell.slot;
+  const secondSlot = this.nextSlot;
+
+  if (!this.areConsecutiveSlots(firstSlot, secondSlot)) {
+    alert('Practical class requires 2 consecutive timetable slots.');
+    return;
+  }
+
+  if (
+    this.isPracticalSlotLunchBlocked(firstSlot) ||
+    this.isPracticalSlotLunchBlocked(secondSlot)
+  ) {
+    alert('Practical class cannot overlap lunch.');
+    return;
+  }
+
+  if (!this.selectedRoom || this.selectedTeachers.length === 0 ||
+      this.selectedBatches.length === 0) {
+    alert('Select the batches, subject, room and teacher first.');
+    return;
+  }
+
+  if (this.checkingPracticalAvailability) {
+    return;
+  }
+
+  this.checkingPracticalAvailability = true;
+
+  this.timetableService.checkPracticalAvailability({
+    academicSessionId: Number(this.selectedAcademicSessionId),
+    day: this.selectedCell.day,
+    firstSlotId: Number(firstSlot.id),
+    secondSlotId: Number(secondSlot.id),
+    batchIds: this.selectedBatches.map(batch => Number(batch.id)),
+    teacherIds: this.selectedTeachers.map(teacher => Number(teacher.id)),
+    roomId: Number(this.selectedRoom.id)
+  })
+  .pipe(takeUntil(this.destroy$))
+  .subscribe({
+    next: (response: any) => {
+      this.checkingPracticalAvailability = false;
+
+      if (!response?.available) {
+        this.selectedPracticalSlots = [];
+        alert(response?.message || 'The two consecutive slots are not available.');
+        return;
+      }
+
+      this.selectedPracticalSlots = [firstSlot, secondSlot];
+
+      console.log('Validated practical slots:', this.selectedPracticalSlots);
+
+      this.submitValidatedEntry();
+    },
+    error: (error) => {
+      this.checkingPracticalAvailability = false;
+      console.error('Practical availability check failed:', error);
+      alert(error?.error?.message || 'Unable to check practical availability.');
+    }
+  });
+}
+
+  submitValidatedEntry(): void {
 
     // --------------------------------------------------
     // SESSION
@@ -2752,6 +3231,62 @@ joinTimetableCell(): void {
       return;
 
     }
+
+    // --------------------------------------------------
+// L/T/P HOURS
+// --------------------------------------------------
+
+if (
+  !this.subjectHours
+) {
+
+  this.loadSubjectHours();
+
+  alert(
+    'Please wait while subject hour information is loaded.'
+  );
+
+  return;
+
+}
+
+const requiredHours =
+  this.lectureType === 'P'
+    ? 2
+    : 1;
+
+const remainingHours =
+  this.subjectHours[
+    this.lectureType as 'L' | 'T' | 'P'
+  ];
+
+if (
+  remainingHours < requiredHours
+) {
+
+  alert(
+    `Cannot schedule ${this.lectureType}. ` +
+    `Only ${remainingHours} hour(s) remaining ` +
+    `for the selected batch(es).`
+  );
+
+  return;
+
+}
+if (this.lectureType === 'P') {
+
+  if (
+    this.selectedPracticalSlots.length !== 2
+  ) {
+
+    alert(
+      'Practical class requires 2 consecutive timetable slots.'
+    );
+
+    return;
+  }
+
+}
 
 
     // --------------------------------------------------
@@ -3003,7 +3538,12 @@ joinTimetableCell(): void {
       totalStudents:
         Number(
           this.totalStudents
-        )
+        ),
+
+      practicalSlots:
+    this.lectureType === 'P'
+      ? this.selectedPracticalSlots
+      : []
 
     };
 

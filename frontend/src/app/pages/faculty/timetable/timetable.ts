@@ -8,7 +8,9 @@ import { TimetableConfigService } from '../../../services/timetable-config';
 import { TimetableService } from '../../../services/timetable';
 import { ProgramService } from '../../../services/program';
 import { DepartmentService } from '../../../services/department';
-interface TimeSlot {
+import { finalize } from 'rxjs';
+
+export interface TimeSlot {
 
   id: number;
   start: string;
@@ -42,6 +44,11 @@ interface TimetableCell {
 export class Timetable implements OnInit {
 
 
+  timetableStatus: 'DRAFT' | 'FINALIZED' = 'DRAFT';
+
+  isFinalized = false;
+
+  finalizeLoading = false;
   // ==========================================
   // TEACHER
   // ==========================================
@@ -182,6 +189,9 @@ departmentId: number | null = null;
 
   selectedCell: TimetableCell | null = null;
 
+  showValidationModal = false;
+  validationErrors: any[] = [];
+  validationMessage = '';
 
   constructor(
 
@@ -526,6 +536,312 @@ loadSelection(): void {
       });
   }
 
+loadTimetableStatus(): void {
+
+  if (
+    !this.academicSessionId ||
+    !this.programId ||
+    !this.departmentId ||
+    !this.semesterId
+  ) {
+    return;
+  }
+
+  this.timetableService.getTimetableStatus(
+    this.academicSessionId,
+    this.programId,
+    this.departmentId,
+    this.semesterId
+  ).subscribe({
+    next: (response) => {
+
+      this.timetableStatus = response.status;
+      this.isFinalized = response.status === 'FINALIZED';
+
+    },
+    error: (error) => {
+      console.error(
+        'Failed to load timetable status',
+        error
+      );
+    }
+  });
+}
+
+private buildTimetablePayload(
+  data: any,
+  slot: TimeSlot,
+  practicalSessionId?: string
+): any {
+
+  return {
+
+    academicSessionId:
+      Number(this.academicSessionId),
+
+    programId:
+      Number(data.programId),
+
+    departmentId:
+      Number(data.departmentId),
+
+    semesterId:
+      Number(data.semesterId),
+
+    day:
+      this.selectedCell?.day,
+
+    slotId:
+      Number(slot.id),
+
+    startTime:
+      slot.start,
+
+    endTime:
+      slot.end,
+
+    subjectId:
+      Number(data.subjectId),
+
+    lectureType:
+      data.lectureType,
+
+    roomId:
+      Number(data.roomId),
+
+    batchIds:
+      data.batchIds || [],
+
+    teacherIds:
+      data.teacherIds || [],
+
+    totalStudents:
+      Number(data.totalStudents || 0),
+
+    ...(practicalSessionId
+      ? { practicalSessionId }
+      : {})
+
+  };
+}
+
+getNextSlot(selectedCell: any): TimeSlot | null {
+  return this.timetableService.getNextSlot(
+    selectedCell,
+    this.timeSlots
+  );
+}
+
+
+finalizeTimetable(): void {
+  if (this.isFinalized || this.finalizeLoading) {
+    return;
+  }
+
+  if (
+    this.academicSessionId == null ||
+    this.programId == null ||
+    this.departmentId == null ||
+    this.semesterId == null
+  ) {
+    alert(
+      'Please select an academic session, program, department and semester.'
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    'Are you sure you want to finalize this timetable? ' +
+    'The system will check all batches and subjects for L/T/P completion.'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  this.finalizeLoading = true;
+  this.cdr.detectChanges();
+
+  this.timetableService.finalizeTimetable({
+    academicSessionId: this.academicSessionId,
+    programId: this.programId,
+    departmentId: this.departmentId,
+    semesterId: this.semesterId
+  }).subscribe({
+    next: (response: any) => {
+      if (response?.success && response?.finalized) {
+        this.isFinalized = true;
+        this.timetableStatus = 'FINALIZED';
+        alert('Timetable finalized successfully.');
+      } else {
+        this.validationMessage =
+          response?.message || 'Timetable validation failed.';
+
+        this.validationErrors = Array.isArray(response?.errors)
+          ? response.errors
+          : [];
+
+        if (this.validationErrors.length === 0) {
+          this.validationErrors = [{
+            type: 'GENERAL',
+            message: this.validationMessage
+          }];
+        }
+
+        this.showValidationModal = true;
+      }
+
+      this.finalizeLoading = false;
+      this.cdr.detectChanges();
+    },
+
+    error: (error: any) => {
+      const response = error?.error;
+
+      this.validationMessage =
+        response?.message || 'Unable to finalize timetable.';
+
+      this.validationErrors = Array.isArray(response?.errors)
+        ? response.errors
+        : [];
+
+      if (this.validationErrors.length === 0) {
+        this.validationErrors = [{
+          type: 'GENERAL',
+          message: this.validationMessage
+        }];
+      }
+
+      this.showValidationModal = true;
+      this.finalizeLoading = false;
+
+      console.log('Validation modal state:', {
+        showValidationModal: this.showValidationModal,
+        errors: this.validationErrors.length
+      });
+
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+
+
+closeValidationModal(): void {
+  this.showValidationModal = false;
+}
+
+getValidationIssueCount(error: any): number {
+  const missing = error?.missing ?? {};
+  const excess = error?.excess ?? {};
+
+  return ['L', 'T', 'P'].reduce((count, type) => {
+    return count
+      + (Number(missing[type]) > 0 ? 1 : 0)
+      + (Number(excess[type]) > 0 ? 1 : 0);
+  }, 0);
+}
+
+showTimetableValidationErrors(response: any): void {
+  const errors = Array.isArray(response)
+    ? response
+    : Array.isArray(response?.errors)
+      ? response.errors
+      : [];
+
+  if (errors.length === 0) {
+    console.error('Timetable validation failed, but no validation errors were returned:', response);
+    alert(response?.message || 'Unable to finalize timetable. Check the browser console and backend response.');
+    return;
+  }
+
+  const messages = errors.map((error: any) => {
+    // Handle general validation errors, such as NO_BATCHES or NO_SUBJECTS.
+    if (error.type) {
+      return error.message || error.type;
+    }
+
+    const missing = error.missing ?? {};
+    const excess = error.excess ?? {};
+    const required = error.required ?? {};
+    const scheduled = error.scheduled ?? {};
+
+    const details: string[] = [];
+
+    for (const type of ['L', 'T', 'P']) {
+      if ((missing[type] ?? 0) > 0) {
+        details.push(`Missing ${type}: ${missing[type]}`);
+      }
+
+      if ((excess[type] ?? 0) > 0) {
+        details.push(`Excess ${type}: ${excess[type]}`);
+      }
+    }
+
+    return [
+      `${error.batchCode || 'Batch'} — ${error.courseCode || error.subjectName || 'Subject'}`,
+      ...details,
+      `Required: L ${required.L ?? 0}, T ${required.T ?? 0}, P ${required.P ?? 0}`,
+      `Scheduled: L ${scheduled.L ?? 0}, T ${scheduled.T ?? 0}, P ${scheduled.P ?? 0}`
+    ].join('\n');
+  });
+
+  alert(
+    `${response?.message || 'Timetable validation failed.'}\n\n` +
+    messages.join('\n\n')
+  );
+}
+
+unfinalizeTimetable(): void {
+
+  const confirmed = window.confirm(
+    'Move this timetable back to DRAFT so it can be modified?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  if (
+  this.academicSessionId == null ||
+  this.programId == null ||
+  this.departmentId == null ||
+  this.semesterId == null
+) {
+  alert('Please select an academic session, program, department and semester.');
+  return;
+}
+
+  this.timetableService.unfinalizeTimetable({
+    academicSessionId: this.academicSessionId,
+    programId: this.programId,
+    departmentId: this.departmentId,
+    semesterId: this.semesterId
+  }).subscribe({
+
+    next: () => {
+
+      this.isFinalized = false;
+      this.timetableStatus = 'DRAFT';
+
+      alert(
+        'Timetable is now in DRAFT status.'
+      );
+
+    },
+
+    error: (error) => {
+
+      alert(
+        error?.error?.message ||
+        'Unable to unfinalize timetable.'
+          );
+
+        }
+
+      });
+  }
+
   normalizeProgram(value: string): string {
 
     return String(value || '')
@@ -801,21 +1117,15 @@ loadSelection(): void {
     cell: TimetableCell
   ): void {
 
-    // View-only teacher
-
     if (!this.canEdit) {
 
       return;
 
     }
 
-
-    this.selectedCell =
-      cell;
-
-
-    this.showEditor =
-      true;
+    this.selectedCell = cell;
+    this.selectedCell = cell;
+    this.showEditor = true;
 
   }
 
@@ -839,12 +1149,12 @@ loadSelection(): void {
   // SAVE CELL
   // ==========================================
 
+
   saveCell(data: any): void {
 
   if (!this.selectedCell) {
     return;
   }
-
 
   if (!this.academicSessionId) {
 
@@ -853,166 +1163,124 @@ loadSelection(): void {
     );
 
     return;
-
   }
 
+  // ==================================================
+  // PRACTICAL
+  // ==================================================
 
-  const payload = {
+  if (data.lectureType === 'P') {
 
-    academicSessionId:
-      Number(
-        this.academicSessionId
-      ),
+    const firstSlot =
+      data.practicalSlots?.[0];
 
-    programId:
-      Number(
-        data.programId
-      ),
+    const secondSlot =
+      data.practicalSlots?.[1];
 
-    departmentId:
-      Number(
-        data.departmentId
-      ),
+    if (!firstSlot || !secondSlot) {
 
-    semesterId:
-      Number(
-        data.semesterId
-      ),
+      alert(
+        'Practical class requires two consecutive slots.'
+      );
 
-    day:
-      this.selectedCell.day,
+      return;
+    }
 
-    slotId:
-      Number(
-        this.selectedCell.slot.id
-      ),
+    const practicalSessionId =
+      crypto.randomUUID();
 
-    startTime:
-      this.selectedCell.slot.start,
+    const firstPayload =
+      this.buildTimetablePayload(
+        data,
+        firstSlot,
+        practicalSessionId
+      );
 
-    endTime:
-      this.selectedCell.slot.end,
+    const secondPayload =
+      this.buildTimetablePayload(
+        data,
+        secondSlot,
+        practicalSessionId
+      );
 
-    subjectId:
-      Number(
-        data.subjectId
-      ),
+    this.timetableService
+      .createTimetableEntry(firstPayload)
+      .subscribe({
 
-    lectureType:
-      data.lectureType,
+        next: () => {
 
-    roomId:
-      Number(
-        data.roomId
-      ),
+  this.timetableService
+            .createTimetableEntry(secondPayload)
+    .subscribe({
 
-    batchIds:
-      data.batchIds || [],
+              next: () => {
 
-    teacherIds:
-      data.teacherIds || [],
+                this.closeEditor();
 
-    totalStudents:
-      Number(
-        data.totalStudents || 0
-      )
+                this.loadExistingTimetable();
 
-  };
+                alert(
+                  '2-hour practical class added successfully.'
+                );
 
+              },
 
-  console.log(
-    'CREATE TIMETABLE ENTRY:',
-    payload
-  );
+              error: (error) => {
 
+                console.error(
+                  'Failed to save second practical slot:',
+                  error
+                );
+
+                alert(
+                  error?.error?.message ||
+                  'Failed to save the second practical slot.'
+                );
+
+              }
+
+            });
+
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Failed to save first practical slot:',
+            error
+          );
+
+          alert(
+            error?.error?.message ||
+            'Failed to save practical class.'
+          );
+
+        }
+
+      });
+
+    return;
+  }
+
+  // ==================================================
+  // L / T
+  // ==================================================
+
+  const payload =
+    this.buildTimetablePayload(
+      data,
+      this.selectedCell.slot
+    );
 
   this.timetableService
     .createTimetableEntry(payload)
     .subscribe({
 
-      next: (response: any) => {
+      next: () => {
 
-        /*
-         * The backend may return the newly-created
-         * database record.
-         */
-        const createdEntry =
-          response?.entry ||
-          response?.data ||
-          response?.timetableEntry ||
-          null;
-
-
-        /*
-         * Add the new entry to the existing cell.
-         *
-         * NEVER replace cell.data here.
-         */
-        this.selectedCell!.data.push({
-
-          id:
-            createdEntry?.id ??
-            response?.id ??
-            null,
-
-          lectureType:
-            data.lectureType,
-
-          batches:
-            data.batches || [],
-
-          batchIds:
-            data.batchIds || [],
-
-          subjectId:
-            data.subjectId,
-
-          subjectCode:
-            data.subjectCode,
-
-          subjectName:
-            data.subjectName,
-
-          room:
-            data.room,
-
-          roomId:
-            data.roomId,
-
-          roomName:
-            data.roomName,
-
-          roomType:
-            data.roomType,
-
-          roomCapacity:
-            data.roomCapacity,
-
-          teachers:
-            data.teachers || [],
-
-          teacherIds:
-            data.teacherIds || [],
-
-          totalStudents:
-            Number(
-              data.totalStudents || 0
-            )
-
-        });
-
-
-        /*
-         * Close only the editor.
-         *
-         * The cell itself remains populated with all
-         * previous entries plus the new one.
-         */
         this.closeEditor();
 
-
-        this.cdr.detectChanges();
-
+        this.loadExistingTimetable();
 
         alert(
           'Class added to timetable successfully.'
@@ -1020,14 +1288,12 @@ loadSelection(): void {
 
       },
 
-
       error: (error) => {
 
         console.error(
           'Failed to save timetable:',
           error
         );
-
 
         alert(
           error?.error?.message ||
@@ -1039,7 +1305,6 @@ loadSelection(): void {
     });
 
 }
-
 
   // ==========================================
   // GO BACK

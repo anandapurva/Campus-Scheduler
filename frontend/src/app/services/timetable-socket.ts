@@ -1,26 +1,17 @@
-import {
-  Injectable,
-  NgZone,
-  OnDestroy
-} from '@angular/core';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
 
-import {
-  io,
-  Socket
-} from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
 @Injectable({
   providedIn: 'root'
 })
-export class TimetableSocketService
-  implements OnDestroy {
+export class TimetableSocketService implements OnDestroy {
 
-  private socket: Socket;
+    private socket: Socket;
+    constructor(
+      private zone: NgZone,
 
-
-  constructor(
-    private zone: NgZone
-  ) {
+    ) {
 
     this.socket =
       io(
@@ -269,6 +260,10 @@ onResourceReservationRejected(
     }
   );
 
+}
+
+getSocketId(): string | undefined {
+  return this.socket.id;
 }
 
 

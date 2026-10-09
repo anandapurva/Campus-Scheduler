@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TimetableConfigService } from './timetable-config';
-
+import { TimeSlot } from '../pages/faculty/timetable/timetable';
 @Injectable({
   providedIn: 'root'
 })
@@ -79,57 +79,156 @@ export class TimetableService {
   // GET TIMETABLE
   // ==================================================
 
-getTimetable(
+  getTimetable(
+    academicSessionId: number,
+    programId: number,
+    departmentId: number,
+    semesterId: number
+  ): Observable<any> {
+
+    return this.http.get(
+      `${this.apiUrl}`,
+      {
+        params: {
+          academicSessionId:
+            academicSessionId.toString(),
+
+          programId:
+            programId.toString(),
+
+          departmentId:
+            departmentId.toString(),
+
+          semesterId:
+            semesterId.toString()
+        }
+      }
+    );
+
+  }
+
+  getLockedResources(
+    academicSessionId: number,
+    day: string,
+    slotId: number,
+    excludeEntryId?: number
+  ) {
+
+    let params: any = {
+      academicSessionId,
+      day,
+      slotId
+    };
+
+    if (excludeEntryId) {
+      params.excludeEntryId = excludeEntryId;
+    }
+
+    return this.http.get<any>(
+      `${this.apiUrl}/locked-resources`,
+      {
+        params
+      }
+    );
+  }
+
+  getTimetableStatus(
   academicSessionId: number,
   programId: number,
   departmentId: number,
   semesterId: number
-): Observable<any> {
-
-  return this.http.get(
-    `${this.apiUrl}`,
+) {
+  return this.http.get<any>(
+    `${this.apiUrl}/status`,
     {
       params: {
-        academicSessionId:
-          academicSessionId.toString(),
-
-        programId:
-          programId.toString(),
-
-        departmentId:
-          departmentId.toString(),
-
-        semesterId:
-          semesterId.toString()
+        academicSessionId,
+        programId,
+        departmentId,
+        semesterId
       }
     }
   );
-
 }
 
-getLockedResources(
-  academicSessionId: number,
-  day: string,
-  slotId: number,
-  excludeEntryId?: number
+finalizeTimetable(data: {
+  academicSessionId: number;
+  programId: number;
+  departmentId: number;
+  semesterId: number;
+  userId?: number;
+}) {
+  return this.http.post<any>(
+    `${this.apiUrl}/finalize`,
+    data
+  );
+}
+
+unfinalizeTimetable(data: {
+  academicSessionId: number;
+  programId: number;
+  departmentId: number;
+  semesterId: number;
+}) {
+  return this.http.post<any>(
+    `${this.apiUrl}/unfinalize`,
+    data
+  );
+}
+
+getSubjectHours(
+  batchId: number,
+  subjectId: number,
+  academicSessionId: number
 ) {
-
-  let params: any = {
-    academicSessionId,
-    day,
-    slotId
-  };
-
-  if (excludeEntryId) {
-    params.excludeEntryId = excludeEntryId;
-  }
-
   return this.http.get<any>(
-    `${this.apiUrl}/locked-resources`,
+    `${this.apiUrl}/hours`,
     {
-      params
+      params: {
+        batchId,
+        subjectId,
+        academicSessionId
+      }
     }
   );
 }
 
+checkPracticalAvailability(payload: {
+  academicSessionId: number;
+  day: string;
+  firstSlotId: number;
+  secondSlotId: number;
+  batchIds: number[];
+  teacherIds: number[];
+  roomId: number;
+}) {
+  return this.http.post<any>(
+    `${this.apiUrl}/practical-availability`,
+    payload
+  );
+}
+
+
+getNextSlot(
+  selectedCell: any,
+  timeSlots: TimeSlot[]
+): TimeSlot | null {
+
+  if (!selectedCell?.slot || !timeSlots?.length) {
+    return null;
+  }
+
+  const currentIndex = timeSlots.findIndex(
+    slot => Number(slot.id) === Number(selectedCell.slot.id)
+  );
+
+  if (
+    currentIndex === -1 ||
+    currentIndex >= timeSlots.length - 1
+  ) {
+    return null;
+  }
+
+  return timeSlots[currentIndex + 1];
+}
 }

@@ -16,6 +16,10 @@ export interface Batch {
   is_active?: number;
   created_at?: string;
   updated_at?: string;
+    // Optional lunch configuration
+  lunchStart?: string | null;
+  lunchEnd?: string | null;
+
 }
 
 export interface BatchResponse {

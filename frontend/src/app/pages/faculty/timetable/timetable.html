@@ -350,70 +350,244 @@
        FOOTER / LEGEND
        ===================================================== -->
 
-  <div class="timetable-footer">
+ 
+<div class="timetable-footer">
 
-
+  <div class="timetable-footer-info">
     <span>
       <strong>L</strong> = Lecture
     </span>
-
 
     <span>
       <strong>T</strong> = Tutorial
     </span>
 
-
     <span>
       <strong>P</strong> = Practical
     </span>
-
 
     <span>
       Faculty: {{ teacherName }}
     </span>
 
-
     <span
       [class.edit-status]="canEdit"
       [class.view-status]="!canEdit"
     >
-
       {{ canEdit ? 'Edit Access' : 'View Only' }}
-
     </span>
-
-
-     <!-- LUNCH INFORMATION -->
-
-    <span
-      *ngIf="lunchStart && lunchEnd"
-      class="lunch-info"
-    >
-
-      Lunch:
-      {{ lunchStart }}
-      -
-      {{ lunchEnd }}
-
-    </span>
-
-
   </div>
+
+  <div class="timetable-final">
+    <button
+      *ngIf="!isFinalized"
+      type="button"
+      class="btn-finalize"
+      [disabled]="finalizeLoading"
+      (click)="finalizeTimetable()"
+    >
+      <span class="btn-icon" aria-hidden="true">🔒</span>
+      <span>
+        {{ finalizeLoading ? 'Validating timetable...' : 'Finalize Timetable' }}
+      </span>
+      <span class="btn-arrow" aria-hidden="true">→</span>
+    </button>
+
+    <button
+      *ngIf="isFinalized"
+      type="button"
+      class="btn-unfinalize"
+      (click)="unfinalizeTimetable()"
+    >
+      <span aria-hidden="true">🔓</span>
+      Unfinalize Timetable
+    </button>
+  </div>
+
+</div>
+
+
+
+<!-- Timetable Validation Modal -->
+<div
+  class="validation-modal-backdrop"
+  *ngIf="showValidationModal"
+  (click)="closeValidationModal()"
+>
+  <section
+    class="validation-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="validation-modal-title"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <header class="validation-modal-header">
+      <div class="validation-header-icon">
+        <span>!</span>
+      </div>
+
+      <div class="validation-header-text">
+        <h2 id="validation-modal-title">
+          Timetable validation failed
+        </h2>
+        <p>
+          Resolve the issues below before finalizing this timetable.
+        </p>
+      </div>
+    </header>
+
+    <!-- Summary -->
+    <div class="validation-summary">
+      <div class="validation-summary-icon">
+        &#9888;
+      </div>
+
+      <div>
+        <strong>
+          {{ validationErrors.length }}
+          {{ validationErrors.length === 1 ? 'issue' : 'issues' }}
+          found
+        </strong>
+        <p>{{ validationMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Error List -->
+    <div class="validation-modal-body">
+      <article
+        class="validation-error-card"
+        *ngFor="let error of validationErrors; let i = index"
+      >
+        <!-- Errors such as NO_BATCHES -->
+        <ng-container *ngIf="error.type; else subjectError">
+          <div class="validation-error-title">
+            <span class="validation-error-number">
+              {{ i + 1 }}
+            </span>
+
+            <div>
+<h3>
+  {{
+    error.type === 'NO_BATCHES'
+      ? 'No active batches found'
+      : error.type === 'GENERAL'
+        ? 'Unable to finalize timetable'
+        : 'Validation issue'
+  }}
+</h3>
+              <p>{{ error.message }}</p>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Subject hour validation -->
+        <ng-template #subjectError>
+          <div class="validation-error-title">
+            <span class="validation-error-number">
+              {{ i + 1 }}
+            </span>
+
+            <div class="validation-subject-heading">
+              <h3>
+                {{ error.batchCode || ('Batch ' + error.batchId) }}
+              </h3>
+
+              <p class="validation-course-name">
+                {{ error.subjectName || 'Subject' }}
+              </p>
+
+              <span class="validation-course-code">
+                {{ error.courseCode }}
+              </span>
+            </div>
+          </div>
+
+          <div class="validation-hours">
+            <div
+              class="validation-hour-row"
+              *ngFor="let type of ['L', 'T', 'P']"
+            >
+              <div class="validation-hour-label">
+                <span class="validation-type-badge">
+                  {{ type }}
+                </span>
+
+                <span>
+                  {{
+                    type === 'L'
+                      ? 'Lectures'
+                      : type === 'T'
+                        ? 'Tutorials'
+                        : 'Practicals'
+                  }}
+                </span>
+              </div>
+
+              <div class="validation-hour-details">
+                <span class="validation-hour-count">
+                  {{ error.scheduled?.[type] ?? 0 }}
+                  /
+                  {{ error.required?.[type] ?? 0 }}
+                </span>
+
+                <span
+                  *ngIf="(error.missing?.[type] ?? 0) > 0"
+                  class="validation-status missing"
+                >
+                  Missing {{ error.missing[type] }}
+                </span>
+
+                <span
+                  *ngIf="(error.excess?.[type] ?? 0) > 0"
+                  class="validation-status excess"
+                >
+                  Excess {{ error.excess[type] }}
+                </span>
+
+                <span
+                  *ngIf="
+                    (error.missing?.[type] ?? 0) === 0 &&
+                    (error.excess?.[type] ?? 0) === 0
+                  "
+                  class="validation-status complete"
+                >
+                  Complete
+                </span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+
+    <!-- Footer -->
+    <footer class="validation-modal-footer">
+      <p>
+        <span class="validation-footer-dot"></span>
+        Timetable status remains DRAFT until validation passes.
+      </p>
+
+      <button
+        type="button"
+        class="validation-review-btn"
+        (click)="closeValidationModal()"
+      >
+        <span aria-hidden="true">&#8592;</span>
+        Close and review timetable
+      </button>
+    </footer>
+  </section>
+</div>
 
 
   <!-- =====================================================
        CLASS EDITOR MODAL
        ===================================================== -->
 
-  <div
-    class="modal-backdrop"
-    *ngIf="showEditor"
-  >
-
+  <div class="modal-backdrop" *ngIf="showEditor">
 
     <div class="editor-modal">
-
-
 
       <!-- =================================================
            MODAL HEADER
@@ -466,8 +640,10 @@
            ================================================= -->
 
       <app-class-editor
-        *ngIf="academicSessionId !== null"
+        *ngIf="showEditor && academicSessionId != null"
+        [availableTimeSlots]="timeSlots"
         [selectedCell]="selectedCell"
+        [nextSlot]="getNextSlot(selectedCell)"
         [program]="program"
         [semester]="semester"
         [academicSessionStartYear]="academicSessionStartYear"
