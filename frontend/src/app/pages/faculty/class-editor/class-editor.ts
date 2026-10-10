@@ -52,6 +52,9 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
   nextSlot: any = null;
 
   @Input()
+  editingEntry: any = null;
+
+  @Input()
   program = '';
 
   @Input()
@@ -68,7 +71,6 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   @Input() availableTimeSlots: TimeSlot[] = [];
 
-
   // ==================================================
   // OUTPUTS
   // ==================================================
@@ -78,6 +80,9 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
 
   @Output()
   cancel = new EventEmitter<void>();
+
+  @Output()
+  delete = new EventEmitter<number>();
 
 
   // ==================================================
@@ -419,6 +424,19 @@ practicalAvailabilityError = '';
       this.joinTimetableCell();
 
     }
+if (changes['editingEntry']) {
+
+  if (this.editingEntry) {
+
+    this.loadEditingEntry();
+
+  } else {
+
+    this.resetEditor();
+
+  }
+
+}
 
   }
 
@@ -553,7 +571,7 @@ practicalAvailabilityError = '';
 
           this.filteredBatches =
             [...this.eligibleBatches];
-
+          this.loadEditingEntry();
 
           this.loadingBatches = false;
 
@@ -736,56 +754,60 @@ getRemainingHoursLabel(
 }
 
 
-isPracticalSlotLunchBlocked(
-  slot: any
-): boolean {
-
+isPracticalSlotLunchBlocked(slot: any): boolean {
   if (!slot) {
     return true;
   }
 
-  /*
-   * Check every selected batch.
-   *
-   * Practical class is allowed only when
-   * BOTH slots are available for ALL batches.
-   */
+  const slotStart = this.convertTimeToMinutes(
+    slot.start ?? slot.start_time ?? slot.startTime
+  );
 
-  for (
-    const batch of this.selectedBatches
-  ) {
+  const slotEnd = this.convertTimeToMinutes(
+    slot.end ?? slot.end_time ?? slot.endTime
+  );
 
-    if (!batch?.lunchStart || !batch?.lunchEnd) {
-      continue;
+  if (slotStart === null || slotEnd === null || slotEnd <= slotStart) {
+    console.error('Invalid timetable slot times:', slot);
+    return true;
+  }
+
+  if (!this.selectedBatches?.length) {
+    return true;
+  }
+
+  for (const batch of this.selectedBatches) {
+    const lunchStartValue = batch?.lunchStart;
+    const lunchEndValue = batch?.lunchEnd;
+
+    // Do not silently allow a practical if lunch configuration
+    // hasn't been loaded for the selected batch.
+    if (!lunchStartValue || !lunchEndValue) {
+      console.error('Lunch configuration missing for batch:', batch);
+      return true;
     }
 
-    const slotStart =
-      this.convertTimeToMinutes(
-        slot.start
-        || slot.start_time
-      );
+    const lunchStart = this.convertTimeToMinutes(lunchStartValue);
+    const lunchEnd = this.convertTimeToMinutes(lunchEndValue);
 
-    const slotEnd =
-      this.convertTimeToMinutes(
-        slot.end
-        || slot.end_time
-      );
+    if (
+      lunchStart === null ||
+      lunchEnd === null ||
+      lunchEnd <= lunchStart
+    ) {
+      console.error('Invalid lunch configuration for batch:', batch);
+      return true;
+    }
 
-    const lunchStart =
-      this.convertTimeToMinutes(
-        batch.lunchStart
-      );
+    if (slotStart < lunchEnd && slotEnd > lunchStart) {
+      console.warn('Practical slot overlaps lunch:', {
+        batch: batch.batch_code,
+        slotStart: slot.start ?? slot.start_time ?? slot.startTime,
+        slotEnd: slot.end ?? slot.end_time ?? slot.endTime,
+        lunchStart: lunchStartValue,
+        lunchEnd: lunchEndValue
+      });
 
-    const lunchEnd =
-      this.convertTimeToMinutes(
-        batch.lunchEnd
-      );
-
-    const overlapsLunch =
-      slotStart < lunchEnd &&
-      slotEnd > lunchStart;
-
-    if (overlapsLunch) {
       return true;
     }
   }
@@ -794,11 +816,6 @@ isPracticalSlotLunchBlocked(
 }
 
 selectPracticalClass(): void {
-   console.log('selectPracticalClass() called');
-  console.log('Selected cell:', this.selectedCell);
-console.log('First slot:', this.selectedCell?.slot);
-console.log('Next slot:', this.nextSlot);
-console.log('Selected practical slots:', this.selectedPracticalSlots);
 
   if (this.lectureType !== 'P') {
     return;
@@ -1682,6 +1699,8 @@ if (alreadySelected) {
           this.filteredTeachers =
             [...this.teachers];
 
+          this.loadEditingEntry();
+
 
           this.cdr.detectChanges();
 
@@ -2037,7 +2056,7 @@ if (exists) {
 
           this.filterRoomsBySearch();
 
-
+          this.loadEditingEntry();
           this.cdr.detectChanges();
 
         },
@@ -2730,7 +2749,7 @@ filterSubjectsByLectureType(): void {
        * subjectType = "L"
        *  -> visible only for L
        */
-
+        this.loadEditingEntry();
       const types =
         subjectType
           .split(',')
@@ -2908,7 +2927,10 @@ filterSubjectsByLectureType(): void {
           this.selectedAcademicSessionId
         ),
         day,
-        slotId
+        slotId,
+        this.editingEntry?.id
+      ? Number(this.editingEntry.id)
+      : undefined
       )
       .pipe(
         takeUntil(this.destroy$)
@@ -3018,6 +3040,137 @@ filterSubjectsByLectureType(): void {
 
   }
 
+  // ==================================================
+// LOAD ENTRY FOR EDITING
+// ==================================================
+
+private loadEditingEntry(): void {
+
+  if (!this.editingEntry) {
+    return;
+  }
+
+  const entry = this.editingEntry;
+
+  console.log(
+    'Loading timetable entry for editing:',
+    entry
+  );
+
+  // ------------------------------------------
+  // LECTURE TYPE
+  // ------------------------------------------
+
+  this.lectureType =
+    entry.lectureType ??
+    entry.lecture_type ??
+    'L';
+
+
+  // ------------------------------------------
+  // SUBJECT
+  // ------------------------------------------
+
+  const subjectId =
+    Number(
+      entry.subjectId ??
+      entry.subject_id
+    );
+
+  this.selectedSubject =
+    this.subjects.find(
+      subject =>
+        Number(subject.id) === subjectId
+    ) ?? null;
+
+
+  // ------------------------------------------
+  // ROOM
+  // ------------------------------------------
+
+  const roomId =
+    Number(
+      entry.roomId ??
+      entry.room_id
+    );
+
+  this.selectedRoom =
+    this.rooms.find(
+      room =>
+        Number(room.id) === roomId
+    ) ?? null;
+
+
+  // ------------------------------------------
+  // TEACHERS
+  // ------------------------------------------
+
+  const teacherIds =
+    Array.isArray(entry.teachers)
+      ? entry.teachers.map(
+          (teacher: any) =>
+            Number(
+              teacher.id ??
+              teacher.faculty_id
+            )
+        )
+      : Array.isArray(entry.teacherIds)
+        ? entry.teacherIds.map(
+            (id: any) => Number(id)
+          )
+        : [];
+
+  this.selectedTeachers =
+    this.teachers.filter(
+      teacher =>
+        teacherIds.includes(
+          Number(teacher.id)
+        )
+    );
+
+
+  // ------------------------------------------
+  // BATCHES
+  // ------------------------------------------
+
+  const batchIds =
+    Array.isArray(entry.batches)
+      ? entry.batches.map(
+          (batch: any) =>
+            Number(batch.id)
+        )
+      : Array.isArray(entry.batchIds)
+        ? entry.batchIds.map(
+            (id: any) => Number(id)
+          )
+        : [];
+
+  this.selectedBatches =
+    this.eligibleBatches.filter(
+      batch =>
+        batchIds.includes(
+          Number(batch.id)
+        )
+    );
+
+
+  // ------------------------------------------
+  // STUDENTS
+  // ------------------------------------------
+
+  this.totalStudents =
+    Number(
+      entry.totalStudents ??
+      entry.total_students ??
+      this.selectedBatches.length * 30
+    );
+
+
+  this.filterRooms();
+
+  this.cdr.detectChanges();
+
+}
 
   // ==================================================
   // JOIN TIMETABLE CELL
@@ -3077,6 +3230,21 @@ joinTimetableCell(): void {
 
 }
 
+  resetEditor(): void {
+
+  this.lectureType = 'L';
+
+  this.selectedSubject = null;
+
+  this.selectedRoom = null;
+
+  this.selectedBatches = [];
+
+  this.selectedTeachers = [];
+
+  this.totalStudents = 0;
+
+}
 
   // ==================================================
   // SUBMIT
@@ -3418,7 +3586,14 @@ if (this.lectureType === 'P') {
 
     const data = {
 
-      // Academic session
+      // Existing entry ID.
+      // null means CREATE.
+      // number means UPDATE.
+      id:
+        this.editingEntry?.id
+          ? Number(this.editingEntry.id)
+          : null,
+          // Academic session
       academicSessionId:
         Number(
           this.selectedAcademicSessionId
@@ -3571,6 +3746,33 @@ close(): void {
 
 }
 
+// ==================================================
+// DELETE
+// ==================================================
+
+deleteEntry(): void {
+
+  if (!this.editingEntry?.id) {
+    alert('No timetable entry selected for deletion.');
+    return;
+  }
+
+  const entryId = Number(this.editingEntry.id);
+
+  const confirmed = confirm(
+    'Are you sure you want to delete this class?'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  // Release temporary socket reservations first
+  this.releaseAllTemporaryResources();
+
+  // Tell parent to delete from database
+  this.delete.emit(entryId);
+}
 private releaseAllTemporaryResources(): void {
 
   // ------------------------------------------
@@ -3632,9 +3834,7 @@ private releaseAllTemporaryResources(): void {
   // ==================================================
 ngOnDestroy(): void {
 
-  if (
-    this.heartbeatTimer
-  ) {
+  if (this.heartbeatTimer) {
 
     clearInterval(
       this.heartbeatTimer
@@ -3642,6 +3842,7 @@ ngOnDestroy(): void {
 
   }
 
+  this.releaseAllTemporaryResources();
 
   this.destroy$.next();
 
