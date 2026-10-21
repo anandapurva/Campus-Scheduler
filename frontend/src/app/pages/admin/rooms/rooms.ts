@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RoomService } from '../../../services/room';
 import { finalize } from 'rxjs';
-
+import { CsvTemplateService } from '../../../services/csv-template';
 @Component({
   selector: 'app-rooms',
   standalone: true,
@@ -70,6 +70,23 @@ export class Rooms implements OnInit {
 
 
   // ==========================================
+  // ADD / EDIT ROOM FORM
+  // ==========================================
+
+  isRoomModalOpen = false;
+  isEditingRoom = false;
+  isSavingRoom = false;
+  editingRoomDbId: number | null = null;
+
+  roomForm = {
+    room_id: '',
+    room_name: '',
+    room_type: 'L',
+    capacity: 60 as number | null,
+    department: 'ALL'
+  };
+
+  // ==========================================
   // IMPORT RESULT
   // ==========================================
 
@@ -98,6 +115,7 @@ export class Rooms implements OnInit {
 
   constructor(
     private roomService: RoomService,
+    private csvTemplateService: CsvTemplateService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -234,126 +252,12 @@ export class Rooms implements OnInit {
 
   }
 
-
-  // ==========================================
-  // IMPORT
-  // ==========================================
-
-  // importData(): void {
-
-  //   if (this.errorCount > 0) {
-
-  //     this.showToastMessage(
-  //       'Please fix all CSV errors before importing.',
-  //       'error'
-  //     );
-
-  //     return;
-
-  //   }
-
-
-  //   if (this.previewData.length === 0) {
-
-  //     this.showToastMessage(
-  //       'No room data available to import.',
-  //       'error'
-  //     );
-
-  //     return;
-
-  //   }
-
-
-  //   if (this.isImporting) {
-
-  //     return;
-
-  //   }
-
-
-  //   this.isImporting = true;
-
-
-  //   this.roomService
-  //     .importRooms(this.previewData)
-  //     .pipe(
-
-  //       finalize(() => {
-
-  //         this.isImporting = false;
-
-  //         this.cdr.detectChanges();
-
-  //       })
-
-  //     )
-  //     .subscribe({
-
-  //       next: (response) => {
-
-  //         console.log(
-  //           'ROOM IMPORT SUCCESS:',
-  //           response
-  //         );
-
-
-  //         this.importCompleted = true;
-
-
-  //         this.importResult = {
-
-  //           total:
-  //             response.total || 0,
-
-  //           inserted:
-  //             response.inserted || 0,
-
-  //           updated:
-  //             response.updated || 0,
-
-  //           unchanged:
-  //             response.unchanged || 0
-
-  //         };
-
-
-  //         this.showToastMessage(
-  //           'Room import completed successfully.',
-  //           'success'
-  //         );
-
-
-  //         this.loadRooms();
-
-
-  //         this.resetPreview();
-
-  //       },
-
-
-  //       error: (error) => {
-
-  //         console.error(
-  //           'ROOM IMPORT ERROR:',
-  //           error
-  //         );
-
-
-  //         this.showToastMessage(
-
-  //           error.error?.message ||
-  //           'Room import failed.',
-
-  //           'error'
-
-  //         );
-
-  //       }
-
-  //     });
-
-  // }
+downloadRoomTemplate(): void {
+  this.csvTemplateService.downloadTemplate(
+    'room_template.csv',
+    ['room_id', 'room_name', 'room_type', 'department', 'capacity']
+  );
+}
 
   importData(): void {
 
@@ -881,6 +785,189 @@ export class Rooms implements OnInit {
 
   }
 
+  // ==========================================
+// OPEN ADD ROOM FORM
+// ==========================================
+
+openAddRoom(): void {
+  this.isEditingRoom = false;
+  this.editingRoomDbId = null;
+
+  this.roomForm = {
+    room_id: '',
+    room_name: '',
+    room_type: 'L',
+    capacity: 60,
+    department: 'ALL'
+  };
+
+  this.isRoomModalOpen = true;
+}
+
+
+// ==========================================
+// OPEN EDIT ROOM FORM
+// ==========================================
+
+editRoom(room: any): void {
+  this.isEditingRoom = true;
+  this.editingRoomDbId = Number(room.id);
+
+  this.roomForm = {
+    room_id: room.room_id ?? '',
+    room_name: room.room_name ?? '',
+    room_type: room.room_type ?? 'L',
+    capacity: Number(room.capacity),
+    department: room.department ?? 'ALL'
+  };
+
+  this.isRoomModalOpen = true;
+  this.cdr.detectChanges();
+}
+
+
+// ==========================================
+// CLOSE ROOM FORM
+// ==========================================
+
+closeRoomModal(): void {
+  if (this.isSavingRoom) {
+    return;
+  }
+
+  this.isRoomModalOpen = false;
+}
+
+
+// ==========================================
+// SAVE ROOM — ADD OR UPDATE
+// ==========================================
+
+saveRoom(): void {
+  const roomId = this.roomForm.room_id.trim();
+  const roomName = this.roomForm.room_name.trim();
+  const roomType = this.roomForm.room_type;
+  const department = this.roomForm.department.trim().toUpperCase();
+  const capacity = Number(this.roomForm.capacity);
+
+  if (!roomId || !roomName || !department) {
+    this.showToastMessage(
+      'Please fill in all room fields.',
+      'error'
+    );
+    return;
+  }
+
+  if (!['L', 'T', 'P'].includes(roomType)) {
+    this.showToastMessage(
+      'Please select a valid room type.',
+      'error'
+    );
+    return;
+  }
+
+  if (
+    this.roomForm.capacity === null ||
+    this.roomForm.capacity === undefined ||
+    this.roomForm.capacity === '' as any ||
+    !Number.isInteger(capacity) ||
+    capacity <= 0
+  ) {
+    this.showToastMessage(
+      'Capacity must be a positive whole number.',
+      'error'
+    );
+    return;
+  }
+
+  if (this.isSavingRoom) {
+    return;
+  }
+
+  const payload = {
+    room_id: roomId,
+    room_name: roomName,
+    room_type: roomType,
+    department,
+    capacity
+  };
+
+  this.isSavingRoom = true;
+
+  const request$ = this.isEditingRoom
+    ? this.roomService.updateRoom(
+        this.editingRoomDbId!,
+        payload
+      )
+    : this.roomService.addRoom(payload);
+
+  request$
+    .pipe(
+      finalize(() => {
+        this.isSavingRoom = false;
+        this.cdr.detectChanges();
+      })
+    )
+    .subscribe({
+      next: (response) => {
+        this.isRoomModalOpen = false;
+
+        this.showToastMessage(
+          response.message ||
+            (this.isEditingRoom
+              ? 'Room updated successfully.'
+              : 'Room added successfully.'),
+          'success'
+        );
+
+        this.loadRooms();
+      },
+      error: (error) => {
+        console.error('SAVE ROOM ERROR:', error);
+
+        this.showToastMessage(
+          error.error?.message || 'Failed to save room.',
+          'error'
+        );
+      }
+    });
+}
+
+
+// ==========================================
+// DELETE ROOM
+// ==========================================
+
+deleteRoom(room: any): void {
+  const confirmed = window.confirm(
+    `Are you sure you want to delete room "${room.room_id}" (${room.room_name})?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  this.roomService.deleteRoom(Number(room.id))
+    .subscribe({
+      next: (response) => {
+        this.showToastMessage(
+          response.message || 'Room deleted successfully.',
+          'success'
+        );
+
+        this.loadRooms();
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('DELETE ROOM ERROR:', error);
+
+        this.showToastMessage(
+          error.error?.message || 'Failed to delete room.',
+          'error'
+        );
+      }
+    });
+}
 
   // ==========================================
   // TOAST

@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { ProgramService } from '../../../services/program';
 import { DepartmentService } from '../../../services/department';
+import { CsvTemplateService } from '../../../services/csv-template';
 @Component({
   selector: 'app-subject-management',
 
@@ -169,6 +170,7 @@ toastMessage = '';
     private subjectService: SubjectService,
     private programService: ProgramService,
     private departmentService: DepartmentService,
+    private csvTemplateService: CsvTemplateService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef
   ) {}
@@ -584,10 +586,21 @@ toastMessage = '';
 
   }
 
-
-  // ==================================================
-  // IMPORT CSV
-  // ==================================================
+  downloadSubjectTemplate(): void {
+  this.csvTemplateService.downloadTemplate(
+    'subject_template.csv',
+    [
+      'course_code',
+      'subject_name',
+      'course_type',
+      'elective_group',
+      'L',
+      'T',
+      'P',
+      'credits'
+    ]
+  );
+}
 
 // ==================================================
 // IMPORT SUBJECTS

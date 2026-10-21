@@ -112,21 +112,16 @@
 ========================================= */
 
 .csv-info {
-  margin: 20px 0;
+  margin-top: 18px;
   padding: 14px;
-  border-radius: 10px;
   background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.csv-info span {
-  font-family: monospace;
-  font-size: 13px;
+  border-radius: 8px;
   color: #475569;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
-
 
 .file-area {
   display: flex;
@@ -839,4 +834,25 @@ td {
 
   }
 
+}
+
+.download-template-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.download-template-button:hover {
+  background: #2563eb;
+  color: #fff;
 }

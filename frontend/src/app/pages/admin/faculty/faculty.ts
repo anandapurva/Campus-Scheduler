@@ -5,6 +5,7 @@ import { FacultyService } from '../../../services/faculty';
 import { ChangeDetectorRef } from '@angular/core';
 import { finalize } from 'rxjs';
 import { DepartmentService } from '../../../services/department';
+import { CsvTemplateService } from '../../../services/csv-template';
 @Component({
   selector: 'app-faculty',
   standalone: true,
@@ -92,6 +93,7 @@ abbreviationSuggestions: string[] = [];
   constructor(
     private facultyService: FacultyService,
     private departmentService: DepartmentService,
+    private csvTemplateService: CsvTemplateService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -249,6 +251,13 @@ abbreviationSuggestions: string[] = [];
       });
 
   }
+
+  downloadFacultyTemplate(): void {
+  this.csvTemplateService.downloadTemplate(
+    'faculty_template.csv',
+    ['faculty_id', 'name', 'abbreviation', 'department']
+  );
+}
 
 
   // ==========================================

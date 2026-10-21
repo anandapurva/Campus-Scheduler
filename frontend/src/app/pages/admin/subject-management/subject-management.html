@@ -180,10 +180,15 @@
         Required CSV columns
       </strong>
 
-      <span>
+      <code>
         course_code, subject_name, course_type,
         elective_group, L, T, P, credits
-      </span>
+      </code>
+
+      <button type="button" class="download-template-button"
+        (click)="downloadSubjectTemplate()">
+        Download CSV Template
+      </button>
 
     </div>
 

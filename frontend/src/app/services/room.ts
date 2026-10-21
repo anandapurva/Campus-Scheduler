@@ -68,4 +68,38 @@ export class RoomService {
 
   }
 
+  // ==========================================
+  // ADD ROOM
+  // ==========================================
+
+  addRoom(room: any): Observable<any> {
+    return this.http.post(
+      this.apiUrl,
+      room
+    );
+  }
+
+
+  // ==========================================
+  // UPDATE ROOM
+  // ==========================================
+
+  updateRoom(id: number, room: any): Observable<any> {
+    return this.http.put(
+      `${this.apiUrl}/${id}`,
+      room
+    );
+  }
+
+
+  // ==========================================
+  // DELETE ROOM
+  // ==========================================
+
+  deleteRoom(id: number): Observable<any> {
+    return this.http.delete(
+      `${this.apiUrl}/${id}`
+    );
+  }
+
 }

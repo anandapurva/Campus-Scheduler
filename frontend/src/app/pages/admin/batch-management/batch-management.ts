@@ -22,7 +22,7 @@ import {
   BatchPreviewRow
 } from '../../../services/batch';
 
-
+import { CsvTemplateService } from '../../../services/csv-template';
 @Component({
   selector: 'app-batch-management',
 
@@ -142,6 +142,7 @@ export class BatchManagement
 
   constructor(
     private batchService: BatchService,
+    private csvTemplateService: CsvTemplateService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -195,6 +196,19 @@ export class BatchManagement
 
       });
   }
+
+downloadBatchTemplate(): void {
+  this.csvTemplateService.downloadTemplate(
+    'batch_template.csv',
+    [
+      'batch_code',
+      'program',
+      'batch_type',
+      'enrollment_year',
+      'department'
+    ]
+  );
+}
 
   /* =====================================================
      SEARCH + FILTER
