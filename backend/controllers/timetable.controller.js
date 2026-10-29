@@ -14,223 +14,214 @@ function getTimetableCellRoom(
 }
 
 exports.deleteTimetableEntry = async (req, res) => {
-
     const connection = await db.getConnection();
 
     try {
-
         const entryId = Number(req.params.id);
 
-        // ==================================================
-        // VALIDATION
-        // ==================================================
-
-        if (!entryId) {
-
+        if (!Number.isInteger(entryId) || entryId <= 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Timetable entry ID is required.'
             });
-
         }
-
-
-        // ==================================================
-        // START TRANSACTION
-        // ==================================================
 
         await connection.beginTransaction();
 
+        // 1. Find the selected entry.
+        const [existingEntries] = await connection.query(
+            `
+            SELECT
+                id,
+                academic_session_id,
+                day,
+                slot_id,
+                subject_id,
+                lecture_type
+            FROM timetable_entries
+            WHERE id = ?
+            LIMIT 1
+            FOR UPDATE
+            `,
+            [entryId]
+        );
 
-        // ==================================================
-        // CHECK ENTRY EXISTS + GET CELL INFORMATION
-        // ==================================================
-
-        const [existingEntry] =
-            await connection.query(
-                `
-                SELECT
-                    id,
-                    academic_session_id,
-                    day,
-                    slot_id
-                FROM timetable_entries
-                WHERE id = ?
-                LIMIT 1
-                `,
-                [entryId]
-            );
-
-
-        if (existingEntry.length === 0) {
-
+        if (existingEntries.length === 0) {
             await connection.rollback();
 
             return res.status(404).json({
                 success: false,
                 message: 'Timetable entry not found.'
             });
-
         }
 
+        const entry = existingEntries[0];
 
-        const entry = existingEntry[0];
+        // Entries to delete; ordinary classes delete only themselves.
+        const entriesToDelete = [entry];
 
+        // 2. For a practical, locate its matching next-slot entry.
+        if (entry.lecture_type === 'P') {
+            const [selectedBatches] = await connection.query(
+                `
+                SELECT batch_id
+                FROM timetable_entry_batches
+                WHERE timetable_entry_id = ?
+                ORDER BY batch_id
+                `,
+                [entryId]
+            );
 
-        // ==================================================
-        // DELETE BATCH RELATIONSHIPS
-        // ==================================================
+            const selectedBatchIds = selectedBatches.map(
+                row => Number(row.batch_id)
+            );
 
-        await connection.query(
-            `
-            DELETE FROM timetable_entry_batches
-            WHERE timetable_entry_id = ?
-            `,
-            [entryId]
-        );
+            const [candidates] = await connection.query(
+                `
+                SELECT
+                    id,
+                    academic_session_id,
+                    day,
+                    slot_id,
+                    subject_id,
+                    lecture_type
+                FROM timetable_entries
+                WHERE academic_session_id = ?
+                  AND day = ?
+                  AND slot_id = ?
+                  AND subject_id = ?
+                  AND lecture_type = 'P'
+                  AND id != ?
+                FOR UPDATE
+                `,
+                [
+                    entry.academic_session_id,
+                    entry.day,
+                    Number(entry.slot_id) + 1,
+                    entry.subject_id,
+                    entryId
+                ]
+            );
 
+            // Only pair entries with exactly the same batch assignment.
+            for (const candidate of candidates) {
+                const [candidateBatches] = await connection.query(
+                    `
+                    SELECT batch_id
+                    FROM timetable_entry_batches
+                    WHERE timetable_entry_id = ?
+                    ORDER BY batch_id
+                    `,
+                    [candidate.id]
+                );
 
-        // ==================================================
-        // DELETE FACULTY RELATIONSHIPS
-        // ==================================================
+                const candidateBatchIds = candidateBatches.map(
+                    row => Number(row.batch_id)
+                );
 
-        await connection.query(
-            `
-            DELETE FROM timetable_entry_faculty
-            WHERE timetable_entry_id = ?
-            `,
-            [entryId]
-        );
+                const sameBatches =
+                    selectedBatchIds.length === candidateBatchIds.length &&
+                    selectedBatchIds.every(
+                        (id, index) => id === candidateBatchIds[index]
+                    );
 
+                if (sameBatches) {
+                    entriesToDelete.push(candidate);
+                    break;
+                }
+            }
+        }
 
-        // ==================================================
-        // DELETE MAIN TIMETABLE ENTRY
-        // ==================================================
+        // 3. Delete relationships and entries in the same transaction.
+        const deletedIds = entriesToDelete.map(entry => entry.id);
 
-        await connection.query(
-            `
-            DELETE FROM timetable_entries
-            WHERE id = ?
-            `,
-            [entryId]
-        );
+        for (const id of deletedIds) {
+            await connection.query(
+                `
+                DELETE FROM timetable_entry_batches
+                WHERE timetable_entry_id = ?
+                `,
+                [id]
+            );
 
+            await connection.query(
+                `
+                DELETE FROM timetable_entry_faculty
+                WHERE timetable_entry_id = ?
+                `,
+                [id]
+            );
 
-        // ==================================================
-        // COMMIT
-        // ==================================================
+            await connection.query(
+                `
+                DELETE FROM timetable_entries
+                WHERE id = ?
+                `,
+                [id]
+            );
+        }
 
         await connection.commit();
 
-
-        // ==================================================
-        // REAL-TIME UPDATE
-        // ==================================================
-
+        // 4. Notify clients for every affected timetable cell.
         const io = req.app.get('io');
 
         if (io) {
-
-            const roomName =
-                getTimetableCellRoom(
-                    entry.academic_session_id,
-                    entry.day,
-                    entry.slot_id
+            for (const deletedEntry of entriesToDelete) {
+                const roomName = getTimetableCellRoom(
+                    deletedEntry.academic_session_id,
+                    deletedEntry.day,
+                    deletedEntry.slot_id
                 );
 
-
-            io.to(roomName).emit(
-                'timetable-entry-deleted',
-                {
+                const eventPayload = {
                     academicSessionId:
-                        entry.academic_session_id,
+                        deletedEntry.academic_session_id,
+                    day: deletedEntry.day,
+                    slotId: deletedEntry.slot_id,
+                    timetableEntryId: deletedEntry.id
+                };
 
-                    day:
-                        entry.day,
+                io.to(roomName).emit(
+                    'timetable-entry-deleted',
+                    eventPayload
+                );
 
-                    slotId:
-                        entry.slot_id,
-
-                    timetableEntryId:
-                        entryId
-                }
-            );
-
-
-            io.to(roomName).emit(
-                'resource-lock-updated',
-                {
-                    academicSessionId:
-                        entry.academic_session_id,
-
-                    day:
-                        entry.day,
-
-                    slotId:
-                        entry.slot_id,
-
-                    timetableEntryId:
-                        entryId
-                }
-            );
-
+                io.to(roomName).emit(
+                    'resource-lock-updated',
+                    eventPayload
+                );
+            }
         }
 
-
-        // ==================================================
-        // RESPONSE
-        // ==================================================
-
         return res.json({
-
             success: true,
-
-            message:
-                'Timetable entry deleted successfully.',
-
-            timetableEntryId:
-                entryId
-
+            message: entry.lecture_type === 'P' &&
+                entriesToDelete.length === 2
+                ? 'Practical class and its consecutive slot deleted successfully.'
+                : 'Timetable entry deleted successfully.',
+            timetableEntryId: entryId,
+            deletedEntryIds: deletedIds
         });
 
-
     } catch (error) {
-
         try {
             await connection.rollback();
         } catch (rollbackError) {
-            console.error(
-                'ROLLBACK ERROR:',
-                rollbackError
-            );
+            console.error('ROLLBACK ERROR:', rollbackError);
         }
 
-
-        console.error(
-            'DELETE TIMETABLE ERROR:',
-            error
-        );
-
+        console.error('DELETE TIMETABLE ERROR:', error);
 
         return res.status(500).json({
-
             success: false,
-
-            message:
-                'Failed to delete timetable entry.',
-
-            error:
-                error.message
-
+            message: 'Failed to delete timetable entry.',
+            error: error.message
         });
 
-
     } finally {
-
         connection.release();
-
     }
-
 };
 
 // ======================================================
