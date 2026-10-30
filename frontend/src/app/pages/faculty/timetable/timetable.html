@@ -385,14 +385,45 @@
     </span>
   </div>
 
-  <div class="timetable-final">
+<div class="timetable-final">
+
+  <!-- LEFT SIDE: Download button -->
+  <div class="download-actions">
+
+    <!-- Before finalization: Excel -->
+    <button
+      *ngIf="!isFinalized"
+      type="button"
+      class="download-excel-button"
+      (click)="downloadTimetableExcel()">
+
+      <span class="excel-icon">📗</span>
+      Download Timetable Excel
+    </button>
+
+    <!-- After finalization: PDF -->
+    <button
+      *ngIf="isFinalized"
+      type="button"
+      class="download-pdf-button"
+      (click)="downloadTimetablePDF()">
+
+      <i class="fas fa-file-pdf"></i>
+      Download Timetable PDF
+    </button>
+
+  </div>
+
+  <!-- RIGHT SIDE: Finalize / Unfinalize -->
+  <div class="finalize-actions">
+
     <button
       *ngIf="!isFinalized"
       type="button"
       class="btn-finalize"
       [disabled]="finalizeLoading"
-      (click)="finalizeTimetable()"
-    >
+      (click)="finalizeTimetable()">
+
       <span class="btn-icon" aria-hidden="true">🔒</span>
       <span>
         {{ finalizeLoading ? 'Validating timetable...' : 'Finalize Timetable' }}
@@ -404,12 +435,17 @@
       *ngIf="isFinalized"
       type="button"
       class="btn-unfinalize"
-      (click)="unfinalizeTimetable()"
-    >
+      (click)="unfinalizeTimetable()">
+
       <span aria-hidden="true">🔓</span>
       Unfinalize Timetable
     </button>
+
   </div>
+
+</div>
+
+
 
 </div>
 

@@ -9,7 +9,9 @@ import { TimetableService } from '../../../services/timetable';
 import { ProgramService } from '../../../services/program';
 import { DepartmentService } from '../../../services/department';
 import { finalize } from 'rxjs';
-
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx-js-style';
 export interface TimeSlot {
 
   id: number;
@@ -1458,5 +1460,437 @@ editTimetableEntry(
 
     return (hours * 60) + minutes;
   }
+
+  
+formatTimetableEntry(entry: any): string {
+  const lectureType = entry.lectureType || '';
+
+  const batches = Array.isArray(entry.batches)
+    ? entry.batches.map((b: any) => b.batch_code).filter(Boolean).join(', ')
+    : '';
+
+  const subject = entry.subjectCode || entry.subjectName || '';
+
+  const teachers = Array.isArray(entry.teachers)
+    ? entry.teachers.map((t: any) => t.abbreviation).filter(Boolean).join(' / ')
+    : '';
+
+  const batchSubject = batches
+    ? `${batches} (${subject})`
+    : subject;
+
+  return `${lectureType} ${batchSubject}${teachers ? ` - ${teachers}` : ''}`.trim();
+}
+
+downloadTimetablePDF(): void {
+
+  // Export only the finalized timetable.
+  if (!this.isFinalized) {
+    alert('Please finalize the timetable before downloading the PDF.');
+    return;
+  }
+
+  if (!this.timetable || this.timetable.length === 0) {
+    alert('No timetable data is available to download.');
+    return;
+  }
+
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // DOCUMENT HEADER
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(17);
+
+  doc.text('ACADEMIC TIMETABLE', pageWidth / 2, 13, {
+    align: 'center'
+  });
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+
+  doc.text(
+    `${this.program} - ${this.department}`,
+    pageWidth / 2,
+    20,
+    { align: 'center' }
+  );
+
+  doc.text(
+    `Semester: ${this.semester} | Academic Session: ${this.academicSessionName || 'N/A'}`,
+    pageWidth / 2,
+    26,
+    { align: 'center' }
+  );
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+
+  doc.text('STATUS: FINALIZED', pageWidth / 2, 32, {
+    align: 'center'
+  });
+
+  // TABLE HEADINGS
+  const headers = [
+    'DAY',
+    ...this.timeSlots.map(slot => slot.label)
+  ];
+
+  // TABLE BODY
+  const body = this.days.map((day, dayIndex) => {
+
+    const row: string[] = [day.toUpperCase()];
+
+    this.timeSlots.forEach((slot, slotIndex) => {
+
+      const cell = this.timetable[dayIndex]?.[slotIndex];
+
+      if (!cell) {
+        row.push('');
+        return;
+      }
+
+      // Lunch break
+      if (this.isLunchSlot(slot)) {
+        row.push('LUNCH');
+        return;
+      }
+
+      // Empty slot
+      if (!cell.data || cell.data.length === 0) {
+        row.push('');
+        return;
+      }
+
+      // Compact timetable entry format
+      const cellContent = cell.data.map((entry: any) => {
+
+        const lectureType = entry.lectureType || '';
+
+        const batches = Array.isArray(entry.batches)
+          ? entry.batches
+              .map((batch: any) => batch.batch_code)
+              .filter(Boolean)
+              .join(', ')
+          : '';
+
+        const subject = entry.subjectCode ||
+                        entry.subjectName ||
+                        '';
+
+        const teachers = Array.isArray(entry.teachers)
+          ? entry.teachers
+              .map((teacher: any) => teacher.abbreviation)
+              .filter(Boolean)
+              .join(' / ')
+          : '';
+
+        const batchSubject = batches
+          ? `${batches} (${subject})`
+          : subject;
+
+        return `${lectureType} ${batchSubject}${teachers ? ` - ${teachers}` : ''}`.trim();
+
+      }).join('\n');
+
+      row.push(cellContent);
+
+    });
+
+    return row;
+
+  });
+
+  // GENERATE PDF TABLE
+  autoTable(doc, {
+
+    head: [headers],
+    body: body,
+
+    startY: 37,
+
+    theme: 'grid',
+
+    margin: {
+      left: 5,
+      right: 5,
+      top: 8,
+      bottom: 15
+    },
+
+    styles: {
+      font: 'helvetica',
+      fontSize: 6,
+      cellPadding: 1.5,
+      overflow: 'linebreak',
+      valign: 'middle',
+      halign: 'center',
+      lineWidth: 0.2,
+      minCellHeight: 12
+    },
+
+    headStyles: {
+      fillColor: [37, 99, 235],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 6,
+      halign: 'center',
+      valign: 'middle'
+    },
+
+    columnStyles: {
+      0: {
+        cellWidth: 17,
+        fontStyle: 'bold'
+      }
+    },
+
+    didParseCell: (data: any) => {
+
+      // Highlight lunch cells
+      if (
+        data.section === 'body' &&
+        data.column.index > 0 &&
+        String(data.cell.raw) === 'LUNCH'
+      ) {
+        data.cell.styles.fillColor = [254, 243, 199];
+        data.cell.styles.textColor = [146, 64, 14];
+        data.cell.styles.fontStyle = 'bold';
+      }
+
+      // Highlight day column
+      if (
+        data.section === 'body' &&
+        data.column.index === 0
+      ) {
+        data.cell.styles.fillColor = [239, 246, 255];
+        data.cell.styles.textColor = [30, 64, 175];
+        data.cell.styles.fontStyle = 'bold';
+      }
+
+    }
+
+  });
+
+  // FOOTER AND PAGE NUMBERS
+  const totalPages = doc.getNumberOfPages();
+
+  for (let page = 1; page <= totalPages; page++) {
+
+    doc.setPage(page);
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+
+    doc.text(
+      `Generated on: ${new Date().toLocaleDateString('en-IN')}`,
+      5,
+      pageHeight - 6
+    );
+
+    doc.text(
+      `Faculty: ${this.teacherName || 'N/A'}`,
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+
+    doc.text(
+      `Page ${page} of ${totalPages}`,
+      pageWidth - 5,
+      pageHeight - 6,
+      { align: 'right' }
+    );
+
+  }
+
+  // DOWNLOAD
+  const filename =
+    `Timetable_${this.program}_${this.department}_Sem${this.semester}`
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  doc.save(`${filename}.pdf`);
+
+}
+
+
+
+
+downloadTimetableExcel(): void {
+
+  if (this.isFinalized) {
+    alert('The timetable is already finalized. Please download the PDF.');
+    return;
+  }
+
+  if (!this.timetable || this.timetable.length === 0) {
+    alert('No timetable data is available to download.');
+    return;
+  }
+
+  const headers = [
+    'DAY',
+    ...this.timeSlots.map(slot => slot.label)
+  ];
+
+  const rows = this.days.map((day, dayIndex) => {
+
+    const row: any = {
+      DAY: day.toUpperCase()
+    };
+
+    this.timeSlots.forEach((slot, slotIndex) => {
+
+      const cell = this.timetable[dayIndex]?.[slotIndex];
+      const columnName = slot.label;
+
+      if (this.isLunchSlot(slot)) {
+        row[columnName] = 'LUNCH';
+        return;
+      }
+
+      if (!cell?.data?.length) {
+        row[columnName] = '';
+        return;
+      }
+
+      row[columnName] = cell.data.map((entry: any) => {
+
+        const lectureType = entry.lectureType || '';
+
+        const batches = Array.isArray(entry.batches)
+          ? entry.batches
+              .map((batch: any) => batch.batch_code)
+              .filter(Boolean)
+              .join(', ')
+          : '';
+
+        const subject = entry.subjectCode ||
+                        entry.subjectName ||
+                        '';
+
+        const teachers = Array.isArray(entry.teachers)
+          ? entry.teachers
+              .map((teacher: any) => teacher.abbreviation)
+              .filter(Boolean)
+              .join(' / ')
+          : '';
+
+        const batchSubject = batches
+          ? `${batches} (${subject})`
+          : subject;
+
+        return `${lectureType} ${batchSubject}${teachers ? ` - ${teachers}` : ''}`.trim();
+
+      }).join('\n');
+
+    });
+
+    return row;
+
+  });
+
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(rows, {
+    header: headers
+  });
+
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 14 },
+    ...this.timeSlots.map(() => ({ wch: 35 }))
+  ];
+
+  // Calculate row heights based on number of lectures
+  worksheet['!rows'] = rows.map(row => {
+
+    const maxLines = Math.max(
+      1,
+      ...this.timeSlots.map(slot => {
+        const value = String(row[slot.label] || '');
+        return value ? value.split('\n').length : 1;
+      })
+    );
+
+    return {
+      hpt: Math.max(35, maxLines * 25),
+      hpx: Math.max(47, maxLines * 33)
+    };
+
+  });
+
+  // Apply cell formatting
+  Object.keys(worksheet).forEach(key => {
+
+    if (key.startsWith('!')) return;
+
+    const cell = worksheet[key];
+
+    cell.s = {
+      alignment: {
+        wrapText: true,
+        vertical: 'center',
+        horizontal: 'center'
+      }
+    };
+
+  });
+
+  // Style header row
+  headers.forEach((header, index) => {
+
+    const cellAddress = XLSX.utils.encode_cell({
+      r: 0,
+      c: index
+    });
+
+    if (worksheet[cellAddress]) {
+      worksheet[cellAddress].s = {
+        font: {
+          bold: true,
+          color: { rgb: 'FFFFFF' }
+        },
+        fill: {
+          fgColor: { rgb: '2563EB' }
+        },
+        alignment: {
+          horizontal: 'center',
+          vertical: 'center',
+          wrapText: true
+        }
+      };
+    }
+
+  });
+
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    'Timetable'
+  );
+
+  // Download
+  const filename =
+    `Timetable_${this.program}_${this.department}_Sem${this.semester}`
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  XLSX.writeFile(workbook, `${filename}.xlsx`);
+
+}
+
+
+
+
 
 }

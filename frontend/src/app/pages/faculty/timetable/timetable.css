@@ -1579,28 +1579,121 @@
   box-sizing: border-box;
 }
 
-/* Finalize button */
-.btn-finalize {
+/* =====================================
+   TIMETABLE FOOTER LAYOUT
+===================================== */
+
+.timetable-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 15px;
+  padding: 20px 10px;
+}
+
+.download-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.finalize-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+
+/* =====================================
+   COMMON BUTTON SIZE
+===================================== */
+
+.download-excel-button,
+.download-pdf-button,
+.btn-finalize,
+.btn-unfinalize {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-height: 48px;
+  gap: 10px;
+  width: 330px;
+  height: 56px;
+  min-height: 56px;
+  box-sizing: border-box;
   padding: 0 20px;
-  border: 1px solid #1d4ed8;
   border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
   font-family: inherit;
   font-size: 14px;
   font-weight: 650;
-  letter-spacing: 0.15px;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+
+/* =====================================
+   EXCEL DOWNLOAD BUTTON
+===================================== */
+
+.download-excel-button {
+  border: 1px solid #15803d;
+  background: #15803d;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.download-excel-button:hover {
+  background: #166534;
+  transform: translateY(-1px);
+}
+
+.download-excel-button:active {
+  transform: translateY(0);
+}
+
+
+/* =====================================
+   PDF DOWNLOAD BUTTON
+===================================== */
+
+.download-pdf-button {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.download-pdf-button:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.download-pdf-button:active {
+  transform: translateY(0);
+}
+
+
+/* Download icons */
+.download-excel-button i,
+.download-pdf-button i {
+  font-size: 18px;
+}
+
+
+/* =====================================
+   FINALIZE BUTTON
+===================================== */
+
+.btn-finalize {
+  border: 1px solid #1d4ed8;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  letter-spacing: 0.15px;
   box-shadow: 0 5px 12px rgba(37, 99, 235, 0.20);
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+  transition: background 0.2s ease,
+              box-shadow 0.2s ease,
+              transform 0.2s ease;
 }
 
 .btn-finalize:hover:not(:disabled) {
@@ -1611,12 +1704,6 @@
 
 .btn-finalize:active:not(:disabled) {
   transform: translateY(0);
-}
-
-.btn-finalize:focus-visible,
-.btn-unfinalize:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.35);
-  outline-offset: 3px;
 }
 
 .btn-finalize:disabled {
@@ -1635,22 +1722,15 @@
   margin-left: 2px;
 }
 
-/* Unfinalize button */
+
+/* =====================================
+   UNFINALIZE BUTTON
+===================================== */
+
 .btn-unfinalize {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 0 18px;
   border: 1px solid #d97706;
-  border-radius: 10px;
   background: #fff7ed;
   color: #9a3412;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
   transition: background 0.2s ease;
 }
 
@@ -1658,17 +1738,46 @@
   background: #ffedd5;
 }
 
+
+/* Focus accessibility */
+.btn-finalize:focus-visible,
+.btn-unfinalize:focus-visible,
+.download-excel-button:focus-visible,
+.download-pdf-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 3px;
+}
+
+
+/* =====================================
+   RESPONSIVE DESIGN
+===================================== */
+
 @media (max-width: 600px) {
+
   .timetable-final {
+    flex-direction: column;
+    align-items: stretch;
     justify-content: stretch;
     padding: 14px 12px 20px;
   }
 
+  .download-actions,
+  .finalize-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .download-excel-button,
+  .download-pdf-button,
   .btn-finalize,
   .btn-unfinalize {
     width: 100%;
   }
+
 }
 
-
-
+.excel-icon {
+  font-size: 20px;
+  line-height: 1;
+}
