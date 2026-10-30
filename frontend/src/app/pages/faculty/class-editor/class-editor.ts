@@ -755,7 +755,8 @@ getRemainingHoursLabel(
 
 
 isPracticalSlotLunchBlocked(slot: any): boolean {
-  if (!slot) {
+
+  if (!slot || !this.selectedBatches?.length) {
     return true;
   }
 
@@ -767,45 +768,55 @@ isPracticalSlotLunchBlocked(slot: any): boolean {
     slot.end ?? slot.end_time ?? slot.endTime
   );
 
-  if (slotStart === null || slotEnd === null || slotEnd <= slotStart) {
-    console.error('Invalid timetable slot times:', slot);
-    return true;
-  }
-
-  if (!this.selectedBatches?.length) {
+  if (
+    slotStart === null ||
+    slotEnd === null ||
+    slotEnd <= slotStart
+  ) {
     return true;
   }
 
   for (const batch of this.selectedBatches) {
-    const lunchStartValue = batch?.lunchStart;
-    const lunchEndValue = batch?.lunchEnd;
 
-    // Do not silently allow a practical if lunch configuration
-    // hasn't been loaded for the selected batch.
+    const lunchStartValue =
+      batch?.lunchStart
+
+    const lunchEndValue =
+      batch?.lunchEnd 
+
     if (!lunchStartValue || !lunchEndValue) {
-      console.error('Lunch configuration missing for batch:', batch);
+      console.error(
+        'Lunch configuration missing for batch:',
+        batch
+      );
       return true;
     }
 
-    const lunchStart = this.convertTimeToMinutes(lunchStartValue);
-    const lunchEnd = this.convertTimeToMinutes(lunchEndValue);
+    const lunchStart =
+      this.convertTimeToMinutes(lunchStartValue);
+
+    const lunchEnd =
+      this.convertTimeToMinutes(lunchEndValue);
 
     if (
       lunchStart === null ||
       lunchEnd === null ||
       lunchEnd <= lunchStart
     ) {
-      console.error('Invalid lunch configuration for batch:', batch);
       return true;
     }
 
-    if (slotStart < lunchEnd && slotEnd > lunchStart) {
+    // Check whether the timetable slot overlaps lunch
+    if (
+      slotStart < lunchEnd &&
+      slotEnd > lunchStart
+    ) {
       console.warn('Practical slot overlaps lunch:', {
         batch: batch.batch_code,
-        slotStart: slot.start ?? slot.start_time ?? slot.startTime,
-        slotEnd: slot.end ?? slot.end_time ?? slot.endTime,
-        lunchStart: lunchStartValue,
-        lunchEnd: lunchEndValue
+        slotStart,
+        slotEnd,
+        lunchStart,
+        lunchEnd
       });
 
       return true;
@@ -3443,12 +3454,46 @@ if (
 }
 if (this.lectureType === 'P') {
 
-  if (
-    this.selectedPracticalSlots.length !== 2
-  ) {
+  // Both slots must be selected
+  if (this.selectedPracticalSlots.length !== 2) {
 
     alert(
       'Practical class requires 2 consecutive timetable slots.'
+    );
+
+    return;
+  }
+
+  const firstSlot = this.selectedPracticalSlots[0];
+  const secondSlot = this.selectedPracticalSlots[1];
+
+  // Both slots must be on the same day
+  if (
+    !firstSlot ||
+    !secondSlot ||
+    !this.areConsecutiveSlots(firstSlot, secondSlot)
+  ) {
+
+    alert(
+      'Practical class requires 2 consecutive slots.'
+    );
+
+    return;
+  }
+
+  // Verify both slots against lunch configuration
+  const firstSlotBlocked =
+    this.isPracticalSlotLunchBlocked(firstSlot);
+
+  const secondSlotBlocked =
+    this.isPracticalSlotLunchBlocked(secondSlot);
+
+  if (firstSlotBlocked || secondSlotBlocked) {
+
+    this.selectedPracticalSlots = [];
+
+    alert(
+      'Cannot schedule practical class. There are no 2 consecutive slots available because the selected practical overlaps the lunch break.'
     );
 
     return;
