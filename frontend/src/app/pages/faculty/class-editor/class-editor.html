@@ -507,218 +507,238 @@
 
     <!-- ROOM DROPDOWN -->
 
-    <div
-      class="room-dropdown"
-      *ngIf="
-        !loadingRooms &&
-        availableRooms.length > 0
-      "
+<!-- ROOM DROPDOWN -->
+<div
+  class="room-dropdown"
+  *ngIf="!loadingRooms && availableRooms.length > 0"
+>
+
+  <!-- SELECT ROOM BUTTON -->
+  <button
+    type="button"
+    class="room-select"
+    (click)="roomDropdownOpen = !roomDropdownOpen"
+  >
+    <ng-container *ngIf="lectureType === 'P'; else singleRoom">
+      <span class="room-placeholder">
+        {{ selectedLabRooms.length > 0
+          ? selectedLabRooms.length + ' Labs Selected'
+          : 'Select Lab Rooms' }}
+      </span>
+    </ng-container>
+
+    <ng-template #singleRoom>
+      <ng-container *ngIf="selectedRoom; else noRoomSelected">
+        <span class="room-type-badge">
+          {{ selectedRoom.room_type }}
+        </span>
+
+        <span class="room-selected-content">
+          <strong>{{ selectedRoom.room_id }}</strong>
+          <span>· Capacity: {{ selectedRoom.capacity }}</span>
+        </span>
+      </ng-container>
+
+      <ng-template #noRoomSelected>
+        <span class="room-placeholder">Select Room</span>
+      </ng-template>
+    </ng-template>
+
+    <span
+      class="dropdown-arrow"
+      [class.open]="roomDropdownOpen"
     >
+      ▾
+    </span>
+  </button>
 
-      <!-- SELECTED ROOM -->
 
-      <button
-        type="button"
-        class="room-select"
-        (click)="roomDropdownOpen = !roomDropdownOpen"
+  <!-- SELECTED LABS (PRACTICAL ONLY) -->
+  <div
+    class="selected-teachers"
+    *ngIf="lectureType === 'P' && selectedLabRooms.length > 0"
+  >
+    <div class="selected-teachers-heading">
+      Selected Labs
+      <span>{{ selectedLabRooms.length }}</span>
+    </div>
+
+    <div class="selected-teacher-list">
+      <div
+        class="selected-teacher-chip"
+        *ngFor="let room of selectedLabRooms"
+      >
+        <span class="selected-teacher-department">
+          {{ room.room_type }}
+        </span>
+
+        <strong>{{ room.room_id }}</strong>
+
+        <span>({{ room.capacity }})</span>
+
+        <button
+          type="button"
+          (click)="removeLabRoom(room)"
+          title="Remove lab"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+
+    <small>
+      Combined capacity: {{ getSelectedRoomCapacity() }} /
+      {{ totalStudents }} students
+    </small>
+  </div>
+
+
+  <!-- ROOM DROPDOWN -->
+  <div
+    class="teacher-dropdown"
+    *ngIf="roomDropdownOpen"
+  >
+
+    <!-- SEARCH -->
+    <div class="faculty-search">
+      <input
+        type="text"
+        placeholder="Search room..."
+        [(ngModel)]="roomSearch"
+        (input)="filterRoomsBySearch()"
+      />
+    </div>
+
+
+    <!-- ROOM LIST -->
+    <div class="checkbox-list">
+
+      <label
+        *ngFor="let room of filteredRooms"
+        class="checkbox-option"
+
+        [class.disabled-resource]="
+          isRoomAlreadyScheduled(room) ||
+          isRoomInUse(room) ||
+          (
+            lectureType === 'P' &&
+            totalStudents > 0 &&
+            room.capacity < totalStudents &&
+            getSelectedRoomCapacity() < totalStudents
+          ) ||
+          (
+            lectureType !== 'P' &&
+            totalStudents > 0 &&
+            room.capacity < totalStudents
+          )
+        "
       >
 
-        <ng-container
-          *ngIf="
-            selectedRoom;
-            else noRoomSelected
+        <!-- P: CHECKBOX | L/T: RADIO -->
+        <input
+          *ngIf="lectureType === 'P'; else singleRoomRadio"
+          type="checkbox"
+          [checked]="isLabSelected(room)"
+          [disabled]="
+            isRoomAlreadyScheduled(room) ||
+            isRoomInUse(room)
           "
-        >
+          (change)="toggleLabRoom(room, $event)"
+        />
 
-          <span class="room-type-badge">
-            {{ selectedRoom.room_type }}
-          </span>
-
-          <span class="room-selected-content">
-
-            <strong>
-              {{ selectedRoom.room_id }}
-            </strong>
-
-            <span>
-              · Capacity:
-              {{ selectedRoom.capacity }}
-            </span>
-
-          </span>
-
-        </ng-container>
-
-
-        <ng-template #noRoomSelected>
-
-          <span class="room-placeholder">
-            Select Room
-          </span>
-
+        <ng-template #singleRoomRadio>
+          <input
+            type="radio"
+            name="room"
+            [checked]="selectedRoom?.id === room.id"
+            [disabled]="
+              isRoomAlreadyScheduled(room) ||
+              isRoomInUse(room) ||
+              (
+                totalStudents > 0 &&
+                room.capacity < totalStudents
+              )
+            "
+            (change)="selectRoom(room); roomDropdownOpen = false"
+          />
         </ng-template>
 
 
-        <span class="dropdown-arrow">
-          ▾
+        <!-- ROOM DETAILS -->
+        <div class="teacher-option-content">
+          <span>
+            <strong>{{ room.room_id }}</strong>
+            - {{ room.room_name }}
+
+            <small>
+              Capacity: {{ room.capacity }}
+              · {{ room.room_type }}
+            </small>
+          </span>
+        </div>
+
+
+        <!-- ALREADY SCHEDULED -->
+        <span
+          *ngIf="isRoomAlreadyScheduled(room)"
+          class="resource-lock-label"
+        >
+          🔒 In Use
         </span>
 
-      </button>
+
+        <!-- TEMPORARY LOCK -->
+        <span
+          *ngIf="
+            !isRoomAlreadyScheduled(room) &&
+            isRoomInUse(room)
+          "
+          class="resource-lock-label temporary-lock"
+        >
+          🔒 Locked
+        </span>
 
 
-      <!-- ROOM DROPDOWN PANEL -->
+        <!-- CAPACITY -->
+        <span
+          *ngIf="
+            lectureType !== 'P' &&
+            !isRoomAlreadyScheduled(room) &&
+            !isRoomInUse(room) &&
+            totalStudents > 0 &&
+            room.capacity < totalStudents
+          "
+          class="resource-lock-label"
+        >
+          Too small
+        </span>
+
+
+        <!-- AVAILABLE -->
+        <span
+          *ngIf="
+            !isRoomAlreadyScheduled(room) &&
+            !isRoomInUse(room) &&
+            totalStudents > 0 &&
+            room.capacity >= totalStudents
+          "
+          class="resource-lock-label"
+        >
+          ✓
+        </span>
+
+      </label>
 
       <div
-        class="room-dropdown-panel"
-        *ngIf="roomDropdownOpen"
+        class="empty-message"
+        *ngIf="filteredRooms.length === 0"
       >
-
-        <!-- SEARCH -->
-
-        <div class="room-search">
-
-          <input
-            type="text"
-            placeholder="Search room..."
-            [(ngModel)]="roomSearch"
-            (input)="filterRoomsBySearch()"
-          />
-
-        </div>
-
-
-        <!-- ROOM LIST -->
-
-        <div class="room-list">
-
-<label
-  *ngFor="let room of filteredRooms"
-  class="room-option"
-
-  [class.disabled-room]="
-    isRoomAlreadyScheduled(room) ||
-    isRoomInUse(room) ||
-    (
-      totalStudents > 0 &&
-      room.capacity < totalStudents
-    )
-  "
->
-
-  <!-- RADIO -->
-  <input
-    type="radio"
-    name="room"
-    [value]="room"
-
-    [checked]="
-      selectedRoom?.id === room.id
-    "
-
-    [disabled]="
-      isRoomAlreadyScheduled(room) ||
-      isRoomInUse(room) ||
-      (
-        totalStudents > 0 &&
-        room.capacity < totalStudents
-      )
-    "
-
-    (change)="selectRoom(room)"
-  />
-
-  <span class="room-radio"></span>
-
-
-  <!-- ROOM TYPE -->
-  <span class="room-type-badge">
-    {{ room.room_type }}
-  </span>
-
-
-  <!-- ROOM DETAILS -->
-  <span class="room-option-content">
-
-    <span class="room-main-line">
-
-      <strong>
-        {{ room.room_id }}
-      </strong>
-
-      <span>
-        Capacity:
-        {{ room.capacity }}
-      </span>
-
-    </span>
-
-  </span>
-
-
-  <!-- DB: ALREADY SCHEDULED -->
-  <span
-    class="room-status unavailable"
-    *ngIf="isRoomAlreadyScheduled(room)"
-  >
-    🔒 In Use
-  </span>
-
-
-  <!-- TEMPORARY COLLABORATIVE LOCK -->
-  <span
-    class="room-status unavailable"
-    *ngIf="
-      !isRoomAlreadyScheduled(room) &&
-      isRoomInUse(room)
-    "
-  >
-    🔒 Locked
-  </span>
-
-
-  <!-- CAPACITY STATUS -->
-  <span
-    class="room-status unavailable"
-    *ngIf="
-      !isRoomAlreadyScheduled(room) &&
-      !isRoomInUse(room) &&
-      totalStudents > 0 &&
-      room.capacity < totalStudents
-    "
-  >
-    Too small
-  </span>
-
-
-  <!-- AVAILABLE -->
-  <span
-    class="room-status"
-    *ngIf="
-      !isRoomAlreadyScheduled(room) &&
-      !isRoomInUse(room) &&
-      totalStudents > 0 &&
-      room.capacity >= totalStudents
-    "
-  >
-    ✓
-  </span>
-
-</label>
-
-          <!-- NO ROOMS -->
-
-          <div
-            class="empty-message"
-            *ngIf="filteredRooms.length === 0"
-          >
-            No rooms found.
-          </div>
-
-        </div>
-
+        No rooms found.
       </div>
 
     </div>
+  </div>
+</div>
 
 
     <!-- NO ROOMS -->

@@ -49,7 +49,7 @@ router.get(
 router.get('/hours', timetableController.getSubjectHours);
 
 router.post(
-  '/practical-availability',
+  '/check-practical-availability',
   timetableController.checkPracticalAvailability
 );
 

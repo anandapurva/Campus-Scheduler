@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-
+import { TimetableConfigService } from '../../../services/timetable-config';
 import { FacultyService } from '../../../services/faculty';
 import { RoomService } from '../../../services/room';
 import { AcademicSessionService } from '../../../services/academic-session';
@@ -264,6 +264,7 @@ practicalAvailabilityError = '';
     private academicSessionService: AcademicSessionService,
     private timetableSocketService: TimetableSocketService,
     private timetableService: TimetableService,
+    private timetableConfigService: TimetableConfigService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -277,6 +278,7 @@ practicalAvailabilityError = '';
   this.selectedAcademicSessionStartYear =
     this.academicSessionStartYear;
 
+  this.loadLunchConfiguration();
   this.loadFaculty();
   this.loadRooms();
   this.loadSubjects();
@@ -353,7 +355,11 @@ practicalAvailabilityError = '';
     // --------------------------------------------------
     // ACADEMIC SESSION
     // --------------------------------------------------
-
+    if (changes['program'] || changes['semester']) {
+    if (this.program && this.semester) {
+      this.loadLunchConfiguration();
+    }
+  }
     if (changes['academicSessionId']) {
 
       this.selectedAcademicSessionId =
@@ -441,6 +447,8 @@ if (changes['editingEntry']) {
   }
 
 
+
+
   // ==================================================
   // ACTIVE ACADEMIC SESSION
   // ==================================================
@@ -523,6 +531,72 @@ if (changes['editingEntry']) {
 
   }
 
+  loadLunchConfiguration(): void {
+  if (!this.program || !this.semester) {
+    console.warn(
+      'Cannot load lunch configuration: program or semester missing'
+    );
+    return;
+  }
+
+  const year = Math.ceil(Number(this.semester) / 2);
+
+  this.checkingLunch = true;
+
+  this.timetableConfigService
+    .getLunchConfiguration(this.program, year)
+    .subscribe({
+      next: (response: any) => {
+        if (
+          response?.locked === true &&
+          response?.configuration
+        ) {
+          const configurations =
+            Array.isArray(response.configuration)
+              ? response.configuration
+              : [response.configuration];
+
+          const config = configurations.find(
+            (item: any) =>
+              Number(item.semester) === Number(this.semester)
+          );
+
+          if (config) {
+            this.lunchStart = config.lunchStart;
+            this.lunchEnd = config.lunchEnd;
+
+          } else {
+            console.warn(
+              'No lunch configuration found for semester:',
+              this.semester
+            );
+
+            this.lunchStart = '';
+            this.lunchEnd = '';
+          }
+        } else {
+          this.lunchStart = '';
+          this.lunchEnd = '';
+        }
+
+        this.checkingLunch = false;
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error(
+          'Error loading lunch configuration:',
+          error
+        );
+
+        this.lunchStart = '';
+        this.lunchEnd = '';
+
+        this.checkingLunch = false;
+        this.cdr.detectChanges();
+      }
+    });
+}
 
   // ==================================================
   // LOAD ELIGIBLE BATCHES
@@ -755,8 +829,7 @@ getRemainingHoursLabel(
 
 
 isPracticalSlotLunchBlocked(slot: any): boolean {
-
-  if (!slot || !this.selectedBatches?.length) {
+  if (!slot) {
     return true;
   }
 
@@ -768,6 +841,9 @@ isPracticalSlotLunchBlocked(slot: any): boolean {
     slot.end ?? slot.end_time ?? slot.endTime
   );
 
+  const lunchStart = this.convertTimeToMinutes(this.lunchStart);
+  const lunchEnd = this.convertTimeToMinutes(this.lunchEnd);
+
   if (
     slotStart === null ||
     slotEnd === null ||
@@ -776,57 +852,39 @@ isPracticalSlotLunchBlocked(slot: any): boolean {
     return true;
   }
 
-  for (const batch of this.selectedBatches) {
+  // No lunch configuration loaded
+  if (lunchStart === null || lunchEnd === null) {
+    console.error('Lunch timings are not loaded:', {
+      lunchStart: this.lunchStart,
+      lunchEnd: this.lunchEnd
+    });
 
-    const lunchStartValue =
-      batch?.lunchStart
-
-    const lunchEndValue =
-      batch?.lunchEnd 
-
-    if (!lunchStartValue || !lunchEndValue) {
-      console.error(
-        'Lunch configuration missing for batch:',
-        batch
-      );
-      return true;
-    }
-
-    const lunchStart =
-      this.convertTimeToMinutes(lunchStartValue);
-
-    const lunchEnd =
-      this.convertTimeToMinutes(lunchEndValue);
-
-    if (
-      lunchStart === null ||
-      lunchEnd === null ||
-      lunchEnd <= lunchStart
-    ) {
-      return true;
-    }
-
-    // Check whether the timetable slot overlaps lunch
-    if (
-      slotStart < lunchEnd &&
-      slotEnd > lunchStart
-    ) {
-      console.warn('Practical slot overlaps lunch:', {
-        batch: batch.batch_code,
-        slotStart,
-        slotEnd,
-        lunchStart,
-        lunchEnd
-      });
-
-      return true;
-    }
+    return true;
   }
 
-  return false;
+  if (lunchEnd <= lunchStart) {
+    console.error('Invalid lunch configuration');
+    return true;
+  }
+
+  // Check overlap with the configured lunch period
+  return (
+    slotStart < lunchEnd &&
+    slotEnd > lunchStart
+  );
 }
 
 selectPracticalClass(): void {
+
+  if (this.checkingLunch) {
+  alert('Please wait while lunch configuration is loading.');
+  return;
+}
+
+if (!this.lunchStart || !this.lunchEnd) {
+  alert('Lunch configuration is not available. Please check the timetable configuration.');
+  return;
+}
 
   if (this.lectureType !== 'P') {
     return;
@@ -927,6 +985,10 @@ selectPracticalClass(): void {
   // ------------------------------------------
   // BACKEND AVAILABILITY CHECK
   // ------------------------------------------
+  if (!this.selectedLabRooms || this.selectedLabRooms.length === 0) {
+  alert('Please select at least one practical lab.');
+  return;
+}
 
   this.checkingPracticalAvailability = true;
 
@@ -957,8 +1019,10 @@ selectPracticalClass(): void {
           teacher => Number(teacher.id)
         ),
 
-      roomId:
-        Number(this.selectedRoom?.id)
+      roomIds:
+      this.selectedLabRooms.map(
+        (room: any) => Number(room.id)
+      )
 
     })
     .pipe(
@@ -993,8 +1057,6 @@ selectPracticalClass(): void {
           firstSlot,
           secondSlot
         ];
-        console.log('Practical availability response:', response);
-console.log('Slots being validated:', firstSlot, secondSlot);
 
         this.cdr.detectChanges();
 
@@ -1033,11 +1095,7 @@ private areConsecutiveSlots(
 
 
 isLunchSlot(slot: any): boolean {
-
-  if (
-    !this.lunchStart ||
-    !this.lunchEnd
-  ) {
+  if (!this.lunchStart || !this.lunchEnd) {
     return false;
   }
 
@@ -1053,24 +1111,47 @@ isLunchSlot(slot: any): boolean {
   const lunchEnd =
     this.convertTimeToMinutes(this.lunchEnd);
 
+  // Validate converted time values
+  if (
+    slotStart === null ||
+    slotEnd === null ||
+    lunchStart === null ||
+    lunchEnd === null
+  ) {
+    return false;
+  }
+
   return (
     slotStart < lunchEnd &&
     slotEnd > lunchStart
   );
 }
 
-
-
-convertTimeToMinutes(time: string): number {
-
-  if (!time) {
-    return 0;
+convertTimeToMinutes(time: any): number | null {
+  if (!time || typeof time !== 'string') {
+    return null;
   }
 
-  const [hours, minutes] =
-    time.substring(0, 5)
-      .split(':')
-      .map(Number);
+  const normalizedTime = time.trim().substring(0, 5);
+  const parts = normalizedTime.split(':');
+
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const hours = Number(parts[0]);
+  const minutes = Number(parts[1]);
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
 
   return hours * 60 + minutes;
 }
@@ -2021,78 +2102,41 @@ if (exists) {
   // LOAD ROOMS
   // ==================================================
 
-  loadRooms(): void {
+loadRooms(): void {
+  this.loadingRooms = true;
 
-    this.loadingRooms = true;
-
-
-    this.roomService
-      .getRooms()
-      .pipe(
-        takeUntil(this.destroy$)
-      )
-      .subscribe({
-
-        next: (response: any) => {
-
-          if (Array.isArray(response)) {
-
-            this.rooms = response;
-
-          } else if (
-            Array.isArray(response?.rooms)
-          ) {
-
-            this.rooms =
-              response.rooms;
-
-          } else if (
-            Array.isArray(response?.data)
-          ) {
-
-            this.rooms =
-              response.data;
-
-          } else {
-
-            this.rooms = [];
-
-          }
-
-
-          this.loadingRooms = false;
-
-
-          this.filterRooms();
-
-          this.filterRoomsBySearch();
-
-          this.loadEditingEntry();
-          this.cdr.detectChanges();
-
-        },
-
-        error: (error) => {
-
-          this.loadingRooms = false;
-
+  this.roomService
+    .getRooms()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response: any) => {
+        if (Array.isArray(response)) {
+          this.rooms = response;
+        } else if (Array.isArray(response?.rooms)) {
+          this.rooms = response.rooms;
+        } else if (Array.isArray(response?.data)) {
+          this.rooms = response.data;
+        } else {
           this.rooms = [];
-
-          this.availableRooms = [];
-
-          this.filteredRooms = [];
-
-
-          console.error(
-            'Failed to load rooms:',
-            error
-          );
-
         }
 
-      });
+        this.loadingRooms = false;
 
-  }
+        this.filterRooms();
+        this.loadEditingEntry();
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        this.loadingRooms = false;
+        this.rooms = [];
+        this.availableRooms = [];
+        this.filteredRooms = [];
+
+        console.error('Failed to load rooms:', error);
+      }
+    });
+}
 
 
   // ==================================================
@@ -2107,18 +2151,66 @@ onLectureTypeChange(): void {
   }
 
   this.selectedRoom = null;
+  this.selectedLabRooms = [];
   this.roomSearch = '';
   this.roomDropdownOpen = false;
 
   this.selectedPracticalSlots = [];
   this.nextSlot = null;
+  this.practicalAvailabilityError = '';
 
-  if (this.lectureType === 'P' && this.selectedCell?.slot) {
-    this.nextSlot = this.timetableService.getNextSlot(
-      this.selectedCell,
-      this.availableTimeSlots
-    );
+if (this.lectureType === 'P') {
+
+  if (!this.selectedCell?.slot) {
+    alert('Please select a timetable slot first.');
+    this.lectureType = '';
+    return;
   }
+
+  this.nextSlot = this.timetableService.getNextSlot(
+    this.selectedCell,
+    this.availableTimeSlots
+  );
+
+  if (!this.nextSlot) {
+    alert('Practical class requires 2 consecutive timetable slots.');
+    this.lectureType = '';
+    return;
+  }
+
+  const firstSlot = this.selectedCell.slot;
+  const secondSlot = this.nextSlot;
+
+  if (!this.areConsecutiveSlots(firstSlot, secondSlot)) {
+    alert('Practical class requires 2 consecutive timetable slots.');
+    this.lectureType = '';
+    this.nextSlot = null;
+    return;
+  }
+
+  // Ensure lunch configuration is loaded.
+  if (this.checkingLunch) {
+    alert('Please wait while lunch configuration is loading.');
+    this.lectureType = '';
+    return;
+  }
+
+  if (!this.lunchStart || !this.lunchEnd) {
+    alert('Lunch configuration is not available.');
+    this.lectureType = '';
+    return;
+  }
+
+  if (
+    this.isPracticalSlotLunchBlocked(firstSlot) ||
+    this.isPracticalSlotLunchBlocked(secondSlot)
+  ) {
+    alert('Practical class cannot overlap lunch.');
+    this.lectureType = '';
+    this.nextSlot = null;
+    return;
+  }
+}
 
   this.filterRooms();
   this.filterSubjects();
@@ -2128,178 +2220,65 @@ onLectureTypeChange(): void {
   this.cdr.detectChanges();
 }
 
+  isLabSelected(room: any): boolean {
+    return this.selectedLabRooms.some(
+      r => Number(r.id) === Number(room.id)
+    );
+  }
+  removeLabRoom(room: any): void {
+    this.selectedLabRooms = this.selectedLabRooms.filter(
+      r => Number(r.id) !== Number(room.id)
+    );
+
+    this.releaseResource('room', Number(room.id));
+}
+
   // ==================================================
   // FILTER ROOMS
   // ==================================================
 
-  filterRooms(): void {
-
-    if (!this.rooms.length) {
-
-      this.availableRooms = [];
-
-      this.filteredRooms = [];
-
-      return;
-
-    }
-
-
-    const selectedType =
-      String(
-        this.lectureType || ''
-      )
-        .trim()
-        .toUpperCase();
-
-
-    this.availableRooms =
-      [...this.rooms];
-
-
-    this.availableRooms.sort(
-      (a, b) => {
-
-        const aType =
-          String(
-            a.room_type || ''
-          )
-            .trim()
-            .toUpperCase();
-
-
-        const bType =
-          String(
-            b.room_type || ''
-          )
-            .trim()
-            .toUpperCase();
-
-
-        const aCapacity =
-          Number(
-            a.capacity || 0
-          );
-
-
-        const bCapacity =
-          Number(
-            b.capacity || 0
-          );
-
-
-        const aTypeMatch =
-          aType === selectedType;
-
-
-        const bTypeMatch =
-          bType === selectedType;
-
-
-        const aCapacityEnough =
-          aCapacity >=
-          this.totalStudents;
-
-
-        const bCapacityEnough =
-          bCapacity >=
-          this.totalStudents;
-
-
-        const getPriority =
-          (
-            typeMatch: boolean,
-            capacityEnough: boolean
-          ): number => {
-
-            if (
-              typeMatch &&
-              capacityEnough
-            ) {
-
-              return 1;
-
-            }
-
-
-            if (
-              typeMatch &&
-              !capacityEnough
-            ) {
-
-              return 2;
-
-            }
-
-
-            if (
-              !typeMatch &&
-              capacityEnough
-            ) {
-
-              return 3;
-
-            }
-
-
-            return 4;
-
-          };
-
-
-        const aPriority =
-          getPriority(
-            aTypeMatch,
-            aCapacityEnough
-          );
-
-
-        const bPriority =
-          getPriority(
-            bTypeMatch,
-            bCapacityEnough
-          );
-
-
-        if (
-          aPriority !==
-          bPriority
-        ) {
-
-          return (
-            aPriority -
-            bPriority
-          );
-
-        }
-
-
-        if (
-          aCapacityEnough &&
-          bCapacityEnough
-        ) {
-
-          return (
-            aCapacity -
-            bCapacity
-          );
-
-        }
-
-
-        return (
-          bCapacity -
-          aCapacity
-        );
-
-      }
-    );
-
-
-    this.filterRoomsBySearch();
-
+filterRooms(): void {
+  if (!this.rooms?.length) {
+    console.error('No rooms received from API');
+    this.availableRooms = [];
+    this.filteredRooms = [];
+    return;
   }
 
+  const selectedType = String(this.lectureType || '')
+    .trim()
+    .toUpperCase();
+
+  console.log('Filtering rooms for:', selectedType);
+
+  console.log(
+    'Room types available:',
+    [...new Set(this.rooms.map((r: any) => r.room_type))]
+  );
+
+  this.availableRooms = this.rooms.filter((room: any) =>
+    String(room.room_type || '').trim().toUpperCase() === selectedType
+  );
+
+  this.availableRooms.sort((a: any, b: any) => {
+    const aCapacity = Number(a.capacity || 0);
+    const bCapacity = Number(b.capacity || 0);
+
+    const aEnough = aCapacity >= this.totalStudents;
+    const bEnough = bCapacity >= this.totalStudents;
+
+    if (aEnough && bEnough) return aCapacity - bCapacity;
+    if (aEnough) return -1;
+    if (bEnough) return 1;
+
+    return bCapacity - aCapacity;
+  });
+
+  this.filterRoomsBySearch();
+
+  console.log('Rooms matching type:', this.availableRooms);
+  console.log('Rooms after search:', this.filteredRooms);
+}
 
   // ==================================================
   // ROOM REAL-TIME LOCK
@@ -3313,11 +3292,20 @@ private validatePracticalThenSubmit(): void {
     return;
   }
 
-  if (!this.selectedRoom || this.selectedTeachers.length === 0 ||
-      this.selectedBatches.length === 0) {
-    alert('Select the batches, subject, room and teacher first.');
-    return;
-  }
+const hasSelectedRoom =
+  this.lectureType === 'P'
+    ? this.selectedLabRooms.length > 0
+    : !!this.selectedRoom;
+
+if (
+  !this.selectedBatches.length ||
+  !this.selectedSubject ||
+  !hasSelectedRoom ||
+  !this.selectedTeachers.length
+) {
+  alert('Select the batches, subject, room and teacher first.');
+  return;
+}
 
   if (this.checkingPracticalAvailability) {
     return;
@@ -3332,7 +3320,9 @@ private validatePracticalThenSubmit(): void {
     secondSlotId: Number(secondSlot.id),
     batchIds: this.selectedBatches.map(batch => Number(batch.id)),
     teacherIds: this.selectedTeachers.map(teacher => Number(teacher.id)),
-    roomId: Number(this.selectedRoom.id)
+    roomIds: this.selectedLabRooms.map(
+      (room: any) => Number(room.id)
+    )
   })
   .pipe(takeUntil(this.destroy$))
   .subscribe({
@@ -3506,37 +3496,58 @@ if (this.lectureType === 'P') {
     // ROOM
     // --------------------------------------------------
 
-    if (
-      !this.selectedRoom
-    ) {
 
-      alert(
-        'Please select a room.'
+    if (this.lectureType === 'P') {
+
+      if (this.selectedLabRooms.length === 0) {
+        alert('Please select at least one practical lab.');
+        return;
+      }
+
+      // Check every selected lab for a new lock
+      const lockedRoom = this.selectedLabRooms.find(
+        room => this.isRoomLocked(room)
       );
 
-      return;
+      if (lockedRoom) {
+        alert(
+          `Lab ${lockedRoom.room_id} has just been occupied. Please select another lab.`
+        );
+        return;
+      }
+
+    } else {
+
+      if (!this.selectedRoom) {
+        alert('Please select a room.');
+        return;
+      }
+
+      if (this.isRoomLocked(this.selectedRoom)) {
+        alert(
+          'The selected room has just been occupied by another timetable. Please select another room.'
+        );
+
+        this.selectedRoom = null;
+        return;
+      }
 
     }
 
+    // --------------------------------------------------
+    // CAPACITY VALIDATION
+    // --------------------------------------------------
 
-    // --------------------------------------------------
-    // ROOM LOCK RACE CONDITION
-    // --------------------------------------------------
+    const selectedCapacity = this.getSelectedRoomCapacity();
 
     if (
-      this.isRoomLocked(
-        this.selectedRoom
-      )
+      this.totalStudents > 0 &&
+      selectedCapacity < this.totalStudents
     ) {
-
       alert(
-        'The selected room has just been occupied by another timetable. Please select another room.'
+        `Selected room capacity (${selectedCapacity}) is insufficient for ${this.totalStudents} students. Please select additional labs.`
       );
-
-      this.selectedRoom = null;
-
       return;
-
     }
 
 
@@ -3603,27 +3614,6 @@ if (this.lectureType === 'P') {
       return;
 
     }
-
-
-    // --------------------------------------------------
-    // CAPACITY
-    // --------------------------------------------------
-
-    if (
-      this.totalStudents > 0 &&
-      Number(
-        this.selectedRoom.capacity || 0
-      ) < this.totalStudents
-    ) {
-
-      alert(
-        'The selected room does not have enough capacity for the selected batches.'
-      );
-
-      return;
-
-    }
-
 
     // --------------------------------------------------
     // CREATE DATA
@@ -3706,30 +3696,48 @@ if (this.lectureType === 'P') {
 
 
       // Room
-      roomId:
-        Number(
-          this.selectedRoom.id
-        ),
 
+      rooms: this.lectureType === 'P'
+        ? this.selectedLabRooms.map(room => ({
+            id: Number(room.id),
+            roomId: Number(room.id),
+            roomCode: room.room_id,
+            roomName: room.room_name,
+            roomType: room.room_type,
+            capacity: Number(room.capacity)
+          }))
+        : [{
+            id: Number(this.selectedRoom.id),
+            roomId: Number(this.selectedRoom.id),
+            roomCode: this.selectedRoom.room_id,
+            roomName: this.selectedRoom.room_name,
+            roomType: this.selectedRoom.room_type,
+            capacity: Number(this.selectedRoom.capacity)
+          }],
 
-      room:
-        this.selectedRoom.room_id,
+      roomId: Number(
+        this.lectureType === 'P'
+          ? this.selectedLabRooms[0]?.id
+          : this.selectedRoom?.id
+      ),
 
+      room: this.lectureType === 'P'
+        ? this.selectedLabRooms.map(r => r.room_id).join(', ')
+        : this.selectedRoom?.room_id,
 
-      roomName:
-        this.selectedRoom.room_name,
+      roomName: this.lectureType === 'P'
+        ? this.selectedLabRooms.map(r => r.room_name).join(', ')
+        : this.selectedRoom?.room_name,
 
+      roomType: this.lectureType,
 
-      roomType:
-        this.selectedRoom.room_type,
+      roomCapacity: selectedCapacity,
 
+      roomIds: this.lectureType === 'P'
+        ? this.selectedLabRooms.map(r => Number(r.id))
+        : [Number(this.selectedRoom.id)],
 
-      roomCapacity:
-        Number(
-          this.selectedRoom.capacity
-        ),
-
-
+        
       // Batches
       batches:
         this.selectedBatches,
@@ -3778,6 +3786,56 @@ if (this.lectureType === 'P') {
 
   }
 
+
+  selectedLabRooms: any[] = [];
+
+  toggleLabRoom(room: any, event: any): void {
+    const roomId = Number(room.id);
+
+    if (event.target.checked) {
+
+      if (
+        this.isRoomAlreadyScheduled(room) ||
+        this.isRoomInUse(room)
+      ) {
+        event.target.checked = false;
+        return;
+      }
+
+      if (
+        !this.selectedLabRooms.some(
+          r => Number(r.id) === roomId
+        )
+      ) {
+        this.selectedLabRooms.push(room);
+
+        // Reserve this lab for collaborative editing
+        this.reserveResource('room', roomId);
+      }
+
+    } else {
+
+      this.selectedLabRooms =
+        this.selectedLabRooms.filter(
+          r => Number(r.id) !== roomId
+        );
+
+      // Release this lab
+      this.releaseResource('room', roomId);
+    }
+  }
+
+  getSelectedRoomCapacity(): number {
+    if (this.lectureType === 'P') {
+      return this.selectedLabRooms.reduce(
+        (total, room) =>
+          total + Number(room.capacity || 0),
+        0
+      );
+    }
+
+    return Number(this.selectedRoom?.capacity || 0);
+  }
 
   // ==================================================
   // CANCEL
