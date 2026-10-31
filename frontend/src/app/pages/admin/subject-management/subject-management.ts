@@ -6,6 +6,8 @@ import { SubjectService } from '../../../services/subject';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef } from '@angular/core';
 import { ProgramService } from '../../../services/program';
+import { DepartmentService } from '../../../services/department';
+import { CsvTemplateService } from '../../../services/csv-template';
 @Component({
   selector: 'app-subject-management',
 
@@ -167,6 +169,8 @@ toastMessage = '';
   constructor(
     private subjectService: SubjectService,
     private programService: ProgramService,
+    private departmentService: DepartmentService,
+    private csvTemplateService: CsvTemplateService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef
   ) {}
@@ -243,8 +247,6 @@ toastMessage = '';
 
     this.loadDepartments();
 
-    this.loadSemesters();
-
   }
 
 
@@ -254,32 +256,20 @@ toastMessage = '';
 
   loadDepartments(): void {
 
-    /*
-     * IMPORTANT:
-     *
-     * This API should return departments
-     * available for the selected program.
-     *
-     * Example:
-     *
-     * GET /api/departments?program=BTECH
-     */
+    const programId = Number(this.selectedProgram);
 
-    this.http
-      .get<any[]>(
-        'http://localhost:5000/api/departments',
-        {
-          params: {
-            program:
-              this.selectedProgram
-          }
-        }
-      )
+    if (!programId || Number.isNaN(programId)) {
+      return;
+    }
+
+    this.departmentService
+      .getDepartmentsByProgram(programId)
       .subscribe({
 
         next: (data) => {
 
           this.departments = data || [];
+
           this.cdr.detectChanges();
 
         },
@@ -291,10 +281,11 @@ toastMessage = '';
             error
           );
 
+          this.departments = [];
+
         }
 
       });
-
   }
 
 
@@ -304,46 +295,43 @@ toastMessage = '';
 
   loadSemesters(): void {
 
-    const selectedProgram = this.programs.find(
-      (program: any) =>
-        program.program_name === this.selectedProgram
-    );
+  const programId = Number(this.selectedProgram);
 
-    if (!selectedProgram) {
+  if (!programId || Number.isNaN(programId)) {
 
-      this.semesters = [];
+    this.semesters = [];
 
-      return;
-
-    }
-
-    this.programService
-      .getSemesters(selectedProgram.id)
-      .subscribe({
-
-        next: (data) => {
-
-          this.semesters = data || [];
-
-          this.cdr.detectChanges();
-
-        },
-
-        error: (error) => {
-
-          console.error(
-            'Failed to load semesters:',
-            error
-          );
-
-          this.semesters = [];
-
-        }
-
-      });
-
+    return;
   }
 
+  this.programService
+    .getSemesters(programId)
+    .subscribe({
+
+      next: (data) => {
+
+        console.log('Program ID:', programId);
+        console.log('Semesters API response:', data);
+
+        this.semesters = data || [];
+
+        this.cdr.detectChanges();
+
+      },
+
+      error: (error) => {
+
+        console.error(
+          'Failed to load semesters:',
+          error
+        );
+
+        this.semesters = [];
+
+      }
+
+    });
+  }
 
   // ==================================================
   // DEPARTMENT CHANGE
@@ -353,10 +341,18 @@ toastMessage = '';
 
     this.selectedSemester = null;
 
+    this.semesters = [];
+
     this.subjects = [];
 
     this.filteredSubjects = [];
 
+
+    if (!this.selectedDepartment) {
+      return;
+    }
+
+    this.loadSemesters();
   }
 
 
@@ -408,12 +404,9 @@ toastMessage = '';
 
         next: (data) => {
 
-          this.subjects =
-            data || [];
-
-          this.cdr.detectChanges();
-
+          this.subjects = data || [];
           this.applySearch();
+          this.cdr.detectChanges();
 
         },
 
@@ -593,10 +586,21 @@ toastMessage = '';
 
   }
 
-
-  // ==================================================
-  // IMPORT CSV
-  // ==================================================
+  downloadSubjectTemplate(): void {
+  this.csvTemplateService.downloadTemplate(
+    'subject_template.csv',
+    [
+      'course_code',
+      'subject_name',
+      'course_type',
+      'elective_group',
+      'L',
+      'T',
+      'P',
+      'credits'
+    ]
+  );
+}
 
 // ==================================================
 // IMPORT SUBJECTS

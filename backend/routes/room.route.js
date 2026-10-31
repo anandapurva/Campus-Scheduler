@@ -99,5 +99,23 @@ router.get(
 
 );
 
+    // Add room
+    router.post(
+        "/",
+        roomController.addRoom
+    );
+
+    // Update room by database ID
+    router.put(
+        "/:id",
+        roomController.updateRoom
+    );
+
+    // Delete room by database ID
+    router.delete(
+        "/:id",
+        roomController.deleteRoom
+    );
+
 
 module.exports = router;

@@ -1,262 +1,36 @@
-<div class="admin-layout">
-
-  <!-- ================= SIDEBAR ================= -->
-
-  <aside class="sidebar">
-
-    <!-- Logo -->
-
-    <div class="logo">
-
-      <h2>
-        Campus Scheduler
-      </h2>
-
-    </div>
-
-
-    <!-- Navigation -->
-
-    <nav>
-
-      <!-- Dashboard -->
-
-      <a
-        routerLink="/admin/dashboard"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }">
-
-        Dashboard
-
-      </a>
-
-
-      <!-- ================= ACADEMICS ================= -->
-
-      <div class="nav-section">
-
-        <span class="nav-title">
-          ACADEMICS
-        </span>
-
-      </div>
-
-
-      <a
-        routerLink="/admin/departments"
-        routerLinkActive="active">
-
-        Departments
-
-      </a>
-
-
-      <a
-        routerLink="/admin/programs"
-        routerLinkActive="active">
-
-        Programs
-
-      </a>
-
-
-      <a
-        routerLink="/admin/faculty"
-        routerLinkActive="active">
-
-        Faculty
-
-      </a>
-
-
-      <a
-        routerLink="/admin/subjects"
-        routerLinkActive="active">
-
-        Subjects
-
-      </a>
-
-
-      <a
-        routerLink="/admin/batches"
-        routerLinkActive="active">
-
-        Batches
-
-      </a>
-
-
-      <a
-        routerLink="/admin/rooms"
-        routerLinkActive="active">
-
-        Rooms
-
-      </a>
-
-
-      <a
-        routerLink="/admin/enrollments"
-        routerLinkActive="active">
-
-        Enrollments
-
-      </a>
-
-
-      <!-- ================= SCHEDULING ================= -->
-
-      <div class="nav-section">
-
-        <span class="nav-title">
-          SCHEDULING
-        </span>
-
-      </div>
-
-
-      <a
-        routerLink="/admin/timetables"
-        routerLinkActive="active">
-
-        Timetables
-
-      </a>
-
-
-      <a
-        routerLink="/admin/conflicts"
-        routerLinkActive="active">
-
-        Conflicts
-
-      </a>
-
-
-      <!-- ================= REQUESTS ================= -->
-
-      <div class="nav-section">
-
-        <span class="nav-title">
-          REQUESTS
-        </span>
-
-      </div>
-
-
-      <a
-        routerLink="/admin/extra-class-requests"
-        routerLinkActive="active">
-
-        Extra Class Requests
-
-      </a>
-
-
-      <!-- ================= SYSTEM ================= -->
-
-      <div class="nav-section">
-
-        <span class="nav-title">
-          SYSTEM
-        </span>
-
-      </div>
-
-
-      <a
-        routerLink="/admin/users"
-        routerLinkActive="active">
-
-        Users
-
-      </a>
-
-
-      <a
-        routerLink="/admin/settings"
-        routerLinkActive="active">
-
-        Settings
-
-      </a>
-
-    </nav>
-
-
-    <!-- Logout -->
-
-    <button class="logout">
-
-      Logout
-
-    </button>
-
-  </aside>
-
-
-
-  <!-- ================= MAIN CONTENT ================= -->
-
-  <main class="main-content">
-
-
-    <!-- ================= TOPBAR ================= -->
-
-    <header class="topbar">
-
-
-      <div>
-
-        <h1>
-          Welcome Admin
-        </h1>
-
-        <p>
-          Campus Schedule Management System
-        </p>
-
-      </div>
-
-
-      <!-- Admin Profile -->
-
-      <div class="admin-profile">
-
-        <span class="avatar">
-          A
-        </span>
-
-
-        <div>
-
-          <strong>
-            Admin
-          </strong>
-
-          <small>
-            Administrator
-          </small>
-
-        </div>
-
-      </div>
-
-    </header>
-
-
-
-    <!-- ================= DASHBOARD CONTENT ================= -->
-
-    <section class="dashboard-content">
-
-
-      <!-- Welcome -->
-
-
-
-
+<!-- ================= DASHBOARD CONTENT ================= -->
+<div class="dashboard-page">
+<div class="academic-session-badge">
+
+    <span class="session-label">
+      Academic Session: 
+    </span>
+
+    <span
+      class="session-value"
+      *ngIf="!academicSessionLoading && academicSessionName"
+    >
+      {{ academicSessionName }}
+    </span>
+
+    <span
+      class="session-value session-error"
+      *ngIf="!academicSessionLoading && !academicSessionName"
+    >
+      {{ academicSessionError || 'Not Active' }}
+    </span>
+
+    <span
+      class="session-value"
+      *ngIf="academicSessionLoading"
+    >
+      Loading...
+    </span>
+
+</div>
+
+
+<section class="dashboard-content">
       <!-- ================= OVERVIEW ================= -->
 
       <h2 class="section-title">
@@ -729,8 +503,7 @@
       </div>
 
 
-    </section>
-
-  </main>
+</section>
 
 </div>
+

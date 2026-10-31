@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth';
 
-
 @Component({
   selector: 'app-login',
 
@@ -22,18 +21,9 @@ import { AuthService } from '../../services/auth';
 })
 export class Login {
 
-  // ==========================================
-  // FORM
-  // ==========================================
-
-  email = '';
+  faculty_id = '';
 
   password = '';
-
-
-  // ==========================================
-  // UI STATE
-  // ==========================================
 
   isLoading = false;
 
@@ -42,34 +32,28 @@ export class Login {
 
   constructor(
     private authService: AuthService,
-
     private router: Router
   ) {}
 
 
-  // ==========================================
-  // LOGIN
-  // ==========================================
-
   login(): void {
 
+    // Clear previous error
     this.errorMessage = '';
 
 
-    // ------------------------------------------
-    // VALIDATION
-    // ------------------------------------------
+    // Check email
+    if (!this.faculty_id.trim()) {
 
-    if (!this.email.trim()) {
+  this.errorMessage =
+    'Please enter your Faculty ID.';
 
-      this.errorMessage =
-        'Please enter your email.';
+  return;
 
-      return;
-
-    }
+}
 
 
+    // Check password
     if (!this.password) {
 
       this.errorMessage =
@@ -80,110 +64,139 @@ export class Login {
     }
 
 
-    // ------------------------------------------
-    // LOADING
-    // ------------------------------------------
-
+    // Show loading
     this.isLoading = true;
 
 
-    // ------------------------------------------
-    // API
-    // ------------------------------------------
-
-    this.authService
-      .login(
-        this.email.trim(),
-        this.password
-      )
-      .subscribe({
-
-        next: (response) => {
-
-          console.log(
-            'LOGIN RESPONSE:',
-            response
-          );
+    console.log(
+      'Sending login request...'
+    );
 
 
-          this.isLoading = false;
+    // Call backend
+    this.authService.login(
+  this.faculty_id.trim(),
+  this.password
+)
+    .subscribe({
+
+      // =====================================
+      // SUCCESS
+      // =====================================
+
+      next: (response) => {
+
+        console.log(
+          'LOGIN RESPONSE:',
+          response
+        );
+
+        this.isLoading = false;
 
 
-          // ------------------------------------
-          // SAVE USER
-          // ------------------------------------
-
-          this.authService.saveUser(
-            response.user
-          );
-
-
-          const user =
-            response.user;
-
-
-          // ------------------------------------
-          // ADMIN
-          // ------------------------------------
-
-          if (
-            user.role === 'ADMIN'
-          ) {
-
-            this.router.navigate([
-              '/admin/dashboard'
-            ]);
-
-            return;
-
-          }
-
-
-          // ------------------------------------
-          // TEACHER
-          // ------------------------------------
-
-          if (
-            user.role === 'TEACHER'
-          ) {
-
-            this.router.navigate([
-              '/teacher/dashboard'
-            ]);
-
-            return;
-
-          }
-
-
-          // ------------------------------------
-          // UNKNOWN ROLE
-          // ------------------------------------
+        // Check user
+        if (!response.user) {
 
           this.errorMessage =
-            'Invalid user role.';
+            'Login response does not contain user information.';
 
-        },
-
-
-        error: (error) => {
-
-          console.error(
-            'LOGIN ERROR:',
-            error
-          );
-
-
-          this.isLoading = false;
-
-
-          this.errorMessage =
-            error.error?.message ||
-            'Invalid email or password.';
+          return;
 
         }
 
-      });
+
+        // Save user
+        this.authService.saveUser(
+          response.user
+        );
+
+
+        const user = response.user;
+
+
+        console.log(
+          'LOGGED IN USER:',
+          user
+        );
+
+
+        // =====================================
+        // ADMIN
+        // =====================================
+
+        if (user.role === 'ADMIN') {
+
+          console.log(
+            'Redirecting to Admin Dashboard'
+          );
+
+          this.router.navigate([
+            '/admin/dashboard'
+          ]);
+
+          return;
+
+        }
+
+
+        // =====================================
+        // TEACHER
+        // =====================================
+
+        if (user.role === 'TEACHER') {
+
+          console.log(
+            'Redirecting to Teacher Dashboard'
+          );
+
+          this.router.navigate([
+            '/teacher/dashboard'
+          ]);
+
+          return;
+
+        }
+
+
+        // =====================================
+        // UNKNOWN ROLE
+        // =====================================
+
+        this.errorMessage =
+          'Unknown user role: ' + user.role;
+
+      },
+
+
+      // =====================================
+      // ERROR
+      // =====================================
+
+      error: (error) => {
+
+        console.error(
+          'LOGIN ERROR:',
+          error
+        );
+
+        this.isLoading = false;
+
+
+        if (error.error?.message) {
+
+          this.errorMessage =
+            error.error.message;
+
+        } else {
+
+          this.errorMessage =
+            'Unable to connect to server.';
+
+        }
+
+      }
+
+    });
 
   }
 

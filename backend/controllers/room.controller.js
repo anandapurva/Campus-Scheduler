@@ -1097,3 +1097,250 @@ exports.getRooms = async (req, res) => {
     }
 
 };
+
+// ==================================================
+// ADD ROOM
+// ==================================================
+
+exports.addRoom = async (req, res) => {
+    try {
+        const {
+            room_id,
+            room_name,
+            room_type,
+            department,
+            capacity
+        } = req.body;
+
+        const normalizedRoomId = String(room_id || '').trim();
+        const normalizedRoomName = String(room_name || '').trim();
+        const normalizedRoomType = String(room_type || '').trim().toUpperCase();
+        const normalizedDepartment = String(department || '').trim().toUpperCase();
+        const normalizedCapacity = Number(capacity);
+
+        if (!normalizedRoomId || !normalizedRoomName ||
+            !normalizedRoomType || !normalizedDepartment ||
+            capacity === '' || capacity === null || capacity === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'All room fields are required'
+            });
+        }
+
+        if (!['L', 'T', 'P'].includes(normalizedRoomType)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Room type must be L, T, or P'
+            });
+        }
+
+        if (!Number.isInteger(normalizedCapacity) || normalizedCapacity <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Capacity must be a positive whole number'
+            });
+        }
+
+        const [existing] = await db.query(
+            'SELECT id FROM rooms WHERE room_id = ? LIMIT 1',
+            [normalizedRoomId]
+        );
+
+        if (existing.length) {
+            return res.status(409).json({
+                success: false,
+                message: `Room ID "${normalizedRoomId}" already exists`
+            });
+        }
+
+        const [result] = await db.query(
+            `INSERT INTO rooms
+                (room_id, room_name, room_type, department, capacity)
+             VALUES (?, ?, ?, ?, ?)`,
+            [
+                normalizedRoomId,
+                normalizedRoomName,
+                normalizedRoomType,
+                normalizedDepartment,
+                normalizedCapacity
+            ]
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: 'Room added successfully',
+            id: result.insertId
+        });
+    } catch (error) {
+        console.error('Add room error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to add room'
+        });
+    }
+};
+
+
+// ==================================================
+// UPDATE ROOM
+// ==================================================
+
+exports.updateRoom = async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        const {
+            room_id,
+            room_name,
+            room_type,
+            department,
+            capacity
+        } = req.body;
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid room ID'
+            });
+        }
+
+        const normalizedRoomId = String(room_id || '').trim();
+        const normalizedRoomName = String(room_name || '').trim();
+        const normalizedRoomType = String(room_type || '').trim().toUpperCase();
+        const normalizedDepartment = String(department || '').trim().toUpperCase();
+        const normalizedCapacity = Number(capacity);
+
+        if (!normalizedRoomId || !normalizedRoomName ||
+            !normalizedRoomType || !normalizedDepartment ||
+            capacity === '' || capacity === null || capacity === undefined) {
+            return res.status(400).json({
+                success: false,
+                message: 'All room fields are required'
+            });
+        }
+
+        if (!['L', 'T', 'P'].includes(normalizedRoomType)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Room type must be L, T, or P'
+            });
+        }
+
+        if (!Number.isInteger(normalizedCapacity) || normalizedCapacity <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Capacity must be a positive whole number'
+            });
+        }
+
+        const [room] = await db.query(
+            'SELECT id FROM rooms WHERE id = ? LIMIT 1',
+            [id]
+        );
+
+        if (!room.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'Room not found'
+            });
+        }
+
+        const [duplicate] = await db.query(
+            'SELECT id FROM rooms WHERE room_id = ? AND id != ? LIMIT 1',
+            [normalizedRoomId, id]
+        );
+
+        if (duplicate.length) {
+            return res.status(409).json({
+                success: false,
+                message: `Room ID "${normalizedRoomId}" already exists`
+            });
+        }
+
+        await db.query(
+            `UPDATE rooms
+             SET room_id = ?,
+                 room_name = ?,
+                 room_type = ?,
+                 department = ?,
+                 capacity = ?,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [
+                normalizedRoomId,
+                normalizedRoomName,
+                normalizedRoomType,
+                normalizedDepartment,
+                normalizedCapacity,
+                id
+            ]
+        );
+
+        return res.json({
+            success: true,
+            message: 'Room updated successfully'
+        });
+    } catch (error) {
+        console.error('Update room error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update room'
+        });
+    }
+};
+
+
+// ==================================================
+// DELETE ROOM
+// ==================================================
+
+exports.deleteRoom = async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid room ID'
+            });
+        }
+
+        const [room] = await db.query(
+            'SELECT id FROM rooms WHERE id = ? LIMIT 1',
+            [id]
+        );
+
+        if (!room.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'Room not found'
+            });
+        }
+
+        await db.query(
+            'DELETE FROM rooms WHERE id = ?',
+            [id]
+        );
+
+        return res.json({
+            success: true,
+            message: 'Room deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete room error:', error);
+
+        // A foreign-key constraint may prevent deleting a room
+        // that is referenced by timetable data.
+        if (error.code === 'ER_ROW_IS_REFERENCED_2' ||
+            error.code === 'ER_ROW_IS_REFERENCED') {
+            return res.status(409).json({
+                success: false,
+                message: 'This room is referenced by timetable data and cannot be deleted.'
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to delete room'
+        });
+    }
+};

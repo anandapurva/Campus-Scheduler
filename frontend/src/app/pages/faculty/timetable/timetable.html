@@ -70,6 +70,7 @@
           ">
 
 
+          
           <!-- =================================================
                DAY NAME
                ================================================= -->
@@ -98,7 +99,7 @@
             class="schedule-cell"
 
             [class.has-class]="
-              timetable[dayIndex][slotIndex].data
+              timetable[dayIndex][slotIndex].data.length > 0
             "
 
             [class.lunch-slot]="
@@ -136,7 +137,7 @@
             >
 
               <div class="lunch-text">
-
+                
                 LUNCH
 
               </div>
@@ -154,7 +155,7 @@
                   timetable[dayIndex][slotIndex].slot
                 )
                 &&
-                !timetable[dayIndex][slotIndex].data
+                timetable[dayIndex][slotIndex].data.length === 0
               "
 
               class="empty-cell"
@@ -168,7 +169,7 @@
 
 
             <!-- =================================================
-                 CLASS CONTENT
+                 CELL WITH ONE OR MORE CLASSES
                  ================================================= -->
 
             <div
@@ -177,127 +178,169 @@
                   timetable[dayIndex][slotIndex].slot
                 )
                 &&
-                timetable[dayIndex][slotIndex].data
+                timetable[dayIndex][slotIndex].data.length > 0
               "
 
               class="class-content"
             >
 
 
-              <!-- ===============================================
-                   SUBJECT CODE
-                   =============================================== -->
-
-              <div class="subject-code">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.subjectCode
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   SUBJECT NAME
-                   =============================================== -->
-
-              <div class="subject-name">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.subjectName
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   LECTURE TYPE
-                   =============================================== -->
-
-              <div class="lecture-type">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.lectureType
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   BATCHES
-                   =============================================== -->
+              <!-- =================================================
+                   EACH TIMETABLE ENTRY
+                   ================================================= -->
 
               <div
-                class="batch-info"
-
-                *ngIf="
-                  timetable[dayIndex][slotIndex]
-                    .data.batches?.length
+                *ngFor="
+                  let entry of timetable[dayIndex][slotIndex].data;
+                  let entryIndex = index;
+                  let entryLast = last
                 "
+                class="timetable-entry"
+                (click)="
+                    editTimetableEntry(
+                      timetable[dayIndex][slotIndex],
+                      entry
+                    );
+                    $event.stopPropagation()
+                  "
               >
 
-                <ng-container
-                  *ngFor="
-                    let batch of
-                    timetable[dayIndex][slotIndex]
-                      .data.batches
-                  "
-                >
+                <div class="timetable-cell-text">
 
-                  {{ batch.name }}
 
-                </ng-container>
+                  <!-- ============================================
+                       LECTURE TYPE
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.lectureType"
+                    class="lecture-type-text"
+                  >
+                    {{ entry.lectureType }}
+                  </span>
+
+
+                  <!-- ============================================
+                       BATCH CODES
+                       ============================================ -->
+
+                  <ng-container
+                    *ngIf="
+                      entry.batches &&
+                      entry.batches.length > 0
+                    "
+                  >
+
+                    <ng-container
+                      *ngFor="
+                        let batch of entry.batches;
+                        let batchLast = last
+                      "
+                    >
+
+                      <span class="batch-text">
+                        {{ batch.batch_code }}
+                      </span>
+
+                      <span
+                        *ngIf="!batchLast"
+                      >
+                        ,
+                      </span>
+
+                    </ng-container>
+
+                  </ng-container>
+
+
+                  <!-- ============================================
+                       SUBJECT CODE
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.subjectCode"
+                  >
+                    ({{ entry.subjectCode }})
+                  </span>
+
+
+                  <!-- ============================================
+                       ROOM
+                       ============================================ -->
+
+                  <span
+                    *ngIf="entry.room"
+                  >
+                    -{{ entry.room }}
+                  </span>
+
+
+                  <!-- ============================================
+                       TEACHERS
+                       ============================================ -->
+
+                  <ng-container
+                    *ngIf="
+                      entry.teachers &&
+                      entry.teachers.length > 0
+                    "
+                  >
+
+                    <span>
+                      /
+                    </span>
+
+                    <ng-container
+                      *ngFor="
+                        let teacher of entry.teachers;
+                        let teacherLast = last
+                      "
+                    >
+
+                      <span>
+                        {{ teacher.abbreviation }}
+                      </span>
+
+                      <span
+                        *ngIf="!teacherLast"
+                      >
+                        ,
+                      </span>
+
+                    </ng-container>
+
+                  </ng-container>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     SEPARATOR BETWEEN MULTIPLE CLASSES
+                     ================================================= -->
+
+                <div
+                  *ngIf="!entryLast"
+                  class="class-separator"
+                ></div>
+
 
               </div>
 
 
-              <!-- ===============================================
-                   ROOM
-                   =============================================== -->
-
-              <div class="room-info">
-
-                {{
-                  timetable[dayIndex][slotIndex]
-                    .data.room
-                }}
-
-              </div>
-
-
-              <!-- ===============================================
-                   TEACHER
-                   =============================================== -->
+              <!-- =================================================
+                   ADD ANOTHER ENTRY INDICATOR
+                   ================================================= -->
 
               <div
-                class="teacher-info-small"
-
-                *ngIf="
-                  timetable[dayIndex][slotIndex]
-                    .data.teachers?.length
-                "
+                *ngIf="canEdit"
+                class="add-entry-indicator"
               >
-
-                <ng-container
-                  *ngFor="
-                    let teacher of
-                    timetable[dayIndex][slotIndex]
-                      .data.teachers
-                  "
-                >
-
-                  {{ teacher.abbreviation }}
-
-                </ng-container>
-
+                +
               </div>
 
 
             </div>
-
 
           </td>
 
@@ -314,69 +357,280 @@
        FOOTER / LEGEND
        ===================================================== -->
 
-  <div class="timetable-footer">
+ 
+<div class="timetable-footer">
 
-
+  <div class="timetable-footer-info">
     <span>
       <strong>L</strong> = Lecture
     </span>
-
 
     <span>
       <strong>T</strong> = Tutorial
     </span>
 
-
     <span>
       <strong>P</strong> = Practical
     </span>
-
 
     <span>
       Faculty: {{ teacherName }}
     </span>
 
-
     <span
       [class.edit-status]="canEdit"
       [class.view-status]="!canEdit"
     >
-
       {{ canEdit ? 'Edit Access' : 'View Only' }}
-
     </span>
+  </div>
 
+<div class="timetable-final">
 
-    <!-- LUNCH INFORMATION -->
+  <!-- LEFT SIDE: Download button -->
+  <div class="download-actions">
 
-    <span
-      *ngIf="lunchStart && lunchEnd"
-      class="lunch-info"
-    >
+    <!-- Before finalization: Excel -->
+    <button
+      *ngIf="!isFinalized"
+      type="button"
+      class="download-excel-button"
+      (click)="downloadTimetableExcel()">
 
-      Lunch:
-      {{ lunchStart }}
-      -
-      {{ lunchEnd }}
+      <span class="excel-icon">📗</span>
+      Download Timetable Excel
+    </button>
 
-    </span>
+    <!-- After finalization: PDF -->
+    <button
+      *ngIf="isFinalized"
+      type="button"
+      class="download-pdf-button"
+      (click)="downloadTimetablePDF()">
 
+      <i class="fas fa-file-pdf"></i>
+      Download Timetable PDF
+    </button>
 
   </div>
+
+  <!-- RIGHT SIDE: Finalize / Unfinalize -->
+  <div class="finalize-actions">
+
+    <button
+      *ngIf="!isFinalized"
+      type="button"
+      class="btn-finalize"
+      [disabled]="finalizeLoading"
+      (click)="finalizeTimetable()">
+
+      <span class="btn-icon" aria-hidden="true">🔒</span>
+      <span>
+        {{ finalizeLoading ? 'Validating timetable...' : 'Finalize Timetable' }}
+      </span>
+      <span class="btn-arrow" aria-hidden="true">→</span>
+    </button>
+
+    <button
+      *ngIf="isFinalized"
+      type="button"
+      class="btn-unfinalize"
+      (click)="unfinalizeTimetable()">
+
+      <span aria-hidden="true">🔓</span>
+      Unfinalize Timetable
+    </button>
+
+  </div>
+
+</div>
+
+
+
+</div>
+
+
+
+<!-- Timetable Validation Modal -->
+<div
+  class="validation-modal-backdrop"
+  *ngIf="showValidationModal"
+  (click)="closeValidationModal()"
+>
+  <section
+    class="validation-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="validation-modal-title"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <header class="validation-modal-header">
+      <div class="validation-header-icon">
+        <span>!</span>
+      </div>
+
+      <div class="validation-header-text">
+        <h2 id="validation-modal-title">
+          Timetable validation failed
+        </h2>
+        <p>
+          Resolve the issues below before finalizing this timetable.
+        </p>
+      </div>
+    </header>
+
+    <!-- Summary -->
+    <div class="validation-summary">
+      <div class="validation-summary-icon">
+        &#9888;
+      </div>
+
+      <div>
+        <strong>
+          {{ validationErrors.length }}
+          {{ validationErrors.length === 1 ? 'issue' : 'issues' }}
+          found
+        </strong>
+        <p>{{ validationMessage }}</p>
+      </div>
+    </div>
+
+    <!-- Error List -->
+    <div class="validation-modal-body">
+      <article
+        class="validation-error-card"
+        *ngFor="let error of validationErrors; let i = index"
+      >
+        <!-- Errors such as NO_BATCHES -->
+        <ng-container *ngIf="error.type; else subjectError">
+          <div class="validation-error-title">
+            <span class="validation-error-number">
+              {{ i + 1 }}
+            </span>
+
+            <div>
+<h3>
+  {{
+    error.type === 'NO_BATCHES'
+      ? 'No active batches found'
+      : error.type === 'GENERAL'
+        ? 'Unable to finalize timetable'
+        : 'Validation issue'
+  }}
+</h3>
+              <p>{{ error.message }}</p>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Subject hour validation -->
+        <ng-template #subjectError>
+          <div class="validation-error-title">
+            <span class="validation-error-number">
+              {{ i + 1 }}
+            </span>
+
+            <div class="validation-subject-heading">
+              <h3>
+                {{ error.batchCode || ('Batch ' + error.batchId) }}
+              </h3>
+
+              <p class="validation-course-name">
+                {{ error.subjectName || 'Subject' }}
+              </p>
+
+              <span class="validation-course-code">
+                {{ error.courseCode }}
+              </span>
+            </div>
+          </div>
+
+          <div class="validation-hours">
+            <div
+              class="validation-hour-row"
+              *ngFor="let type of ['L', 'T', 'P']"
+            >
+              <div class="validation-hour-label">
+                <span class="validation-type-badge">
+                  {{ type }}
+                </span>
+
+                <span>
+                  {{
+                    type === 'L'
+                      ? 'Lectures'
+                      : type === 'T'
+                        ? 'Tutorials'
+                        : 'Practicals'
+                  }}
+                </span>
+              </div>
+
+              <div class="validation-hour-details">
+                <span class="validation-hour-count">
+                  {{ error.scheduled?.[type] ?? 0 }}
+                  /
+                  {{ error.required?.[type] ?? 0 }}
+                </span>
+
+                <span
+                  *ngIf="(error.missing?.[type] ?? 0) > 0"
+                  class="validation-status missing"
+                >
+                  Missing {{ error.missing[type] }}
+                </span>
+
+                <span
+                  *ngIf="(error.excess?.[type] ?? 0) > 0"
+                  class="validation-status excess"
+                >
+                  Excess {{ error.excess[type] }}
+                </span>
+
+                <span
+                  *ngIf="
+                    (error.missing?.[type] ?? 0) === 0 &&
+                    (error.excess?.[type] ?? 0) === 0
+                  "
+                  class="validation-status complete"
+                >
+                  Complete
+                </span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+
+    <!-- Footer -->
+    <footer class="validation-modal-footer">
+      <p>
+        <span class="validation-footer-dot"></span>
+        Timetable status remains DRAFT until validation passes.
+      </p>
+
+      <button
+        type="button"
+        class="validation-review-btn"
+        (click)="closeValidationModal()"
+      >
+        <span aria-hidden="true">&#8592;</span>
+        Close and review timetable
+      </button>
+    </footer>
+  </section>
+</div>
 
 
   <!-- =====================================================
        CLASS EDITOR MODAL
        ===================================================== -->
 
-  <div
-    class="modal-backdrop"
-    *ngIf="showEditor"
-  >
-
+  <div class="modal-backdrop" *ngIf="showEditor">
 
     <div class="editor-modal">
-
 
       <!-- =================================================
            MODAL HEADER
@@ -388,7 +642,8 @@
         <div>
 
           <h2>
-            Add Class
+            {{ editingEntry ? 'Edit Class' : 'Add Class' }}
+
           </h2>
 
 
@@ -405,15 +660,16 @@
         </div>
 
 
-        <!-- CLOSE -->
+         <!-- CLOSE -->
 
         <button
           type="button"
-
+          
           class="close-button"
 
           (click)="closeEditor()"
         >
+
 
           ×
 
@@ -428,15 +684,22 @@
            ================================================= -->
 
       <app-class-editor
-          [selectedCell]="selectedCell"
+        *ngIf="showEditor && academicSessionId != null"
+        [availableTimeSlots]="timeSlots"
+        [selectedCell]="selectedCell"
+        [nextSlot]="getNextSlot(selectedCell)"
+        [program]="program"
+        [semester]="semester"
+        [academicSessionStartYear]="academicSessionStartYear"
+        [academicSessionId]="academicSessionId"
+        [department]="department"
+        [editingEntry]="editingEntry"
+        (save)="saveCell($event)"
+        (cancel)="closeEditor()"
+        (delete)="onDelete($event)"
+        
 
-          [department]="department"
-
-          (save)="saveCell($event)"
-
-          (cancel)="closeEditor()">
-
-    </app-class-editor>
+      ></app-class-editor>
 
 
     </div>

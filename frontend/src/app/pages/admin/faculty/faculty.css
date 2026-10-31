@@ -1,7 +1,14 @@
 .faculty-page {
-  min-height: 100vh;
-  background: #f5f7fb;
-  padding: 35px;
+  width: 100%;
+  max-width: none;
+
+  margin: 0;
+  padding: 0;
+
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+
+  box-sizing: border-box;
 }
 
 
@@ -1441,4 +1448,25 @@ table td:last-child {
 
 .suggestion-buttons button:hover {
   background: #e2e8f0;
+}
+
+.download-template-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.download-template-button:hover {
+  background: #2563eb;
+  color: #fff;
 }

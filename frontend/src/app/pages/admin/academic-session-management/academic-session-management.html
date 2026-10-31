@@ -1,0 +1,129 @@
+<div class="academic-session-container">
+
+  <h2>Academic Session Management</h2>
+
+  <div *ngIf="message" class="success-message">
+    {{ message }}
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <div class="add-session-card">
+
+    <h3>Add Academic Session</h3>
+
+    <div class="form-row">
+
+      <div>
+        <label>Start Year</label>
+
+        <input
+          type="number"
+          [(ngModel)]="sessionForm.start_year"
+          (ngModelChange)="generateSessionName()"
+          placeholder="2027"
+        />
+      </div>
+
+      <div>
+        <label>End Year</label>
+
+        <input
+          type="number"
+          [(ngModel)]="sessionForm.end_year"
+          readonly
+        />
+      </div>
+
+      <div>
+        <label>Session Name</label>
+
+        <input
+          type="text"
+          [(ngModel)]="sessionForm.session_name"
+          readonly
+        />
+      </div>
+
+      <button
+        type="button"
+        (click)="addSession()"
+        [disabled]="saving"
+      >
+        {{ saving ? 'Saving...' : 'Add Session' }}
+      </button>
+
+    </div>
+  </div>
+
+  <div class="session-list-card">
+
+    <h3>Available Academic Sessions</h3>
+
+    <p *ngIf="loading">Loading sessions...</p>
+
+    <table *ngIf="!loading && sessions.length > 0">
+
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Start Year</th>
+          <th>End Year</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr *ngFor="let session of sessions">
+
+          <td>{{ session.session_name }}</td>
+
+          <td>{{ session.start_year }}</td>
+
+          <td>{{ session.end_year }}</td>
+
+          <td>
+            <span
+              [class.active-status]="session.is_active"
+              [class.inactive-status]="!session.is_active"
+            >
+              {{ session.is_active ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+
+          <td>
+            <button
+              *ngIf="!session.is_active"
+              type="button"
+              (click)="activateSession(session.id)"
+            >
+              Activate
+            </button>
+
+            <span *ngIf="session.is_active">
+              Currently Active
+            </span>
+          </td>
+
+        </tr>
+      </tbody>
+
+    </table>
+
+    <p *ngIf="!loading && sessions.length === 0">
+      No academic sessions found.
+    </p>
+
+    <button
+      type="button"
+      (click)="deactivateAll()"
+    >
+      Deactivate All
+    </button>
+
+  </div>
+
+</div>

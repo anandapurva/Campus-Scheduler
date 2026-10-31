@@ -1,0 +1,290 @@
+<div class="program-management">
+
+  <!-- ========================================= -->
+  <!-- PAGE HEADER -->
+  <!-- ========================================= -->
+
+  <div class="page-header">
+
+    <div>
+      <div class="page-label">
+        PROGRAM MASTER
+      </div>
+
+      <h2>Program</h2>
+
+      <p>
+        {{ programs.length }} program records
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="add-btn"
+      (click)="openAddForm()"
+    >
+      + Add Program
+    </button>
+
+  </div>
+
+
+  <!-- ========================================= -->
+  <!-- PROGRAM TABLE -->
+  <!-- ========================================= -->
+
+  <div class="table-card">
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>ID</th>
+
+          <th>Program</th>
+
+          <th>Total Semesters</th>
+
+          <th>Status</th>
+
+          <th>Actions</th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr
+          *ngFor="let program of programs"
+        >
+
+          <td>
+            {{ program.id }}
+          </td>
+
+          <td class="program-name">
+            {{ program.program_name }}
+          </td>
+
+          <td>
+            {{ program.total_semesters }}
+          </td>
+
+          <td>
+
+            <span
+              class="status-badge"
+              [class.active]="program.is_active == 1"
+              [class.inactive]="program.is_active != 1"
+            >
+              {{
+                program.is_active == 1
+                  ? 'Active'
+                  : 'Inactive'
+              }}
+            </span>
+
+          </td>
+
+          <td class="actions">
+
+            <button
+              type="button"
+              class="edit-btn"
+              (click)="editProgram(program)"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              class="status-btn"
+              (click)="toggleStatus(program)"
+            >
+              {{
+                program.is_active == 1
+                  ? 'Deactivate'
+                  : 'Activate'
+              }}
+            </button>
+
+          </td>
+
+        </tr>
+
+
+        <tr
+          *ngIf="programs.length === 0"
+        >
+
+          <td
+            colspan="5"
+            class="empty-row"
+          >
+            No programs found.
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <!-- ========================================= -->
+  <!-- ADD / EDIT PROGRAM MODAL -->
+  <!-- ========================================= -->
+
+  <div
+    class="modal-overlay"
+    *ngIf="showForm"
+    (click)="closeForm()"
+  >
+
+    <div
+      class="modal-card"
+      (click)="$event.stopPropagation()"
+    >
+
+      <!-- MODAL HEADER -->
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="modal-label">
+            PROGRAM MASTER
+          </div>
+
+          <h3>
+            {{
+              editingId
+                ? 'Edit Program'
+                : 'Add Program'
+            }}
+          </h3>
+
+        </div>
+
+        <button
+          type="button"
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- MODAL BODY -->
+
+      <div class="modal-body">
+
+        <!-- PROGRAM NAME -->
+
+        <div class="form-group">
+
+          <label>
+            Program Name
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="programName"
+            placeholder="e.g. M.Tech"
+          >
+
+        </div>
+
+
+        <!-- TOTAL SEMESTERS -->
+
+        <div class="form-group">
+
+          <label>
+            Total Semesters
+          </label>
+
+          <input
+            type="number"
+            min="1"
+            [(ngModel)]="totalSemesters"
+            placeholder="e.g. 4"
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- MODAL FOOTER -->
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="save-btn"
+          (click)="saveProgram()"
+        >
+          {{
+            editingId
+              ? 'Update Program'
+              : 'Add Program'
+          }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ============================= -->
+<!-- TOAST NOTIFICATION -->
+<!-- ============================= -->
+
+<div
+  class="toast"
+  *ngIf="toastVisible"
+  [class.success]="toastType === 'success'"
+  [class.error]="toastType === 'error'"
+>
+
+  <div class="toast-icon">
+
+    {{ toastType === 'success' ? '✓' : '!' }}
+
+  </div>
+
+  <div class="toast-message">
+
+    {{ toastMessage }}
+
+  </div>
+
+  <button
+    type="button"
+    class="toast-close"
+    (click)="toastVisible = false"
+  >
+    ×
+  </button>
+
+</div>
+</div>

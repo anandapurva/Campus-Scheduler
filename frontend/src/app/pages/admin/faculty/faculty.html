@@ -26,16 +26,21 @@
     <h2>
       Upload Faculty CSV
     </h2>
-
-    <p class="description">
-
-      Your CSV must contain these columns:
-
+    
       <strong>
-        faculty_id, name, abbreviation, department
+        Required CSV Columns: 
       </strong>
 
-    </p>
+      <code>
+        faculty_id, name, abbreviation, department
+      </code>
+
+      <button type="button" class="download-template-button"
+        (click)="downloadFacultyTemplate()">
+        Download CSV Template
+      </button>
+
+    
 
 
     <!-- FILE INPUT -->

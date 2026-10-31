@@ -15,10 +15,10 @@ exports.getDashboardStats = async (req, res) => {
             WHERE is_active = 1
         `);
 
-        // const [batches] = await db.query(`
-        //     SELECT COUNT(*) AS count
-        //     FROM batches
-        // `);
+        const [batches] = await db.query(`
+            SELECT COUNT(*) AS count
+            FROM batches
+        `);
 
         const [rooms] = await db.query(`
             SELECT COUNT(*) AS count
@@ -33,7 +33,7 @@ exports.getDashboardStats = async (req, res) => {
         return res.json({
             success: true,
             programs: Number(programs[0].count),
-            // batches: Number(batches[0].count),
+            batches: Number(batches[0].count),
             rooms: Number(rooms[0].count),
             faculty: Number(faculty[0].count)
         });

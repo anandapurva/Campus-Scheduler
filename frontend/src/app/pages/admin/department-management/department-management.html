@@ -1,0 +1,380 @@
+<div class="department-management">
+
+  <!-- ========================================= -->
+  <!-- HEADER -->
+  <!-- ========================================= -->
+
+  <div class="page-header">
+
+    <div>
+
+      <div class="page-label">
+        DEPARTMENT MASTER
+      </div>
+
+      <h2>
+        Department
+      </h2>
+
+      <p>
+        {{ departments.length }} department records
+      </p>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="add-btn"
+      (click)="openAddForm()"
+    >
+      + Add Department
+    </button>
+
+  </div>
+
+
+  <!-- ========================================= -->
+  <!-- PROGRAM FILTER -->
+  <!-- ========================================= -->
+
+  <div class="filter-card">
+
+    <div class="filter-group">
+
+      <label>
+        Filter by Program
+      </label>
+
+      <select
+        [(ngModel)]="selectedProgramFilter"
+        (change)="onProgramFilterChange()"
+      >
+
+        <option value="">
+          All Programs
+        </option>
+
+        <option
+          *ngFor="let program of programs"
+          [value]="program.id"
+        >
+          {{ program.program_name }}
+        </option>
+
+      </select>
+
+    </div>
+
+  </div>
+
+
+  <!-- ========================================= -->
+  <!-- DEPARTMENT TABLE -->
+  <!-- ========================================= -->
+
+  <div class="table-card">
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>ID</th>
+
+          <th>Department</th>
+
+          <th>Abbreviation</th>
+
+          <th *ngIf="!selectedProgramFilter">
+            Program
+          </th>
+
+          <th>Status</th>
+
+          <th>Actions</th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr
+          *ngFor="let department of departments"
+        >
+
+          <td>
+            {{ department.id }}
+          </td>
+
+          <td class="department-name">
+            {{ department.name }}
+          </td>
+
+          <td>
+            {{ department.abbreviation }}
+          </td>
+
+          <td *ngIf="!selectedProgramFilter">
+            {{ department.program_names || '-' }}
+          </td>
+
+          <td>
+
+            <span
+              class="status-badge"
+              [class.active]="department.is_active == 1"
+              [class.inactive]="department.is_active != 1"
+            >
+              {{
+                department.is_active == 1
+                  ? 'Active'
+                  : 'Inactive'
+              }}
+            </span>
+
+          </td>
+
+          <td class="actions">
+
+            <button
+              type="button"
+              class="edit-btn"
+              (click)="editDepartment(department)"
+            >
+              Edit
+            </button>
+
+            <button
+              type="button"
+              class="status-btn"
+              (click)="toggleStatus(department)"
+            >
+              {{
+                department.is_active == 1
+                  ? 'Deactivate'
+                  : 'Activate'
+              }}
+            </button>
+
+          </td>
+
+        </tr>
+
+
+        <tr
+          *ngIf="departments.length === 0"
+        >
+
+          <td
+            [attr.colspan]="
+              selectedProgramFilter ? 5 : 6
+            "
+            class="empty-row"
+          >
+            No departments found.
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+
+  <!-- ========================================= -->
+  <!-- ADD / EDIT DEPARTMENT MODAL -->
+  <!-- ========================================= -->
+
+  <div
+    class="modal-overlay"
+    *ngIf="showForm"
+    (click)="closeForm()"
+  >
+
+    <div
+      class="modal-card"
+      (click)="$event.stopPropagation()"
+    >
+
+      <!-- HEADER -->
+
+      <div class="modal-header">
+
+        <div>
+
+          <div class="modal-label">
+            DEPARTMENT MASTER
+          </div>
+
+          <h3>
+            {{
+              editingId
+                ? 'Edit Department'
+                : 'Add Department'
+            }}
+          </h3>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="close-btn"
+          (click)="closeForm()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <!-- BODY -->
+
+      <div class="modal-body">
+
+        <!-- DEPARTMENT NAME -->
+
+        <div class="form-group">
+
+          <label>
+            Department Name
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="departmentName"
+            placeholder="Computer Science and Engineering"
+          >
+
+        </div>
+
+
+        <!-- ABBREVIATION -->
+
+        <div class="form-group">
+
+          <label>
+            Abbreviation
+          </label>
+
+          <input
+            type="text"
+            [(ngModel)]="abbreviation"
+            placeholder="CSE"
+          >
+
+        </div>
+
+
+        <!-- PROGRAMS -->
+
+        <div class="form-group">
+
+          <label>
+            Programs
+          </label>
+
+          <div class="program-list">
+
+            <label
+              *ngFor="let program of programs"
+              class="program-option"
+            >
+
+              <input
+                type="checkbox"
+                [checked]="
+                  isProgramSelected(
+                    toNumber(program.id)
+                  )
+                "
+                (change)="
+                  toggleProgram(
+                    toNumber(program.id)
+                  )
+                "
+              >
+
+              <span>
+                {{ program.program_name }}
+              </span>
+
+            </label>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- FOOTER -->
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          (click)="closeForm()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="save-btn"
+          (click)="saveDepartment()"
+        >
+          {{
+            editingId
+              ? 'Update Department'
+              : 'Add Department'
+          }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+<!-- ============================= -->
+<!-- TOAST NOTIFICATION -->
+<!-- ============================= -->
+
+<div
+  class="toast"
+  *ngIf="toastVisible"
+  [class.success]="toastType === 'success'"
+  [class.error]="toastType === 'error'"
+>
+
+  <div class="toast-icon">
+
+    {{ toastType === 'success' ? '✓' : '!' }}
+
+  </div>
+
+  <div class="toast-message">
+
+    {{ toastMessage }}
+
+  </div>
+
+  <button
+    type="button"
+    class="toast-close"
+    (click)="toastVisible = false"
+  >
+    ×
+  </button>
+
+</div>
+
+</div>

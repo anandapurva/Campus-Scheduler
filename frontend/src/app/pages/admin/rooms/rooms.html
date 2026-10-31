@@ -37,9 +37,16 @@
 
       CSV must contain:
 
-      <strong>
+      <code>
         room_id, room_name, room_type, capacity, department
-      </strong>
+      </code>
+
+      <button
+        type="button"
+        class="download-template-button"
+        (click)="downloadRoomTemplate()">
+        Download CSV Template
+      </button>
 
     </p>
 
@@ -433,20 +440,17 @@
 
 
     <div class="list-header">
-
       <div>
-
-        <h2>
-          Rooms
-        </h2>
-
-        <p>
-          {{ filteredRooms.length }}
-          rooms found
-        </p>
-
+        <h2>Rooms</h2>
+        <p>{{ filteredRooms.length }} rooms found</p>
       </div>
 
+      <button
+        type="button"
+        class="add-room-button"
+        (click)="openAddRoom()">
+        <span>+</span> Add Room
+      </button>
     </div>
 
 
@@ -592,6 +596,8 @@
               Status
             </th>
 
+            <th>Actions</th>
+
           </tr>
 
         </thead>
@@ -676,6 +682,22 @@
 
             </td>
 
+            <td class="actions-cell">
+              <button
+                type="button"
+                class="edit-button"
+                (click)="editRoom(room)">
+                Edit
+              </button>
+
+              <button
+                type="button"
+                class="delete-button"
+                (click)="deleteRoom(room)">
+                Delete
+              </button>
+            </td>
+
           </tr>
 
 
@@ -683,7 +705,7 @@
             *ngIf="filteredRooms.length === 0">
 
             <td
-              colspan="6"
+              colspan="7"
               class="no-data">
 
               No rooms found.
@@ -744,7 +766,166 @@
 
   </div>
 
+<!-- ==========================================
+     ADD / EDIT ROOM MODAL
+     ========================================== -->
 
+<div
+  class="room-modal-overlay"
+  *ngIf="isRoomModalOpen"
+  (click)="closeRoomModal()">
+
+  <div
+    class="room-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="roomModalTitle"
+    (click)="$event.stopPropagation()">
+
+    <div class="room-modal-header">
+      <div>
+        <h2 id="roomModalTitle">
+          {{ isEditingRoom ? 'Edit Room' : 'Add Room' }}
+        </h2>
+
+        <p>
+          {{
+            isEditingRoom
+              ? 'Update the room details below.'
+              : 'Enter the details for the new room.'
+          }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close"
+        aria-label="Close"
+        [disabled]="isSavingRoom"
+        (click)="closeRoomModal()">
+        ×
+      </button>
+    </div>
+
+    <form
+      #roomFormRef="ngForm"
+      (ngSubmit)="saveRoom()">
+
+      <div class="room-form-grid">
+
+        <div class="room-form-group">
+          <label for="roomId">Room ID *</label>
+          <input
+            id="roomId"
+            type="text"
+            name="room_id"
+            [(ngModel)]="roomForm.room_id"
+            placeholder="e.g. CR-101"
+            required
+            maxlength="50"
+            #roomIdRef="ngModel" />
+
+          <small
+            class="field-error"
+            *ngIf="roomIdRef.invalid && roomIdRef.touched">
+            Room ID is required.
+          </small>
+        </div>
+
+        <div class="room-form-group">
+          <label for="roomName">Room Name *</label>
+          <input
+            id="roomName"
+            type="text"
+            name="room_name"
+            [(ngModel)]="roomForm.room_name"
+            placeholder="e.g. Computer Lab 1"
+            required
+            maxlength="100"
+            #roomNameRef="ngModel" />
+
+          <small
+            class="field-error"
+            *ngIf="roomNameRef.invalid && roomNameRef.touched">
+            Room name is required.
+          </small>
+        </div>
+
+        <div class="room-form-group">
+          <label for="roomType">Room Type *</label>
+          <select
+            id="roomType"
+            name="room_type"
+            [(ngModel)]="roomForm.room_type"
+            required>
+
+            <option value="L">L - Lecture</option>
+            <option value="T">T - Tutorial</option>
+            <option value="P">P - Practical</option>
+          </select>
+        </div>
+
+        <div class="room-form-group">
+          <label for="roomCapacity">Capacity *</label>
+          <input
+            id="roomCapacity"
+            type="number"
+            name="capacity"
+            [(ngModel)]="roomForm.capacity"
+            min="1"
+            step="1"
+            placeholder="e.g. 60"
+            required />
+        </div>
+
+        <div class="room-form-group full-width">
+          <label for="roomDepartment">Department *</label>
+          <select
+            id="roomDepartment"
+            name="department"
+            [(ngModel)]="roomForm.department"
+            required>
+
+            <option value="ALL">ALL Departments</option>
+
+            <option
+              *ngFor="let department of departments"
+              [value]="department">
+              {{ department }}
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="room-modal-actions">
+        <button
+          type="button"
+          class="cancel-button"
+          [disabled]="isSavingRoom"
+          (click)="closeRoomModal()">
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="save-room-button"
+          [disabled]="isSavingRoom || roomFormRef.invalid">
+
+          {{
+            isSavingRoom
+              ? 'Saving...'
+              : isEditingRoom
+                ? 'Update Room'
+                : 'Add Room'
+          }}
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
 
   <!-- ==========================================
        TOAST
