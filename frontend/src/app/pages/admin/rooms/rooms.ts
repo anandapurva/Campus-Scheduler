@@ -68,6 +68,8 @@ export class Rooms implements OnInit {
 
   selectedStatus = 'ALL';
 
+  selectedBuilding = 'ALL';
+
 
   // ==========================================
   // ADD / EDIT ROOM FORM
@@ -82,6 +84,8 @@ export class Rooms implements OnInit {
     room_id: '',
     room_name: '',
     room_type: 'L',
+    building: '',
+    floor_no: '',
     capacity: 60 as number | null,
     department: 'ALL'
   };
@@ -255,7 +259,7 @@ export class Rooms implements OnInit {
 downloadRoomTemplate(): void {
   this.csvTemplateService.downloadTemplate(
     'room_template.csv',
-    ['room_id', 'room_name', 'room_type', 'department', 'capacity']
+    ['room_id', 'room_name', 'room_type', 'department', 'capacity','building', 'floor_no']
   );
 }
 
@@ -556,18 +560,16 @@ downloadRoomTemplate(): void {
 
           room.room_type ===
             this.selectedRoomType;
-
-
+          
+        
         // -------------------------------
-        // STATUS
+        // Building
         // -------------------------------
 
-        const statusMatch =
+        const buildingMatch =
+  this.selectedBuilding === 'ALL' ||
+  String(room.building || '').trim() === this.selectedBuilding;
 
-          this.selectedStatus === 'ALL' ||
-
-          this.getRoomStatus(room) ===
-            this.selectedStatus;
 
 
         return (
@@ -576,7 +578,7 @@ downloadRoomTemplate(): void {
 
           typeMatch &&
 
-          statusMatch
+          buildingMatch
 
         );
 
@@ -586,7 +588,17 @@ downloadRoomTemplate(): void {
     this.roomCurrentPage = 1;
 
   }
+get buildings(): string[] {
 
+  return [
+    ...new Set(
+      this.rooms
+        .map(room => String(room.building || '').trim())
+        .filter(building => building !== '')
+    )
+  ].sort();
+
+}
 
   // ==========================================
   // ROOM STATUS
@@ -797,6 +809,8 @@ openAddRoom(): void {
     room_id: '',
     room_name: '',
     room_type: 'L',
+    building: '',
+    floor_no: '',
     capacity: 60,
     department: 'ALL'
   };
@@ -817,6 +831,8 @@ editRoom(room: any): void {
     room_id: room.room_id ?? '',
     room_name: room.room_name ?? '',
     room_type: room.room_type ?? 'L',
+    building: room.building ?? '',
+    floor_no: room.floor_no ?? '',
     capacity: Number(room.capacity),
     department: room.department ?? 'ALL'
   };
@@ -847,10 +863,12 @@ saveRoom(): void {
   const roomId = this.roomForm.room_id.trim();
   const roomName = this.roomForm.room_name.trim();
   const roomType = this.roomForm.room_type;
+  const building = this.roomForm.building.trim();
+  const floorNo = this.roomForm.floor_no.trim();
   const department = this.roomForm.department.trim().toUpperCase();
   const capacity = Number(this.roomForm.capacity);
 
-  if (!roomId || !roomName || !department) {
+  if (!roomId || !roomName || !department||!building || !floorNo) {
     this.showToastMessage(
       'Please fill in all room fields.',
       'error'
@@ -888,6 +906,8 @@ saveRoom(): void {
     room_id: roomId,
     room_name: roomName,
     room_type: roomType,
+    building:building,
+    floor_no:floorNo,
     department,
     capacity
   };

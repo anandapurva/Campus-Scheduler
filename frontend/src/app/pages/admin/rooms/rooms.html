@@ -38,7 +38,7 @@
       CSV must contain:
 
       <code>
-        room_id, room_name, room_type, capacity, department
+        room_id, room_name, room_type, capacity, department, building, floor_no
       </code>
 
       <button
@@ -260,6 +260,14 @@
               Department
             </th>
 
+            <th>Building
+
+            </th>
+            <th>Floor
+
+            </th>
+
+
           </tr>
 
         </thead>
@@ -303,6 +311,15 @@
 
               </span>
 
+            </td>
+             <!-- BUILDING -->
+            <td>
+              {{ room.building || '-' }}
+            </td>
+
+            <!-- FLOOR -->
+            <td>
+              {{ room.floor_no || '-' }}
             </td>
 
           </tr>
@@ -526,36 +543,36 @@
 
       </div>
 
+      
+<!-- BUILDING FILTER -->
 
+<div class="filter-group">
 
-      <!-- STATUS -->
+  <label>
+    Building
+  </label>
 
-      <div class="filter-group">
+  <select
+    [(ngModel)]="selectedBuilding"
+    (change)="applyFilters()">
 
-        <label>
-          Availability
-        </label>
+    <option value="ALL">
+      All Buildings
+    </option>
 
-        <select
-          [(ngModel)]="selectedStatus"
-          (change)="applyFilters()">
+    <option
+      *ngFor="let building of buildings"
+      [value]="building">
 
-          <option value="ALL">
-            All Rooms
-          </option>
+      {{ building }}
 
-          <option value="VACANT">
-            Vacant
-          </option>
+    </option>
 
-          <option value="OCCUPIED">
-            Occupied
-          </option>
+  </select>
 
-        </select>
+</div>
 
-      </div>
-
+      
     </div>
 
 
@@ -593,7 +610,11 @@
             </th>
 
             <th>
-              Status
+              Building
+            </th>
+
+            <th>
+              Floor
             </th>
 
             <th>Actions</th>
@@ -659,27 +680,13 @@
               </span>
 
             </td>
-
+            
+            <td>
+              {{ room.building }}
+            </td>
 
             <td>
-
-              <span
-                class="status-badge"
-
-                [class.vacant]="
-                  getRoomStatus(room) === 'VACANT'
-                "
-
-                [class.occupied]="
-                  getRoomStatus(room) === 'OCCUPIED'
-                ">
-
-                {{
-                  getRoomStatus(room)
-                }}
-
-              </span>
-
+              {{ room.floor_no }}
             </td>
 
             <td class="actions-cell">
@@ -897,6 +904,51 @@
         </div>
 
       </div>
+
+      
+      <div class="room-form-group">
+  <label for="roomBuilding">Building *</label>
+
+  <input
+    id="roomBuilding"
+    type="text"
+    name="building"
+    [(ngModel)]="roomForm.building"
+    placeholder="e.g.ABB-1"
+    required
+    maxlength="100"
+    #buildingRef="ngModel" />
+
+  <small
+    class="field-error"
+    *ngIf="buildingRef.invalid && buildingRef.touched">
+    Building is required.
+  </small>
+</div>
+
+
+<!-- FLOOR NUMBER -->
+
+<div class="room-form-group">
+  <label for="floorNo">Floor Number *</label>
+
+  <input
+    id="floorNo"
+    type="text"
+    name="floor_no"
+    [(ngModel)]="roomForm.floor_no"
+    placeholder="e.g. G,1,2"
+    required
+    maxlength="50"
+    #floorRef="ngModel" />
+
+  <small
+    class="field-error"
+    *ngIf="floorRef.invalid && floorRef.touched">
+    Floor number is required.
+  </small>
+</div>
+
 
       <div class="room-modal-actions">
         <button
