@@ -47,7 +47,12 @@ exports.previewRooms = (req, res) => {
 
         "department",
 
-        "capacity"
+        "capacity",
+
+        "building",
+        
+        "floor_no"
+        
 
     ];
 
@@ -198,6 +203,16 @@ exports.previewRooms = (req, res) => {
                     Number(
                         capacityValue
                     );
+
+
+                const building = String(
+                rawRow[headerMap["building"]] ?? ""
+                ).trim();
+
+                // VARCHAR: keep floor_no as a string
+                const floor_no = String(
+                rawRow[headerMap["floor_no"]] ?? ""
+                 ).trim();
 
 
                 // ==========================================
@@ -356,6 +371,22 @@ exports.previewRooms = (req, res) => {
 
                 }
 
+                // Validate building
+                if (!building) {
+                    errors.push({
+                        row: rowNumber,
+                        field: "building",
+                        message: "Building is required"
+                    });
+                }
+                // Validate floor number (VARCHAR)
+                if (!floor_no) {
+                errors.push({
+                    row: rowNumber,
+                    field: "floor_no",
+                    message: "Floor number is required"
+                });
+                }
 
                 // ==========================================
                 // ADD ROW
@@ -375,6 +406,10 @@ exports.previewRooms = (req, res) => {
                     department,
 
                     capacity,
+
+                    building,
+
+                    floor_no,
 
                     rowNumber
 
@@ -764,6 +799,28 @@ exports.importRooms = async (req, res) => {
 
             }
 
+            if (
+                row.building === undefined ||
+                row.building === null ||
+                !String(row.building).trim()
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Building missing at row ${i + 1}`
+                });
+            }
+
+            if (
+                row.floor_no === undefined ||
+                row.floor_no === null ||
+                !String(row.floor_no).trim()
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Floor number missing at row ${i + 1}`
+                });
+            }
+
         }
 
 
@@ -790,7 +847,13 @@ exports.importRooms = async (req, res) => {
                     .toUpperCase(),
 
             capacity:
-                Number(row.capacity)
+                Number(row.capacity),
+
+            building:
+                String(row.building).trim(),    
+
+            floor_no:
+                String(row.floor_no).trim(),
 
         }));
 
@@ -824,7 +887,9 @@ exports.importRooms = async (req, res) => {
                 room_name,
                 room_type,
                 department,
-                capacity
+                capacity.
+                building,
+                floor_no
 
             FROM rooms
 
@@ -927,9 +992,15 @@ exports.importRooms = async (req, res) => {
 
                 Number(existing.capacity)
                 ===
-                row.capacity;
+                row.capacity
 
+                String(existing.building ?? "").trim() === row.building 
+                
+                &&
 
+                String(existing.floor_no ?? "").trim() === row.floor_no;
+
+                
             if (isSame) {
 
                 unchanged++;
@@ -954,7 +1025,9 @@ exports.importRooms = async (req, res) => {
             row.room_name,
             row.room_type,
             row.department,
-            row.capacity
+            row.capacity,
+            row.building,
+            row.floor_no
 
         ]);
 
@@ -971,7 +1044,9 @@ exports.importRooms = async (req, res) => {
                 room_name,
                 room_type,
                 department,
-                capacity
+                capacity,
+                building,
+                floor_no
             )
 
             VALUES ?
@@ -988,7 +1063,13 @@ exports.importRooms = async (req, res) => {
                     VALUES(department),
 
                 capacity =
-                    VALUES(capacity)
+                    VALUES(capacity),
+
+                building =
+                    VALUES(building),
+
+                floor_no =
+                    VALUES(floor_no)
 
         `;
 
@@ -1076,6 +1157,8 @@ exports.getRooms = async (req, res) => {
                 room_type,
                 department,
                 capacity,
+                building,
+                floor_no,
                 created_at,
                 updated_at
             FROM rooms
@@ -1109,7 +1192,9 @@ exports.addRoom = async (req, res) => {
             room_name,
             room_type,
             department,
-            capacity
+            capacity,
+            building,
+            floor_no
         } = req.body;
 
         const normalizedRoomId = String(room_id || '').trim();
@@ -1117,10 +1202,13 @@ exports.addRoom = async (req, res) => {
         const normalizedRoomType = String(room_type || '').trim().toUpperCase();
         const normalizedDepartment = String(department || '').trim().toUpperCase();
         const normalizedCapacity = Number(capacity);
+        const normalizedBuilding = String(building || '').trim();
+        const normalizedFloorNo = String(floor_no || '').trim();
 
         if (!normalizedRoomId || !normalizedRoomName ||
             !normalizedRoomType || !normalizedDepartment ||
-            capacity === '' || capacity === null || capacity === undefined) {
+            capacity === '' || capacity === null || capacity === undefined
+        || !normalizedBuilding || !normalizedFloorNo) {
             return res.status(400).json({
                 success: false,
                 message: 'All room fields are required'
@@ -1155,14 +1243,16 @@ exports.addRoom = async (req, res) => {
 
         const [result] = await db.query(
             `INSERT INTO rooms
-                (room_id, room_name, room_type, department, capacity)
-             VALUES (?, ?, ?, ?, ?)`,
+                (room_id, room_name, room_type, department, capacity,building,floor_no)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 normalizedRoomId,
                 normalizedRoomName,
                 normalizedRoomType,
                 normalizedDepartment,
-                normalizedCapacity
+                normalizedCapacity,
+                normalizedBuilding,
+                normalizedFloorNo
             ]
         );
 
@@ -1193,7 +1283,9 @@ exports.updateRoom = async (req, res) => {
             room_name,
             room_type,
             department,
-            capacity
+            capacity,
+            building,
+            floor_no
         } = req.body;
 
         if (!Number.isInteger(id) || id <= 0) {
@@ -1208,10 +1300,12 @@ exports.updateRoom = async (req, res) => {
         const normalizedRoomType = String(room_type || '').trim().toUpperCase();
         const normalizedDepartment = String(department || '').trim().toUpperCase();
         const normalizedCapacity = Number(capacity);
+        const normalizedBuilding = String(building || '').trim();
+        const normalizedFloorNo = String(floor_no || '').trim();
 
         if (!normalizedRoomId || !normalizedRoomName ||
             !normalizedRoomType || !normalizedDepartment ||
-            capacity === '' || capacity === null || capacity === undefined) {
+            !normalizedCapacity || !normalizedBuilding || !normalizedFloorNo) {
             return res.status(400).json({
                 success: false,
                 message: 'All room fields are required'
@@ -1263,6 +1357,8 @@ exports.updateRoom = async (req, res) => {
                  room_type = ?,
                  department = ?,
                  capacity = ?,
+                 building = ?,
+                 floor_no = ?,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [
@@ -1271,6 +1367,8 @@ exports.updateRoom = async (req, res) => {
                 normalizedRoomType,
                 normalizedDepartment,
                 normalizedCapacity,
+                normalizedBuilding,
+                normalizedFloorNo,
                 id
             ]
         );
