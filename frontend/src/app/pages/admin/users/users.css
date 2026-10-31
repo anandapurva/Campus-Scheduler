@@ -3,11 +3,15 @@
 ============================================================ */
 
 .users-page {
-  padding: 32px;
-  min-height: 100%;
-  background: #f7f8fc;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  font-family: Arial, sans-serif;
+  color: #1f2937;
+
   box-sizing: border-box;
 }
+
 
 
 /* ============================================================
