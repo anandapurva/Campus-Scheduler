@@ -353,22 +353,22 @@
        SUBJECT
        ===================================================== -->
 
-  <div class="form-section">
+ <div class="form-section">
 
     <label>
       Subject
     </label>
 
 
-    <div class="room-dropdown">
+  <div class="room-dropdown">
 
-      <!-- SELECTED SUBJECT -->
+    <!-- SELECTED SUBJECT -->
 
-      <button
-        type="button"
-        class="room-select"
-        (click)="toggleSubjectDropdown()"
-      >
+    <button
+      type="button"
+      class="room-select"
+      (click)="toggleSubjectDropdown()"
+    >
 
         <ng-container
           *ngIf="
@@ -377,7 +377,7 @@
           "
         >
 
-          <span class="room-selected-content">
+        <span class="room-selected-content">
 
             <strong>
               {{ selectedSubject.course_code }}
@@ -385,88 +385,126 @@
 
             <span>
               {{ selectedSubject.subject_name }}
-            </span>
+        </span>
 
           </span>
 
-        </ng-container>
+      </ng-container>
 
 
-        <ng-template #noSubjectSelected>
+      <ng-template #noSubjectSelected>
 
           <span class="room-placeholder">
             Select Subject
           </span>
 
-        </ng-template>
+      </ng-template>
 
 
         <span class="dropdown-arrow">
           ▾
         </span>
 
-      </button>
+    </button>
 
 
-      <!-- SUBJECT DROPDOWN -->
+    <!-- SUBJECT DROPDOWN -->
 
-      <div
-        class="room-dropdown-panel"
-        *ngIf="isSubjectDropdownOpen"
-      >
+    <div
+      class="room-dropdown-panel"
+      *ngIf="isSubjectDropdownOpen"
+    >
 
-        <!-- SEARCH -->
+      <!-- SEARCH -->
 
-        <div class="room-search">
+      <div class="room-search">
+        <input
+          type="text"
+          placeholder="Search subject or elective group..."
+          [(ngModel)]="subjectSearch"
+          (input)="searchSubjects()"
+          (click)="$event.stopPropagation()"
+        />
+      </div>
 
-          <input
-            type="text"
-            placeholder="Search subject..."
-            [(ngModel)]="subjectSearch"
-            (input)="searchSubjects()"
-            (click)="$event.stopPropagation()"
-          />
+      <div class="room-list">
 
-        </div>
+        <ng-container *ngFor="let item of subjectDropdownItems">
 
-
-        <!-- SUBJECT LIST -->
-
-        <div class="room-list">
-
+          <!-- CORE SUBJECT: SELECT DIRECTLY -->
           <div
-            *ngFor="let subject of filteredSubjects"
+            *ngIf="item.kind === 'SUBJECT'"
             class="room-option subject-option"
-            (click)="selectSubject(subject)"
+            (click)="selectSubject(item.subject)"
           >
-
             <span class="subject-code">
-              {{ subject.course_code }}
+              {{ item.subject.course_code }}
             </span>
 
             <span class="subject-name">
-              {{ subject.subject_name }}
+              {{ item.subject.subject_name }}
             </span>
-
           </div>
 
+          <!-- ELECTIVE / OPEN ELECTIVE GROUP -->
+          <ng-container *ngIf="item.kind === 'GROUP'">
 
-          <!-- NO SUBJECT -->
+            <div
+              class="room-option subject-option elective-group-option"
+              (click)="toggleElectiveGroup(item.key)"
+            >
+              <span class="subject-code">
+                {{ item.groupName }}
+              </span>
 
-          <div
-            class="empty-message"
-            *ngIf="filteredSubjects.length === 0"
-          >
-            No subjects found.
-          </div>
+              <span class="subject-name">
+                {{ item.courseType === 'OPEN_ELECTIVE'
+                    ? 'Open Elective'
+                    : 'Department Elective' }}
+              </span>
 
+              <span class="dropdown-arrow">
+                {{ expandedElectiveGroup === item.key ? '▴' : '▾' }}
+              </span>
+            </div>
+
+            <!-- OPTIONS INSIDE ELECTIVE GROUP -->
+            <div
+              class="elective-options"
+              *ngIf="expandedElectiveGroup === item.key"
+            >
+              <div
+                *ngFor="let subject of item.subjects"
+                class="room-option subject-option elective-subject-option"
+                (click)="selectSubject(subject)"
+              >
+
+                <span class="subject-code">
+                  {{ subject.course_code }}
+                </span>
+
+                <span class="subject-name">
+                  {{ subject.subject_name }}
+                </span>
+              </div>
+            </div>
+
+          </ng-container>
+
+        </ng-container>
+
+        <!-- NO SUBJECT -->
+        <div
+          class="empty-message"
+          *ngIf="subjectDropdownItems.length === 0"
+        >
+          No subjects found.
         </div>
 
       </div>
-
     </div>
-
   </div>
+</div>
 
 
   <!-- =====================================================
@@ -503,9 +541,6 @@
     >
       Loading rooms...
     </div>
-
-
-    <!-- ROOM DROPDOWN -->
 
 <!-- ROOM DROPDOWN -->
 <div

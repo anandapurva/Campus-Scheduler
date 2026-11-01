@@ -17,6 +17,7 @@ function getTimetableCellRoom(
 // CREATE TIMETABLE ENTRY
 // ======================================================
 
+
 exports.createTimetableEntry = async (req, res) => {
     const connection = await db.getConnection();
 
@@ -47,31 +48,35 @@ exports.createTimetableEntry = async (req, res) => {
         const subject = Number(subjectId);
         const type = String(lectureType || '').toUpperCase();
 
-        // Support both the new roomIds array and the old roomId field.
+        // Normalize selected rooms.
         const rooms = [
             ...new Set(
                 (Array.isArray(roomIds) && roomIds.length
                     ? roomIds
                     : roomId != null ? [roomId] : []
                 )
-                .map(Number)
-                .filter(id => Number.isInteger(id) && id > 0)
+                    .map(Number)
+                    .filter(id => Number.isInteger(id) && id > 0)
             )
         ];
 
+        // Normalize selected batches.
         const batches = Array.isArray(batchIds)
             ? [...new Set(batchIds.map(Number).filter(id => id > 0))]
             : [];
 
+        // Normalize selected teachers.
         const teachers = Array.isArray(teacherIds)
             ? [...new Set(teacherIds.map(Number).filter(id => id > 0))]
             : [];
 
         const students = Number(totalStudents || 0);
 
+        // Validate required fields.
         if (
             !sessionId || !program || !department || !semester ||
-            !slot || !subject || !day || !['L', 'T', 'P'].includes(type)
+            !slot || !subject || !day ||
+            !['L', 'T', 'P'].includes(type)
         ) {
             return res.status(400).json({
                 success: false,
@@ -102,7 +107,42 @@ exports.createTimetableEntry = async (req, res) => {
 
         await connection.beginTransaction();
 
-        // Verify that all selected rooms exist.
+        // --------------------------------------------------
+        // GET SUBJECT TYPE
+        // --------------------------------------------------
+
+        const [subjectRows] = await connection.query(
+            `
+            SELECT course_type, elective_group
+            FROM subjects
+            WHERE id = ?
+            LIMIT 1
+            `,
+            [subject]
+        );
+
+        if (subjectRows.length === 0) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                success: false,
+                message: 'Selected subject does not exist.'
+            });
+        }
+
+        const courseType = String(
+            subjectRows[0].course_type || ''
+        ).trim().toUpperCase();
+
+        const isElective = [
+            'ELECTIVE',
+            'OPEN_ELECTIVE'
+        ].includes(courseType);
+
+        // --------------------------------------------------
+        // VERIFY ROOMS
+        // --------------------------------------------------
+
         const [validRooms] = await connection.query(
             `SELECT id FROM rooms WHERE id IN (?)`,
             [rooms]
@@ -117,7 +157,11 @@ exports.createTimetableEntry = async (req, res) => {
             });
         }
 
-        // Check room conflicts, including rooms stored in the mapping table.
+        // --------------------------------------------------
+        // ROOM CONFLICT CHECK
+        // Applies to all subject types.
+        // --------------------------------------------------
+
         const [roomConflict] = await connection.query(
             `
             SELECT DISTINCT te.id
@@ -145,7 +189,11 @@ exports.createTimetableEntry = async (req, res) => {
             });
         }
 
-        // Faculty conflict.
+        // --------------------------------------------------
+        // FACULTY CONFLICT CHECK
+        // Applies to all subject types.
+        // --------------------------------------------------
+
         if (teachers.length > 0) {
             const [facultyConflict] = await connection.query(
                 `
@@ -174,34 +222,44 @@ exports.createTimetableEntry = async (req, res) => {
             }
         }
 
-        // Batch conflict.
-        const [batchConflict] = await connection.query(
-            `
-            SELECT b.batch_code
-            FROM timetable_entry_batches teb
-            INNER JOIN timetable_entries te
-                ON te.id = teb.timetable_entry_id
-            INNER JOIN batches b
-                ON b.id = teb.batch_id
-            WHERE te.academic_session_id = ?
-              AND te.day = ?
-              AND te.slot_id = ?
-              AND teb.batch_id IN (?)
-            LIMIT 1
-            `,
-            [sessionId, day, slot, batches]
-        );
+        // --------------------------------------------------
+        // BATCH CONFLICT CHECK
+        // CORE SUBJECTS ONLY.
+        // ELECTIVE AND OPEN_ELECTIVE DO NOT LOCK BATCHES.
+        // --------------------------------------------------
 
-        if (batchConflict.length > 0) {
-            await connection.rollback();
+        if (!isElective) {
+            const [batchConflict] = await connection.query(
+                `
+                SELECT b.batch_code
+                FROM timetable_entry_batches teb
+                INNER JOIN timetable_entries te
+                    ON te.id = teb.timetable_entry_id
+                INNER JOIN batches b
+                    ON b.id = teb.batch_id
+                WHERE te.academic_session_id = ?
+                  AND te.day = ?
+                  AND te.slot_id = ?
+                  AND teb.batch_id IN (?)
+                LIMIT 1
+                `,
+                [sessionId, day, slot, batches]
+            );
 
-            return res.status(409).json({
-                success: false,
-                message: `Batch ${batchConflict[0].batch_code} is already scheduled during this time slot.`
-            });
+            if (batchConflict.length > 0) {
+                await connection.rollback();
+
+                return res.status(409).json({
+                    success: false,
+                    message: `Batch ${batchConflict[0].batch_code} is already scheduled during this time slot.`
+                });
+            }
         }
 
-        // Keep the first room in the existing room_id column.
+        // --------------------------------------------------
+        // INSERT TIMETABLE ENTRY
+        // --------------------------------------------------
+
         const [entryResult] = await connection.query(
             `
             INSERT INTO timetable_entries (
@@ -238,7 +296,10 @@ exports.createTimetableEntry = async (req, res) => {
 
         const timetableEntryId = entryResult.insertId;
 
-        // Save every selected room/lab.
+        // --------------------------------------------------
+        // SAVE ALL SELECTED ROOMS
+        // --------------------------------------------------
+
         for (const selectedRoomId of rooms) {
             await connection.query(
                 `
@@ -250,7 +311,12 @@ exports.createTimetableEntry = async (req, res) => {
             );
         }
 
-        // Save batches.
+        // --------------------------------------------------
+        // SAVE BATCH MAPPINGS
+        // Save for electives too.
+        // Do not remove these mappings.
+        // --------------------------------------------------
+
         for (const batchId of batches) {
             await connection.query(
                 `
@@ -262,7 +328,10 @@ exports.createTimetableEntry = async (req, res) => {
             );
         }
 
-        // Save faculty.
+        // --------------------------------------------------
+        // SAVE FACULTY MAPPINGS
+        // --------------------------------------------------
+
         for (const facultyId of teachers) {
             await connection.query(
                 `
@@ -274,8 +343,13 @@ exports.createTimetableEntry = async (req, res) => {
             );
         }
 
+        // --------------------------------------------------
+        // COMMIT TRANSACTION
+        // --------------------------------------------------
+
         await connection.commit();
 
+        // Notify connected coordinators.
         const io = req.app.get('io');
 
         if (io) {
@@ -318,6 +392,7 @@ exports.createTimetableEntry = async (req, res) => {
         connection.release();
     }
 };
+
 
 // ======================================================
 // UPDATE TIMETABLE ENTRY
@@ -1295,9 +1370,10 @@ exports.getLockedResources = async (req, res) => {
                 facultyParams
             );
 
-
         // ==================================================
         // BATCH LOCKS
+        // CORE subjects lock their batches.
+        // ELECTIVE and OPEN_ELECTIVE subjects do not lock batches.
         // ==================================================
 
         let batchQuery = `
@@ -1309,19 +1385,26 @@ exports.getLockedResources = async (req, res) => {
             INNER JOIN timetable_entries te
                 ON te.id = teb.timetable_entry_id
 
+            INNER JOIN subjects s
+                ON s.id = te.subject_id
+
             WHERE
                 te.academic_session_id = ?
                 AND te.day = ?
                 AND te.slot_id = ?
-        `;
 
+                AND (
+                    s.course_type IS NULL
+                    OR UPPER(TRIM(s.course_type))
+                        NOT IN ('ELECTIVE', 'OPEN_ELECTIVE')
+                )
+        `;
 
         const batchParams = [
             sessionId,
             day,
             slot
         ];
-
 
         if (excludeEntryId) {
 
@@ -1334,12 +1417,10 @@ exports.getLockedResources = async (req, res) => {
             );
         }
 
-
-        const [batches] =
-            await db.query(
-                batchQuery,
-                batchParams
-            );
+        const [batches] = await db.query(
+            batchQuery,
+            batchParams
+        );
 
 
         // ==================================================

@@ -184,7 +184,7 @@ export class ClassEditor implements OnInit, OnChanges, OnDestroy {
   filteredSubjects: any[] = [];
 
   selectedSubject: any = null;
-
+  expandedElectiveGroup: string | null = null;
 
   // ==================================================
   // TEACHERS
@@ -445,8 +445,6 @@ if (changes['editingEntry']) {
 }
 
   }
-
-
 
 
   // ==================================================
@@ -1602,10 +1600,11 @@ if (alreadySelected) {
 
 
   // TEMPORARY REAL-TIME RESERVATION
-  this.reserveResource(
-    'batch',
-    Number(batch.id)
-  );
+  if (!this.isElectiveSubject()) {
+    this.selectedBatches.forEach((batch: any) => {
+      this.reserveResource('batch', Number(batch.id));
+    });
+  }
 
 }
 
@@ -2509,15 +2508,21 @@ isRoomLocked(room: any): boolean {
               subject.course_code || ''
             ).toLowerCase();
 
-          const name =
-            String(
-              subject.subject_name || ''
-            ).toLowerCase();
+            const name =
+              String(
+                subject.subject_name || ''
+              ).toLowerCase();
 
-          return (
-            code.includes(search) ||
-            name.includes(search)
-          );
+            const group =
+              String(
+                subject.elective_group || ''
+              ).toLowerCase();
+
+            return (
+              code.includes(search) ||
+              name.includes(search) ||
+              group.includes(search)
+            );
 
         }
       );
@@ -2621,6 +2626,92 @@ isRoomLocked(room: any): boolean {
       });
 
   }
+
+  get subjectDropdownItems(): any[] {
+
+  const items: any[] = [];
+  const electiveGroups = new Map<string, any>();
+
+  this.filteredSubjects.forEach((subject: any) => {
+
+    const courseType = String(
+      subject.course_type || ''
+    ).trim().toUpperCase();
+
+    const electiveGroup = String(
+      subject.elective_group || ''
+    ).trim().toUpperCase();
+
+    // CORE: show the subject directly
+    if (courseType === 'CORE') {
+
+      items.push({
+        kind: 'SUBJECT',
+        subject
+      });
+
+      return;
+    }
+
+    // ELECTIVE / OPEN ELECTIVE: group by elective_group
+    if (
+      (courseType === 'ELECTIVE' ||
+       courseType === 'OPEN_ELECTIVE') &&
+      electiveGroup
+    ) {
+
+      const key = `${courseType}_${electiveGroup}`;
+
+      if (!electiveGroups.has(key)) {
+
+        const group = {
+          kind: 'GROUP',
+          key,
+          groupName: electiveGroup,
+          courseType,
+          subjects: []
+        };
+
+        electiveGroups.set(key, group);
+        items.push(group);
+      }
+
+      electiveGroups.get(key).subjects.push(subject);
+
+      return;
+    }
+
+    // Fallback for any other subject type
+    items.push({
+      kind: 'SUBJECT',
+      subject
+    });
+
+  });
+
+  return items;
+}
+
+
+toggleElectiveGroup(key: string): void {
+
+  this.expandedElectiveGroup =
+    this.expandedElectiveGroup === key
+      ? null
+      : key;
+
+}
+
+isElectiveSubject(): boolean {
+  const courseType = String(
+    this.selectedSubject?.course_type || ''
+  ).trim().toUpperCase();
+
+  return (
+    courseType === 'ELECTIVE' ||
+    courseType === 'OPEN_ELECTIVE'
+  );
+}
 
 
   // ==================================================
@@ -2761,21 +2852,22 @@ filterSubjectsByLectureType(): void {
   selectSubject(subject: any): void {
 
   this.selectedSubject = subject;
+   console.log('Selected subject:', subject);
+  console.log('Course type:', subject?.course_type);
+  console.log('Is elective:', this.isElectiveSubject());
 
   this.isSubjectDropdownOpen = false;
+
+  this.expandedElectiveGroup = null;
 
   this.subjectSearch = '';
 
   this.timetableSocketService.activity();
 
-  this.filteredSubjects = [
-    ...this.subjects
-  ];
+  this.filteredSubjects = [...this.subjects];
 
-  /*
-   * Load required/remaining L/T/P hours
-   * for all selected batches.
-   */
+  // Load required/remaining L/T/P hours
+  // for the selected actual subject.
   this.loadSubjectHours();
 
   this.cdr.detectChanges();
@@ -2999,16 +3091,17 @@ filterSubjectsByLectureType(): void {
             );
 
 
-          /*
-           * Remove batches that became unavailable.
-           */
-          this.selectedBatches =
-            this.selectedBatches.filter(
-              batch =>
-                !this.isBatchLocked(
-                  batch
-                )
-            );
+            // Remove unavailable batches only for CORE subjects.
+            // Elective subjects must retain their selected batches.
+
+            if (!this.isElectiveSubject()) {
+
+              this.selectedBatches =
+                this.selectedBatches.filter(
+                  batch => !this.isBatchLocked(batch)
+                );
+
+            }
 
 
           this.calculateStudents();
@@ -3591,27 +3684,26 @@ if (this.lectureType === 'P') {
 
     }
 
+  // --------------------------------------------------
+  // BATCH LOCK RACE CONDITION
+  // Core subjects only
+  // --------------------------------------------------
 
-    // --------------------------------------------------
-    // BATCH LOCK RACE CONDITION
-    // --------------------------------------------------
+    if (!this.isElectiveSubject()) {
 
-    const lockedBatch =
-      this.selectedBatches.find(
-        batch =>
-          this.isBatchLocked(
-            batch
-          )
-      );
+      const lockedBatch =
+        this.selectedBatches.find(
+          batch => this.isBatchLocked(batch)
+        );
 
+      if (lockedBatch) {
 
-    if (lockedBatch) {
+        alert(
+          `${lockedBatch.batch_code} has just been assigned to another class at this time. Please select another batch.`
+        );
 
-      alert(
-        `${lockedBatch.batch_code} has just been assigned to another class at this time. Please select another batch.`
-      );
-
-      return;
+        return;
+      }
 
     }
 
