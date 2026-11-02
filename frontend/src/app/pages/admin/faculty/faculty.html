@@ -884,58 +884,58 @@
 </div>
 
 
-  <!-- ================= TOAST ================= -->
+<!-- ================= TOAST NOTIFICATION ================= -->
 
-  <div
-    class="toast"
-    [class.success]="toastType === 'success'"
-    [class.error]="toastType === 'error'"
-    *ngIf="showToast">
+<div
+  class="toast-notification"
+  *ngIf="showToast"
+  [class.toast-success]="toastType === 'success'"
+  [class.toast-error]="toastType === 'error'"
+  role="alert"
+  aria-live="assertive">
 
+  <!-- ICON -->
 
-    <div class="toast-icon">
+  <div class="toast-icon-wrapper">
 
-      <span *ngIf="toastType === 'success'">
-        ✓
-      </span>
+    <span *ngIf="toastType === 'success'">
+      ✓
+    </span>
 
-      <span *ngIf="toastType === 'error'">
-        !
-      </span>
-
-    </div>
-
-
-    <div class="toast-content">
-
-      <strong>
-
-        {{ toastType === 'success'
-          ? 'Success'
-          : 'Error'
-        }}
-
-      </strong>
-
-
-      <span>
-        {{ toastMessage }}
-      </span>
-
-    </div>
-
-
-    <button
-      type="button"
-      class="toast-close"
-      (click)="showToast = false">
-
-      ×
-
-    </button>
-
+    <span *ngIf="toastType === 'error'">
+      !
+    </span>
 
   </div>
+
+  <!-- MESSAGE -->
+
+  <div class="toast-message">
+
+    <strong>
+      {{ toastType === 'success' ? 'Success!' : 'Something went wrong' }}
+    </strong>
+
+    <p>
+      {{ toastMessage }}
+    </p>
+
+  </div>
+
+  <!-- CLOSE BUTTON -->
+
+  <button
+    type="button"
+    class="toast-close-button"
+    aria-label="Close notification"
+    (click)="showToast = false">
+
+    ×
+
+  </button>
+
+</div>
+
 
 
 </div>

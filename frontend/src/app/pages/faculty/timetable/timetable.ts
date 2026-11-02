@@ -223,7 +223,32 @@ departmentId: number | null = null;
     this.loadSelection();
 
   }
+onScheduleCellClick(cell: any): void {
 
+  // Prevent editing when the timetable is view-only
+  if (!this.canEdit) {
+    return;
+  }
+
+  // Check whether the clicked slot is lunch
+  if (this.isLunchSlot(cell.slot)) {
+
+    const confirmed = window.confirm(
+      'Do you want to schedule a class during lunch?'
+    );
+
+    // If teacher clicks No, do nothing
+    if (!confirmed) {
+      return;
+    }
+
+  }
+
+  // If Yes (lunch) or a normal slot:
+  // Open the existing class editor
+  this.openCell(cell);
+
+}
   // TEACHER
 
   loadTeacher(): void {
@@ -1151,28 +1176,35 @@ unfinalizeTimetable(): void {
   // OPEN CELL
   // ==========================================
 
-  openCell(
-    cell: TimetableCell
-  ): void {
+  openCell(cell: TimetableCell): void {
 
-    if (!this.canEdit) {
+  if (!this.canEdit || this.isFinalized) {
+    return;
+  }
 
+  // Check whether the selected slot is a lunch slot.
+  if (this.isLunchSlot(cell.slot)) {
+
+    const confirmed = window.confirm(
+      'Again confirming scheduling class during lunch?'
+    );
+
+    // If teacher clicks No, do nothing.
+    if (!confirmed) {
       return;
-
     }
 
-
-    this.selectedCell =
-      cell;
-
-
-    this.showEditor =
-      true;
-
-    this.showEditor= true;
-
-    
   }
+
+  // If Yes, or if it is a normal slot,
+  // open the existing Class Editor.
+  this.selectedCell = cell;
+
+  this.editingEntry = null;
+
+  this.showEditor = true;
+
+}
 // ==========================================
 // EDIT EXISTING ENTRY
 // ==========================================

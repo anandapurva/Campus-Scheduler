@@ -110,15 +110,11 @@
 
             [class.view-only]="!canEdit"
 
-
-            (click)="
-              !isLunchSlot(
-                timetable[dayIndex][slotIndex].slot
-              )
-              && openCell(
-                timetable[dayIndex][slotIndex]
-              )
-            "
+          (click)="
+            onScheduleCellClick(
+              timetable[dayIndex][slotIndex]
+            )
+          "
           >
 
 
@@ -131,17 +127,14 @@
                 isLunchSlot(
                   timetable[dayIndex][slotIndex].slot
                 )
+                &&
+                timetable[dayIndex][slotIndex].data.length === 0
               "
-
               class="lunch-cell"
             >
-
               <div class="lunch-text">
-                
                 LUNCH
-
               </div>
-
             </div>
 
 
@@ -174,13 +167,8 @@
 
             <div
               *ngIf="
-                !isLunchSlot(
-                  timetable[dayIndex][slotIndex].slot
-                )
-                &&
-                timetable[dayIndex][slotIndex].data.length > 0
-              "
-
+                    timetable[dayIndex][slotIndex].data.length > 0
+                  "
               class="class-content"
             >
 
