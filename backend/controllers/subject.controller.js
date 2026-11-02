@@ -235,487 +235,487 @@ IMPORT SUBJECTS
 ==================================================
 */
 
+
 exports.importSubjects = async (req, res) => {
 
-  const {
-    data,
-    program,
-    department,
-    semester
-  } = req.body;
+    const {
+        data,
+        program,
+        department,
+        semester
+    } = req.body;
 
-  try {
+    try {
 
-    // ==================================================
-    // BASIC VALIDATION
-    // ==================================================
+        // ------------------------------------------
+        // BASIC VALIDATION
+        // ------------------------------------------
 
-    if (!program || !department || !semester) {
-      return res.status(400).json({
-        message: "Program, department and semester are required"
-      });
+        if (!program || !department || !semester) {
+            return res.status(400).json({
+                success: false,
+                message: "Program, department and semester are required"
+            });
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+            return res.status(400).json({
+                message: "No subject data received"
+            });
+        }
+
+        // ------------------------------------------
+        // GET PROGRAM ID
+        // ------------------------------------------
+
+        const programValue = String(program).trim();
+
+        let programRows;
+
+        if (/^\d+$/.test(programValue)) {
+
+            [programRows] = await db.query(
+                `
+                SELECT id
+                FROM programs
+                WHERE id = ?
+                  AND is_active = 1
+                LIMIT 1
+                `,
+                [Number(programValue)]
+            );
+
+        } else {
+
+            [programRows] = await db.query(
+                `
+                SELECT id
+                FROM programs
+                WHERE program_name = ?
+                  AND is_active = 1
+                LIMIT 1
+                `,
+                [programValue]
+            );
+
+        }
+
+        if (programRows.length === 0) {
+            return res.status(400).json({
+                message: `Invalid program: ${programValue}`
+            });
+        }
+
+        const programId = programRows[0].id;
+
+        // ------------------------------------------
+        // GET DEPARTMENT ID
+        // ------------------------------------------
+
+        const departmentValue = String(department).trim();
+
+        let departmentRows;
+
+        if (/^\d+$/.test(departmentValue)) {
+
+            [departmentRows] = await db.query(
+                `
+                SELECT d.id
+                FROM departments d
+                INNER JOIN program_departments pd
+                    ON pd.department_id = d.id
+                WHERE d.id = ?
+                  AND pd.program_id = ?
+                  AND d.is_active = 1
+                  AND pd.is_active = 1
+                LIMIT 1
+                `,
+                [
+                    Number(departmentValue),
+                    programId
+                ]
+            );
+
+        } else {
+
+            [departmentRows] = await db.query(
+                `
+                SELECT d.id
+                FROM departments d
+                INNER JOIN program_departments pd
+                    ON pd.department_id = d.id
+                WHERE (
+                    d.name = ?
+                    OR d.abbreviation = ?
+                )
+                  AND pd.program_id = ?
+                  AND d.is_active = 1
+                  AND pd.is_active = 1
+                LIMIT 1
+                `,
+                [
+                    departmentValue,
+                    departmentValue,
+                    programId
+                ]
+            );
+
+        }
+
+        if (departmentRows.length === 0) {
+            return res.status(400).json({
+                message: "Invalid department for selected program"
+            });
+        }
+
+        const departmentId = departmentRows[0].id;
+
+        // ------------------------------------------
+        // GET SEMESTER ID
+        // ------------------------------------------
+
+        const semesterValue = Number(semester);
+
+        if (
+            !Number.isInteger(semesterValue) ||
+            semesterValue <= 0
+        ) {
+            return res.status(400).json({
+                message: "Invalid semester"
+            });
+        }
+
+        let semesterRows;
+
+        [semesterRows] = await db.query(
+            `
+            SELECT id, semester_number, semester_name
+            FROM semesters
+            WHERE id = ?
+              AND program_id = ?
+            LIMIT 1
+            `,
+            [semesterValue, programId]
+        );
+
+        // Backward compatibility: semester number
+        if (semesterRows.length === 0) {
+
+            [semesterRows] = await db.query(
+                `
+                SELECT id, semester_number, semester_name
+                FROM semesters
+                WHERE program_id = ?
+                  AND semester_number = ?
+                LIMIT 1
+                `,
+                [programId, semesterValue]
+            );
+
+        }
+
+        if (semesterRows.length === 0) {
+            return res.status(400).json({
+                message: `Semester "${semesterValue}" not found for selected program`
+            });
+        }
+
+        const semesterId = semesterRows[0].id;
+
+        // ------------------------------------------
+        // NORMALIZE CSV DATA
+        // ------------------------------------------
+
+        const normalizedData = data
+            .map(row => ({
+                course_code: String(
+                    row.course_code || row.code || ""
+                ).trim().toUpperCase(),
+
+                subject_name: String(
+                    row.subject_name || row.name || ""
+                ).trim(),
+
+                course_type: String(
+                    row.course_type || ""
+                ).trim(),
+
+                elective_group: String(
+                    row.elective_group || ""
+                ).trim(),
+
+                lecture_hours: Number(
+                    row.L ?? row.l ?? row.lecture_hours ?? 0
+                ),
+
+                tutorial_hours: Number(
+                    row.T ?? row.t ?? row.tutorial_hours ?? 0
+                ),
+
+                practical_hours: Number(
+                    row.P ?? row.p ?? row.practical_hours ?? 0
+                ),
+
+                credits: String(
+                    row.credits ?? ""
+                ).trim()
+            }))
+            .filter(row =>
+                row.course_code &&
+                row.subject_name
+            );
+
+        if (normalizedData.length === 0) {
+            return res.status(400).json({
+                message: "No valid subject data received"
+            });
+        }
+
+        // ------------------------------------------
+        // VALIDATE L/T/P VALUES
+        // ------------------------------------------
+
+        const invalidRow = normalizedData.find(row =>
+            !Number.isInteger(row.lecture_hours) ||
+            !Number.isInteger(row.tutorial_hours) ||
+            !Number.isInteger(row.practical_hours) ||
+            row.lecture_hours < 0 ||
+            row.tutorial_hours < 0 ||
+            row.practical_hours < 0
+        );
+
+        if (invalidRow) {
+            return res.status(400).json({
+                message: `Invalid L/T/P hours for course ${invalidRow.course_code}`
+            });
+        }
+
+        // ------------------------------------------
+        // REMOVE DUPLICATE COURSE CODES IN CSV
+        // ------------------------------------------
+
+        const csvCourseCodes = normalizedData.map(
+            row => row.course_code
+        );
+
+        if (new Set(csvCourseCodes).size !== csvCourseCodes.length) {
+            return res.status(400).json({
+                success: false,
+                message: "CSV contains duplicate course codes. Please keep only one row per course code."
+            });
+        }
+
+        // ------------------------------------------
+        // GET EXISTING SUBJECTS
+        // ------------------------------------------
+
+        const courseCodes = [...new Set(csvCourseCodes)];
+
+        const placeholders = courseCodes
+            .map(() => "?")
+            .join(",");
+
+        const [existingRows] = await db.query(
+            `
+            SELECT
+                id,
+                course_code,
+                subject_name,
+                course_type,
+                elective_group,
+                lecture_hours,
+                tutorial_hours,
+                practical_hours,
+                credits
+            FROM subjects
+            WHERE course_code IN (${placeholders})
+              AND program_id = ?
+              AND department_id = ?
+              AND semester_id = ?
+            `,
+            [
+                ...courseCodes,
+                programId,
+                departmentId,
+                semesterId
+            ]
+        );
+
+        const existingMap = new Map();
+
+        existingRows.forEach(row => {
+            existingMap.set(
+                String(row.course_code).trim().toUpperCase(),
+                row
+            );
+        });
+
+        // ------------------------------------------
+        // COUNTERS
+        // ------------------------------------------
+
+        let inserted = 0;
+        let updated = 0;
+        let unchanged = 0;
+
+        normalizedData.forEach(row => {
+
+            const existing = existingMap.get(row.course_code);
+
+            if (!existing) {
+                inserted++;
+                return;
+            }
+
+            const isSame =
+                String(existing.subject_name || "").trim()
+                    === row.subject_name &&
+
+                String(existing.course_type || "").trim()
+                    === row.course_type &&
+
+                String(existing.elective_group || "").trim()
+                    === row.elective_group &&
+
+                Number(existing.lecture_hours || 0)
+                    === row.lecture_hours &&
+
+                Number(existing.tutorial_hours || 0)
+                    === row.tutorial_hours &&
+
+                Number(existing.practical_hours || 0)
+                    === row.practical_hours &&
+
+                String(existing.credits ?? "").trim()
+                    === row.credits;
+
+            if (isSame) {
+                unchanged++;
+            } else {
+                updated++;
+            }
+
+        });
+
+        // ------------------------------------------
+        // PREPARE BULK VALUES
+        // ------------------------------------------
+
+        const values = normalizedData.map(row => [
+            row.course_code,
+            row.subject_name,
+            programId,
+            departmentId,
+            semesterId,
+            row.course_type,
+            row.elective_group || null,
+            row.lecture_hours,
+            row.tutorial_hours,
+            row.practical_hours,
+            row.credits
+        ]);
+
+        // ------------------------------------------
+        // BULK UPSERT
+        // ------------------------------------------
+
+        const upsertSql = `
+            INSERT INTO subjects
+            (
+                course_code,
+                subject_name,
+                program_id,
+                department_id,
+                semester_id,
+                course_type,
+                elective_group,
+                lecture_hours,
+                tutorial_hours,
+                practical_hours,
+                credits
+            )
+            VALUES ?
+            ON DUPLICATE KEY UPDATE
+                subject_name = VALUES(subject_name),
+                course_type = VALUES(course_type),
+                elective_group = VALUES(elective_group),
+                lecture_hours = VALUES(lecture_hours),
+                tutorial_hours = VALUES(tutorial_hours),
+                practical_hours = VALUES(practical_hours),
+                credits = VALUES(credits)
+        `;
+
+        await db.query(upsertSql, [values]);
+
+        // ------------------------------------------
+        // MAP ALL MATCHING SUBJECTS TO ALL
+        // DEPARTMENTS SHARING THEIR COURSE CODE
+        // ------------------------------------------
+
+        await db.query(
+            `
+            INSERT IGNORE INTO subject_departments
+            (
+                subject_id,
+                department_id
+            )
+            SELECT
+                s.id,
+                mapped.department_id
+            FROM subjects s
+            INNER JOIN (
+                SELECT DISTINCT
+                    course_code,
+                    department_id
+                FROM subjects
+                WHERE course_code IN (${placeholders})
+                  AND program_id = ?
+                  AND semester_id = ?
+                  AND is_active = 1
+            ) mapped
+                ON mapped.course_code = s.course_code
+            WHERE s.course_code IN (${placeholders})
+              AND s.program_id = ?
+              AND s.semester_id = ?
+              AND s.is_active = 1
+            `,
+            [
+                ...courseCodes,
+                programId,
+                semesterId,
+                ...courseCodes,
+                programId,
+                semesterId
+            ]
+        );
+
+        // ------------------------------------------
+        // RESPONSE
+        // ------------------------------------------
+
+        return res.json({
+            success: true,
+            message: "Subjects imported successfully",
+            total: normalizedData.length,
+            inserted,
+            updated,
+            unchanged
+        });
+
+    } catch (error) {
+
+        console.error("SUBJECT IMPORT ERROR:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Subject import failed",
+            error: error.message
+        });
+
     }
-
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(400).json({
-        message: "No subject data received"
-      });
-    }
-
-
-    // ==================================================
-    // GET PROGRAM ID (SUPPORT ID OR NAME)
-    // ==================================================
-
-    const programValue = String(program).trim();
-
-    let programRows;
-
-    if (/^\d+$/.test(programValue)) {
-
-      [programRows] = await db.query(
-        `
-        SELECT id
-        FROM programs
-        WHERE id = ?
-          AND is_active = 1
-        LIMIT 1
-        `,
-        [Number(programValue)]
-      );
-
-    } else {
-
-      [programRows] = await db.query(
-        `
-        SELECT id
-        FROM programs
-        WHERE program_name = ?
-          AND is_active = 1
-        LIMIT 1
-        `,
-        [programValue]
-      );
-
-    }
-
-    if (programRows.length === 0) {
-      return res.status(400).json({
-        message: `Invalid program: ${programValue}`
-      });
-    }
-
-    const programId = programRows[0].id;
-
-
-    // ==================================================
-    // GET DEPARTMENT ID (SUPPORT ID OR NAME)
-    // ==================================================
-
-    const departmentValue = String(department).trim();
-
-    let departmentRows;
-
-    if (/^\d+$/.test(departmentValue)) {
-
-      [departmentRows] = await db.query(
-        `
-        SELECT d.id
-        FROM departments d
-        INNER JOIN program_departments pd
-          ON pd.department_id = d.id
-        WHERE d.id = ?
-          AND pd.program_id = ?
-          AND d.is_active = 1
-          AND pd.is_active = 1
-        LIMIT 1
-        `,
-        [Number(departmentValue), programId]
-      );
-
-    } else {
-
-      [departmentRows] = await db.query(
-        `
-        SELECT d.id
-        FROM departments d
-        INNER JOIN program_departments pd
-          ON pd.department_id = d.id
-        WHERE (
-          d.name = ?
-          OR d.abbreviation = ?
-        )
-          AND pd.program_id = ?
-          AND d.is_active = 1
-          AND pd.is_active = 1
-        LIMIT 1
-        `,
-        [departmentValue, departmentValue, programId]
-      );
-
-    }
-
-    if (departmentRows.length === 0) {
-      return res.status(400).json({
-        message: "Invalid department for selected program"
-      });
-    }
-
-    const departmentId = departmentRows[0].id;
-
-
-    // ==================================================
-    // GET SEMESTER ID (SUPPORT ID OR SEMESTER NUMBER)
-    // ==================================================
-
-    const semesterValue = Number(semester);
-
-    if (
-      !Number.isInteger(semesterValue) ||
-      semesterValue <= 0
-    ) {
-      return res.status(400).json({
-        message: "Invalid semester"
-      });
-    }
-
-    let semesterRows;
-
-    // First, check using semester database ID.
-    [semesterRows] = await db.query(
-      `
-      SELECT id, semester_number, semester_name
-      FROM semesters
-      WHERE id = ?
-        AND program_id = ?
-      LIMIT 1
-      `,
-      [semesterValue, programId]
-    );
-
-    // Backward compatibility: check semester number.
-    if (semesterRows.length === 0) {
-
-      [semesterRows] = await db.query(
-        `
-        SELECT id, semester_number, semester_name
-        FROM semesters
-        WHERE program_id = ?
-          AND semester_number = ?
-        LIMIT 1
-        `,
-        [programId, semesterValue]
-      );
-
-    }
-
-    if (semesterRows.length === 0) {
-      return res.status(400).json({
-        message: `Semester "${semesterValue}" not found for selected program`
-      });
-    }
-
-    const semesterId = semesterRows[0].id;
-
-
-    // ==================================================
-    // NORMALIZE CSV DATA
-    // ==================================================
-
-    const normalizedData = data
-      .map(row => ({
-
-        course_code: String(
-          row.course_code || row.code || ""
-        ).trim(),
-
-        subject_name: String(
-          row.subject_name || row.name || ""
-        ).trim(),
-
-        course_type: String(
-          row.course_type || ""
-        ).trim(),
-
-        elective_group: String(
-          row.elective_group || ""
-        ).trim(),
-
-        lecture_hours: Number(
-          row.L ?? row.l ?? row.lecture_hours ?? 0
-        ),
-
-        tutorial_hours: Number(
-          row.T ?? row.t ?? row.tutorial_hours ?? 0
-        ),
-
-        practical_hours: Number(
-          row.P ?? row.p ?? row.practical_hours ?? 0
-        ),
-
-        credits: String(
-          row.credits ?? ""
-        ).trim()
-
-      }))
-      .filter(row =>
-        row.course_code &&
-        row.subject_name
-      );
-
-
-    if (normalizedData.length === 0) {
-      return res.status(400).json({
-        message: "No valid subject data received"
-      });
-    }
-
-
-    // ==================================================
-    // VALIDATE L/T/P VALUES
-    // ==================================================
-
-    const invalidRow = normalizedData.find(row =>
-      !Number.isInteger(row.lecture_hours) ||
-      !Number.isInteger(row.tutorial_hours) ||
-      !Number.isInteger(row.practical_hours) ||
-      row.lecture_hours < 0 ||
-      row.tutorial_hours < 0 ||
-      row.practical_hours < 0
-    );
-
-    if (invalidRow) {
-      return res.status(400).json({
-        message: `Invalid L/T/P hours for course ${invalidRow.course_code}`
-      });
-    }
-
-
-    // ==================================================
-    // GET COURSE CODES FROM CSV
-    // ==================================================
-
-    const courseCodes = normalizedData.map(
-      row => row.course_code
-    );
-
-    const placeholders = courseCodes
-      .map(() => "?")
-      .join(",");
-
-
-    // ==================================================
-    // FIND EXISTING SUBJECTS
-    // ==================================================
-
-    const selectSql = `
-      SELECT
-        id,
-        course_code,
-        subject_name,
-        course_type,
-        elective_group,
-        lecture_hours,
-        tutorial_hours,
-        practical_hours,
-        credits
-
-      FROM subjects
-
-      WHERE course_code IN (${placeholders})
-        AND program_id = ?
-        AND department_id = ?
-        AND semester_id = ?
-    `;
-
-    const [existingRows] = await db.query(
-      selectSql,
-      [
-        ...courseCodes,
-        programId,
-        departmentId,
-        semesterId
-      ]
-    );
-
-
-    // ==================================================
-    // CREATE EXISTING SUBJECT MAP
-    // ==================================================
-
-    const existingMap = new Map();
-
-    existingRows.forEach(row => {
-      existingMap.set(
-        String(row.course_code).trim(),
-        row
-      );
-    });
-
-
-    // ==================================================
-    // COUNTERS
-    // ==================================================
-
-    let inserted = 0;
-    let updated = 0;
-    let unchanged = 0;
-
-
-    // ==================================================
-    // CHECK EACH CSV ROW
-    // ==================================================
-
-    normalizedData.forEach(row => {
-
-      const existing = existingMap.get(row.course_code);
-
-      if (!existing) {
-        inserted++;
-        return;
-      }
-
-      const isSame =
-
-        String(existing.subject_name || "").trim()
-          === row.subject_name
-
-        &&
-
-        String(existing.course_type || "").trim()
-          === row.course_type
-
-        &&
-
-        String(existing.elective_group || "").trim()
-          === row.elective_group
-
-        &&
-
-        Number(existing.lecture_hours || 0)
-          === row.lecture_hours
-
-        &&
-
-        Number(existing.tutorial_hours || 0)
-          === row.tutorial_hours
-
-        &&
-
-        Number(existing.practical_hours || 0)
-          === row.practical_hours
-
-        &&
-
-        String(existing.credits ?? "").trim()
-          === row.credits;
-
-      if (isSame) {
-        unchanged++;
-      } else {
-        updated++;
-      }
-
-    });
-
-
-    // ==================================================
-    // PREPARE BULK VALUES
-    // ==================================================
-
-    const values = normalizedData.map(row => [
-
-      row.course_code,
-      row.subject_name,
-      programId,
-      departmentId,
-      semesterId,
-      row.course_type,
-      row.elective_group || null,
-      row.lecture_hours,
-      row.tutorial_hours,
-      row.practical_hours,
-      row.credits
-
-    ]);
-
-
-    // ==================================================
-    // BULK UPSERT
-    // ==================================================
-
-    const upsertSql = `
-      INSERT INTO subjects
-      (
-        course_code,
-        subject_name,
-        program_id,
-        department_id,
-        semester_id,
-        course_type,
-        elective_group,
-        lecture_hours,
-        tutorial_hours,
-        practical_hours,
-        credits
-      )
-
-      VALUES ?
-
-      ON DUPLICATE KEY UPDATE
-
-        subject_name = VALUES(subject_name),
-        course_type = VALUES(course_type),
-        elective_group = VALUES(elective_group),
-        lecture_hours = VALUES(lecture_hours),
-        tutorial_hours = VALUES(tutorial_hours),
-        practical_hours = VALUES(practical_hours),
-        credits = VALUES(credits)
-    `;
-
-    await db.query(upsertSql, [values]);
-
-
-    // ==================================================
-    // RESPONSE
-    // ==================================================
-
-    return res.json({
-
-      success: true,
-
-      message: "Subjects imported successfully",
-
-      total: normalizedData.length,
-
-      inserted,
-      updated,
-      unchanged
-
-    });
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "SUBJECT IMPORT ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-
-      success: false,
-
-      message: "Subject import failed",
-
-      error: error.message
-
-    });
-
-  }
 
 };
+
 
 // ==================================================
 // GET SUBJECTS
@@ -1075,6 +1075,7 @@ exports.getSubjects = async (req, res) => {
 // ADD SUBJECT
 // ==================================================
 
+
 exports.addSubject = async (req, res) => {
 
     const {
@@ -1091,9 +1092,8 @@ exports.addSubject = async (req, res) => {
         P
     } = req.body;
 
-
     // ----------------------------------------------
-    // VALIDATION
+    // BASIC VALIDATION
     // ----------------------------------------------
 
     if (!course_code) {
@@ -1135,59 +1135,25 @@ exports.addSubject = async (req, res) => {
         });
     }
 
-
     try {
 
         // ------------------------------------------
         // NORMALIZE BASIC VALUES
         // ------------------------------------------
 
-        const normalizedCourseCode =
-            String(course_code)
+        const normalizedCourseCode = String(course_code)
             .trim()
             .toUpperCase();
 
-        const normalizedSubjectName =
-            String(subject_name)
-                .trim();
+        const normalizedSubjectName = String(subject_name)
+            .trim();
 
-        const normalizedProgram =
-            String(program)
-                .trim();
-
-        const normalizedDepartment =
-            String(department)
-                .trim();
-
+        const normalizedProgram = String(program).trim();
+        const normalizedDepartment = String(department).trim();
 
         // ------------------------------------------
-        // CHECK DUPLICATE COURSE CODE
-        // ------------------------------------------
-
-        const [existing] = await db.query(
-            `
-            SELECT id
-            FROM subjects
-            WHERE course_code = ?
-            LIMIT 1
-            `,
-            [
-                normalizedCourseCode
-            ]
-        );
-
-        if (existing.length > 0) {
-            return res.status(409).json({
-                success: false,
-                message: `Course code "${normalizedCourseCode}" already exists`
-            });
-        }
-
-
-        // ----------------------------------------------
         // GET PROGRAM ID
-        // SUPPORT ID OR PROGRAM NAME
-        // ----------------------------------------------
+        // ------------------------------------------
 
         let programRows;
 
@@ -1228,12 +1194,9 @@ exports.addSubject = async (req, res) => {
 
         const program_id = programRows[0].id;
 
-
-        // ----------------------------------------------
+        // ------------------------------------------
         // GET DEPARTMENT ID
-        // SUPPORT ID, NAME OR ABBREVIATION
-        // VERIFY DEPARTMENT BELONGS TO PROGRAM
-        // ----------------------------------------------
+        // ------------------------------------------
 
         let departmentRows;
 
@@ -1292,11 +1255,9 @@ exports.addSubject = async (req, res) => {
 
         const department_id = departmentRows[0].id;
 
-
-        // ----------------------------------------------
-        // GET SEMESTER ID
-        // ANGULAR SENDS SEMESTER TABLE ID
-        // ----------------------------------------------
+        // ------------------------------------------
+        // GET AND VALIDATE SEMESTER ID
+        // ------------------------------------------
 
         const semester_id = Number(semester);
 
@@ -1307,11 +1268,6 @@ exports.addSubject = async (req, res) => {
             });
         }
 
-
-        // ----------------------------------------------
-        // VERIFY SEMESTER BELONGS TO PROGRAM
-        // ----------------------------------------------
-
         const [semesterRows] = await db.query(
             `
             SELECT id
@@ -1320,10 +1276,7 @@ exports.addSubject = async (req, res) => {
               AND program_id = ?
             LIMIT 1
             `,
-            [
-                semester_id,
-                program_id
-            ]
+            [semester_id, program_id]
         );
 
         if (semesterRows.length === 0) {
@@ -1333,10 +1286,38 @@ exports.addSubject = async (req, res) => {
             });
         }
 
+        // ------------------------------------------
+        // CHECK DUPLICATE COURSE CODE
+        // ------------------------------------------
 
-        // ----------------------------------------------
+        const [existing] = await db.query(
+            `
+            SELECT id
+            FROM subjects
+            WHERE course_code = ?
+              AND department_id = ?
+              AND program_id = ?
+              AND semester_id = ?
+            LIMIT 1
+            `,
+            [
+                normalizedCourseCode,
+                department_id,
+                program_id,
+                semester_id
+            ]
+        );
+
+        if (existing.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: `Course code "${normalizedCourseCode}" already exists in this department and semester`
+            });
+        }
+
+        // ------------------------------------------
         // NORMALIZE OPTIONAL VALUES
-        // ----------------------------------------------
+        // ------------------------------------------
 
         const normalizedCourseType = course_type
             ? String(course_type).trim()
@@ -1351,10 +1332,9 @@ exports.addSubject = async (req, res) => {
                 ? String(credits).trim()
                 : null;
 
-
-        // ----------------------------------------------
-        // VALIDATE LECTURE / TUTORIAL / PRACTICAL HOURS
-        // ----------------------------------------------
+        // ------------------------------------------
+        // VALIDATE L/T/P HOURS
+        // ------------------------------------------
 
         const lectureHours = Number(L ?? 0);
         const tutorialHours = Number(T ?? 0);
@@ -1374,10 +1354,9 @@ exports.addSubject = async (req, res) => {
             });
         }
 
-
-        // ----------------------------------------------
+        // ------------------------------------------
         // INSERT SUBJECT
-        // ----------------------------------------------
+        // ------------------------------------------
 
         const [result] = await db.query(
             `
@@ -1414,10 +1393,48 @@ exports.addSubject = async (req, res) => {
             ]
         );
 
+        // ------------------------------------------
+        // AUTOMATICALLY MAP ALL MATCHING SUBJECTS
+        // TO ALL DEPARTMENTS
+        // ------------------------------------------
 
-        // ----------------------------------------------
+        await db.query(
+            `
+            INSERT IGNORE INTO subject_departments
+            (
+                subject_id,
+                department_id
+            )
+            SELECT
+                s.id,
+                mapped.department_id
+            FROM subjects s
+            CROSS JOIN (
+                SELECT DISTINCT department_id
+                FROM subjects
+                WHERE course_code = ?
+                  AND program_id = ?
+                  AND semester_id = ?
+                  AND is_active = 1
+            ) mapped
+            WHERE s.course_code = ?
+              AND s.program_id = ?
+              AND s.semester_id = ?
+              AND s.is_active = 1
+            `,
+            [
+                normalizedCourseCode,
+                program_id,
+                semester_id,
+                normalizedCourseCode,
+                program_id,
+                semester_id
+            ]
+        );
+
+        // ------------------------------------------
         // SUCCESS RESPONSE
-        // ----------------------------------------------
+        // ------------------------------------------
 
         return res.status(201).json({
             success: true,
@@ -1429,14 +1446,10 @@ exports.addSubject = async (req, res) => {
 
         console.error("Failed to add subject:", err);
 
-        // ----------------------------------------------
-        // HANDLE DUPLICATE ENTRY
-        // ----------------------------------------------
-
         if (err.code === "ER_DUP_ENTRY") {
             return res.status(409).json({
                 success: false,
-                message: "A subject with this course code already exists"
+                message: "A subject with this course code already exists in this department and semester"
             });
         }
 
@@ -1447,8 +1460,8 @@ exports.addSubject = async (req, res) => {
         });
 
     }
-
 };
+
 
 // ==================================================
 // UPDATE SUBJECT
