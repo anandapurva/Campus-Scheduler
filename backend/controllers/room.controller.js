@@ -887,7 +887,7 @@ exports.importRooms = async (req, res) => {
                 room_name,
                 room_type,
                 department,
-                capacity.
+                capacity,
                 building,
                 floor_no
 

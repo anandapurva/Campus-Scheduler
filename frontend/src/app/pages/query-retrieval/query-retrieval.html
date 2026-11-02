@@ -273,6 +273,8 @@
 
             <th>Subject Name</th>
 
+            <th>Elective Group</th>
+
             <th>Department</th>
 
             <th>Program</th>
@@ -299,9 +301,15 @@
               </span>
             </td>
 
+             <td>
+          <span class="elective-group">
+            {{ subject.elective_group || '-' }}
+          </span>
+          </td>
+
             <td>
               <span class="department-badge">
-                {{ subject.department || '-' }}
+                {{ subject.department_code || '-' }}
               </span>
             </td>
 
