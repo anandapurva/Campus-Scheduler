@@ -219,10 +219,10 @@ checkPracticalAvailability(payload: {
   secondSlotId: number;
   batchIds: number[];
   teacherIds: number[];
-  roomId: number;
+  roomIds: number[];
 }) {
-  return this.http.post<any>(
-    `${this.apiUrl}/practical-availability`,
+  return this.http.post(
+    `${this.apiUrl}/check-practical-availability`,
     payload
   );
 }
