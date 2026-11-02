@@ -751,21 +751,29 @@ const getEligibleBatches = async (req, res) => {
         const {
             program,
             semester,
-            department
+            department,
+            academicSessionStartYear,
+            subjectId
         } = req.query;
 
-        if (!program || !semester || !department) {
+        if (
+            !program ||
+            !semester ||
+            !department ||
+            !academicSessionStartYear ||
+            !subjectId
+        ) {
             return res.status(400).json({
                 success: false,
-                message: 'program, semester and department are required'
+                message: 'program, semester, department, academicSessionStartYear and subjectId are required'
             });
         }
 
         const normalizedProgram = normalizeProgram(program);
         const semesterNumber = Number(semester);
         const normalizedDepartment = String(department).trim();
-
-        const currentAcademicStartYear = 2026;
+        const currentAcademicStartYear = Number(academicSessionStartYear);
+        const subjectNumber = Number(subjectId);
 
         if (!['BTECH', 'MTECH'].includes(normalizedProgram)) {
             return res.status(400).json({
@@ -774,24 +782,67 @@ const getEligibleBatches = async (req, res) => {
             });
         }
 
-        if (
-            !Number.isInteger(semesterNumber) ||
-            semesterNumber < 1
-        ) {
+        if (!Number.isInteger(semesterNumber) || semesterNumber < 1) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid semester'
             });
         }
 
-        /*
-         * Generic enrollment-year calculation:
-         *
-         * Semester 1-2 => 2026
-         * Semester 3-4 => 2025
-         * Semester 5-6 => 2024
-         * Semester 7-8 => 2023
-         */
+        if (!Number.isInteger(currentAcademicStartYear) ||
+            currentAcademicStartYear < 2000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid academic session start year'
+            });
+        }
+
+        if (!Number.isInteger(subjectNumber) || subjectNumber <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid subject ID'
+            });
+        }
+
+        // Verify subject exists and is active
+        const [subjectRows] = await pool.query(
+            `SELECT id FROM subjects WHERE id = ? AND is_active = 1`,
+            [subjectNumber]
+        );
+
+        if (!subjectRows.length) {
+            return res.status(404).json({
+                success: false,
+                message: 'Subject not found or inactive'
+            });
+        }
+
+        // Get departments mapped to the selected subject
+        const [mappedDepartments] = await pool.query(`
+            SELECT DISTINCT UPPER(TRIM(d.abbreviation)) AS abbreviation
+            FROM subject_departments sd
+            INNER JOIN departments d
+                ON d.id = sd.department_id
+            WHERE sd.subject_id = ?
+              AND d.is_active = 1
+        `, [subjectNumber]);
+
+
+
+        if (!mappedDepartments.length) {
+            return res.json({
+                success: true,
+                count: 0,
+                batches: [],
+                message: 'No departments are mapped to this subject'
+            });
+        }
+
+        const departmentAbbreviations = mappedDepartments.map(
+            row => row.abbreviation
+        );
+
+        // Existing enrollment-year calculation
         const academicYearOffset =
             Math.floor((semesterNumber - 1) / 2);
 
@@ -805,51 +856,37 @@ const getEligibleBatches = async (req, res) => {
                 program,
                 batch_type,
                 enrollment_year,
+                current_semester,
                 department,
                 is_active
             FROM batches
             WHERE is_active = 1
               AND enrollment_year = ?
+              AND UPPER(TRIM(department)) IN (?)
               AND (
         `;
 
         const queryParams = [
-            expectedEnrollmentYear
+            expectedEnrollmentYear,
+            departmentAbbreviations
         ];
 
-        /*
-         * B.Tech selection:
-         *
-         * Return only B.Tech batches, including:
-         * - Regular
-         * - Integrated
-         *
-         * No batch_type filter is applied.
-         */
+        // B.Tech selection
         if (normalizedProgram === 'BTECH') {
             query += `
-                    program LIKE 'BTECH%'
+                program LIKE 'BTECH%'
             `;
         }
 
-        /*
-         * M.Tech selection:
-         *
-         * Return all M.Tech branches for the calculated year,
-         * plus integrated B.Tech batches from the additional
-         * eligible enrollment years.
-         */
+        // M.Tech selection, including integrated batches
         if (normalizedProgram === 'MTECH') {
             query += `
-                    program LIKE 'MTECH%'
-            `;
-
-            query += `
-                    OR (
-                        program LIKE 'BTECH%'
-                        AND LOWER(batch_type) = 'integrated'
-                        AND enrollment_year IN (?, ?)
-                    )
+                program LIKE 'MTECH%'
+                OR (
+                    program LIKE 'BTECH%'
+                    AND LOWER(batch_type) = 'integrated'
+                    AND enrollment_year IN (?, ?)
+                )
             `;
 
             queryParams.push(
@@ -862,7 +899,7 @@ const getEligibleBatches = async (req, res) => {
               )
             ORDER BY
                 CASE
-                    WHEN department = ? THEN 0
+                    WHEN UPPER(TRIM(department)) = UPPER(?) THEN 0
                     ELSE 1
                 END,
                 enrollment_year DESC,
@@ -872,17 +909,17 @@ const getEligibleBatches = async (req, res) => {
         `;
 
         queryParams.push(normalizedDepartment);
+        console.log('Final SQL:', query);
+console.log('SQL parameters:', queryParams);
 
-        const [rows] = await pool.query(
-            query,
-            queryParams
-        );
+        const [rows] = await pool.query(query, queryParams);
 
         return res.json({
             success: true,
             count: rows.length,
             calculatedEnrollmentYear: expectedEnrollmentYear,
             selectedDepartment: normalizedDepartment,
+            mappedDepartments: departmentAbbreviations,
             batches: rows
         });
 

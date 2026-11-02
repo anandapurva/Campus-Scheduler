@@ -606,27 +606,24 @@ if (changes['editingEntry']) {
       !this.program ||
       !this.semester ||
       !this.department ||
-      !this.selectedAcademicSessionStartYear
+      !this.selectedAcademicSessionStartYear ||
+      !this.selectedSubject?.id
     ) {
-
+      this.eligibleBatches = [];
+      this.filteredBatches = [];
       return;
-
     }
 
-
     this.loadingBatches = true;
-
     this.batchError = '';
-
 
     this.batchService
       .getEligibleBatches(
         this.program,
         Number(this.semester),
         this.department,
-        Number(
-          this.selectedAcademicSessionStartYear
-        )
+        Number(this.selectedAcademicSessionStartYear),
+        Number(this.selectedSubject.id)
       )
       .pipe(
         takeUntil(this.destroy$)
@@ -640,25 +637,16 @@ if (changes['editingEntry']) {
               ? response.batches
               : [];
 
+          this.filteredBatches = [...this.eligibleBatches];
 
-          this.filteredBatches =
-            [...this.eligibleBatches];
+          // Load existing entry data after batches are available
           this.loadEditingEntry();
 
           this.loadingBatches = false;
 
-
-          /*
-           * Check lunch configuration for every batch.
-           */
-          this.eligibleBatches.forEach(
-            (batch: any) => {
-
-              this.checkBatchLunch(batch);
-
-            }
-          );
-
+          this.eligibleBatches.forEach((batch: any) => {
+            this.checkBatchLunch(batch);
+          });
 
           this.cdr.detectChanges();
 
@@ -671,24 +659,19 @@ if (changes['editingEntry']) {
             error
           );
 
-
           this.eligibleBatches = [];
-
           this.filteredBatches = [];
 
           this.loadingBatches = false;
 
-
           this.batchError =
             'Unable to load eligible batches.';
-
 
           this.cdr.detectChanges();
 
         }
 
       });
-
   }
 
   loadSubjectHours(): void {
@@ -2851,27 +2834,34 @@ filterSubjectsByLectureType(): void {
 
   selectSubject(subject: any): void {
 
-  this.selectedSubject = subject;
-   console.log('Selected subject:', subject);
-  console.log('Course type:', subject?.course_type);
-  console.log('Is elective:', this.isElectiveSubject());
+    this.selectedSubject = subject;
 
-  this.isSubjectDropdownOpen = false;
+    console.log('Selected subject:', subject);
+    console.log('Course type:', subject?.course_type);
+    console.log('Is elective:', this.isElectiveSubject());
 
-  this.expandedElectiveGroup = null;
+    // Clear batches selected for the previously selected subject
+    this.selectedBatches = [];
 
-  this.subjectSearch = '';
+    this.eligibleBatches = [];
+    this.filteredBatches = [];
 
-  this.timetableSocketService.activity();
+    this.isSubjectDropdownOpen = false;
+    this.expandedElectiveGroup = null;
+    this.subjectSearch = '';
 
-  this.filteredSubjects = [...this.subjects];
+    this.timetableSocketService.activity();
 
-  // Load required/remaining L/T/P hours
-  // for the selected actual subject.
-  this.loadSubjectHours();
+    this.filteredSubjects = [...this.subjects];
 
-  this.cdr.detectChanges();
-}
+    // Load required/remaining L/T/P hours
+    this.loadSubjectHours();
+
+    // Fetch batches eligible for this subject
+    this.loadEligibleBatches();
+
+    this.cdr.detectChanges();
+  }
 
 
   // ==================================================

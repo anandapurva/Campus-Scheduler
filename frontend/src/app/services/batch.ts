@@ -134,25 +134,27 @@ export class BatchService {
     );
   }
 
-  getEligibleBatches(
-    program: string,
-    semester: number,
-    department: string,
-    academicSessionStartYear: number
-  ): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/eligible`,
-      {
-        params: {
-          program,
-          semester: semester.toString(),
-          department,
-          academicSessionStartYear:
-            academicSessionStartYear.toString()
-        }
+getEligibleBatches(
+  program: string,
+  semester: number,
+  department: string,
+  academicSessionStartYear: number,
+  subjectId: number
+): Observable<any> {
+  return this.http.get<any>(
+    `${this.apiUrl}/eligible`,
+    {
+      params: {
+        program,
+        semester: semester.toString(),
+        department,
+        academicSessionStartYear:
+          academicSessionStartYear.toString(),
+        subjectId: subjectId.toString()
       }
-    );
-  }
+    }
+  );
+}
 
 getLunchForBatch(
   batchId: number,
