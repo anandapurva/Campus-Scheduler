@@ -222,7 +222,6 @@
         class="checkbox-option"
 
         [class.disabled-resource]="
-          isBatchLunchLocked(batch) ||
           isBatchLocked(batch)
         "
       >
@@ -237,7 +236,6 @@
           "
 
           [disabled]="
-            isBatchLunchLocked(batch) ||
             isBatchLocked(batch)
           "
 
@@ -312,7 +310,7 @@
 
         <!-- LUNCH -->
 
-        <span
+      <!--  <span
           *ngIf="
             !isBatchAlreadyScheduled(batch) &&
             !isBatchInUse(batch) &&
@@ -324,7 +322,7 @@
           {{ batch.lunchStart }}
           -
           {{ batch.lunchEnd }}
-        </span>
+        </span> -->
 
       </label>
 

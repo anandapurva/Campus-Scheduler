@@ -1543,100 +1543,53 @@ convertTimeToMinutes(time: any): number | null {
 
   toggleBatch(batch: any): void {
 
-    if (
-      !this.isBatchSelected(batch) &&
-      this.isBatchLocked(batch)
-    ) {
+  const alreadySelected = this.isBatchSelected(batch);
 
-      console.warn(
-        'Batch already scheduled:',
-        batch.batch_code
-      );
+  // Hard restriction: already scheduled or occupied
+  if (!alreadySelected && this.isBatchLocked(batch)) {
+    alert(`${batch.batch_code} is already occupied.`);
+    return;
+  }
 
-      return;
+  // Lunch is a warning, not a hard restriction
+  if (!alreadySelected && this.isBatchLunchLocked(batch)) {
 
-    }
-    if (
-      !this.isBatchSelected(batch) &&
-      this.isBatchLunchLocked(batch)
-    ) {
+    // const confirmed = confirm(
+    //   `${batch.batch_code} has a lunch break during this slot.\n\n` +
+    //   `Do you want to schedule a class during lunch anyway?`
+    // );
 
-      console.warn(
-        'Batch is unavailable because of lunch:',
-        batch.batch_code
-      );
+   
+  }
 
-      return;
+  if (alreadySelected) {
 
-    }
-
-
-    const alreadySelected =
-      this.isBatchSelected(batch);
-
-
-if (alreadySelected) {
-
-  this.selectedBatches =
-    this.selectedBatches.filter(
-      (selectedBatch: any) =>
-        Number(selectedBatch.id) !==
-        Number(batch.id)
+    this.selectedBatches = this.selectedBatches.filter(
+      b => Number(b.id) !== Number(batch.id)
     );
 
+    this.releaseResource('batch', Number(batch.id));
 
-  // RELEASE TEMPORARY RESERVATION
-  this.releaseResource(
-    'batch',
-    Number(batch.id)
-  );
+  } else {
 
-} else {
+    this.selectedBatches = [
+      ...this.selectedBatches,
+      batch
+    ];
 
-  this.selectedBatches = [
-    ...this.selectedBatches,
-    batch
-  ];
-
-
-  // TEMPORARY REAL-TIME RESERVATION
-  if (!this.isElectiveSubject()) {
-    this.selectedBatches.forEach((batch: any) => {
+    if (!this.isElectiveSubject()) {
       this.reserveResource('batch', Number(batch.id));
-    });
-  }
-
-}
-
-    this.timetableSocketService.activity();
-
-    this.calculateStudents();
-
-    this.filterRooms();
-
-    if (
-      this.selectedRoom &&
-      (
-        this.isRoomLocked(this.selectedRoom) ||
-        (
-          this.totalStudents > 0 &&
-          Number(
-            this.selectedRoom.capacity || 0
-          ) < this.totalStudents
-        )
-      )
-    ) {
-
-      this.selectedRoom = null;
-
     }
-
-    this.loadSubjectHours();
-
-    this.cdr.detectChanges();
-
   }
 
+  this.timetableSocketService.activity();
+
+  this.calculateStudents();
+  this.filterRooms();
+  this.loadSubjectHours();
+
+  this.cdr.detectChanges();
+}
   private reserveResource(
   resourceType: string,
   resourceId: number

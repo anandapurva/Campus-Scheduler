@@ -107,6 +107,12 @@ async function requireTables(tables) {
 function detectIntent(text) {
     const t = normalizeText(text);
 
+    if (
+    /\b(room|rooms|classroom|classrooms|lab|labs)\b/i.test(t) &&
+    /\b(free|available|availability|vacant|unoccupied)\b/i.test(t)
+) {
+    return "FREE_ROOMS";
+}
     // Free slot queries must be checked before timetable.
     if (
         /\b(free|available|availability|vacant|idle|gap|gaps)\b/i.test(t)
@@ -157,7 +163,110 @@ function detectIntent(text) {
     return "UNKNOWN";
 }
 
+function parseTimeRange(text) {
 
+    const normalized = String(text || "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const match = normalized.match(
+        /\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|till|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i
+    );
+
+    if (!match) {
+        return null;
+    }
+
+    let startHour = Number(match[1]);
+    let startMinute = Number(match[2] || 0);
+    let startPeriod = match[3]?.toLowerCase() || null;
+
+    let endHour = Number(match[4]);
+    let endMinute = Number(match[5] || 0);
+    let endPeriod = match[6]?.toLowerCase() || null;
+
+    // Validate time values
+    if (
+        startHour < 1 || startHour > 12 ||
+        endHour < 1 || endHour > 12 ||
+        startMinute > 59 ||
+        endMinute > 59
+    ) {
+        return null;
+    }
+
+    // Infer missing AM/PM
+    if (!startPeriod && endPeriod) {
+        startPeriod = endPeriod;
+    }
+
+    if (!endPeriod && startPeriod) {
+        endPeriod = startPeriod;
+    }
+
+    // Default to daytime for college timetable queries
+    if (!startPeriod && !endPeriod) {
+
+        startPeriod = "am";
+        endPeriod = "am";
+
+        // 12 to 1 means 12 PM to 1 PM
+        if (startHour === 12) {
+            endPeriod = "pm";
+        }
+
+        // 10 to 12 means 10 AM to 12 PM
+        else if (endHour === 12) {
+            endPeriod = "pm";
+        }
+
+        // 1 to 2 means 1 PM to 2 PM
+        else if (startHour >= 1 && startHour <= 11) {
+            startPeriod = "pm";
+            endPeriod = "pm";
+        }
+    }
+
+    function to24Hour(hour, minute, period) {
+
+        if (period === "pm" && hour !== 12) {
+            hour += 12;
+        }
+
+        if (period === "am" && hour === 12) {
+            hour = 0;
+        }
+
+        return (
+            String(hour).padStart(2, "0") +
+            ":" +
+            String(minute).padStart(2, "0") +
+            ":00"
+        );
+    }
+
+    const startTime = to24Hour(
+        startHour,
+        startMinute,
+        startPeriod
+    );
+
+    const endTime = to24Hour(
+        endHour,
+        endMinute,
+        endPeriod
+    );
+
+    if (startTime >= endTime) {
+        return null;
+    }
+
+    return {
+        startTime,
+        endTime
+    };
+}
 // ============================================================
 // 3. ENTITY DETECTION
 // ============================================================
@@ -166,6 +275,7 @@ const KNOWN_DEPARTMENTS = [
     "CSE", "ECE", "IT", "BT", "M&C",
     "MC", "MED", "PMSE", "PHYSICS", "HSS"
 ];
+
 
 async function detectDepartment(text) {
     const t = normalizeText(text);
@@ -383,12 +493,31 @@ function detectBatchCode(text) {
 }
 
 function detectRoomType(text) {
-    const t = normalizeText(text);
 
-    if (/\b(lab|labs|laboratory|practical)\b/i.test(t)) return "P";
-    if (/\b(lecture|classroom)\b/i.test(t)) return "L";
-    if (/\b(tutorial)\b/i.test(t)) return "T";
+    const query = String(text).toLowerCase();
 
+    // Practical / Laboratory
+    if (
+        /\b(practical|practicals|lab|labs|laboratory|laboratories)\b/i.test(query)
+    ) {
+        return "P";
+    }
+
+    // Tutorial
+    if (
+        /\b(tutorial|tutorials)\b/i.test(query)
+    ) {
+        return "T";
+    }
+
+    // Lecture
+    if (
+        /\b(lecture|lectures|classroom|classrooms)\b/i.test(query)
+    ) {
+        return "L";
+    }
+
+    // No specific room type requested
     return null;
 }
 
@@ -641,6 +770,187 @@ async function executeRoomQuery(text) {
     return makeResult("Rooms", rows);
 }
 
+async function executeFreeRoomQuery(text) {
+
+    await requireTables([
+        "rooms",
+        "timetable_entries",
+        "timetable_entry_rooms",
+        "academic_sessions"
+    ]);
+
+    // ==========================================
+    // DETECT TIME RANGE
+    // ==========================================
+
+    const timeRange = parseTimeRange(text);
+
+    if (!timeRange) {
+        return {
+            type: "FREE_ROOMS",
+            count: 0,
+            data: [],
+            message:
+                "Please specify a valid time range, for example: " +
+                "Which rooms are free from 9 AM to 10 AM?"
+        };
+    }
+
+    // ==========================================
+    // DETECT DAY
+    // ==========================================
+
+    const day = detectDay(text);
+
+    if (!day) {
+        return {
+            type: "FREE_ROOMS",
+            count: 0,
+            data: [],
+            message:
+                "Please mention the day as well. For example: " +
+                "Which rooms are free on Monday from 9 AM to 10 AM?"
+        };
+    }
+
+    // ==========================================
+    // DETECT ROOM TYPE
+    // ==========================================
+
+    // L = Lecture
+    // T = Tutorial
+    // P = Practical
+    // null = All room types
+
+    const roomType = detectRoomType(text);
+
+    // ==========================================
+    // DETECT BUILDING
+    // ==========================================
+
+    const buildingMatch = String(text).match(
+        /\b(?:building\s+)?([a-z]{2,5}-\d{1,3})\b/i
+    );
+
+    const building = buildingMatch
+        ? buildingMatch[1].toUpperCase()
+        : null;
+
+    // ==========================================
+    // GET ACTIVE ACADEMIC SESSION
+    // ==========================================
+
+    const [sessionRows] = await db.execute(
+        `
+        SELECT id
+        FROM academic_sessions
+        WHERE is_active = 1
+        LIMIT 1
+        `
+    );
+
+    if (sessionRows.length === 0) {
+        return {
+            type: "FREE_ROOMS",
+            count: 0,
+            data: [],
+            message: "No active academic session found."
+        };
+    }
+
+    const academicSessionId = sessionRows[0].id;
+
+    // ==========================================
+    // FIND FREE ROOMS
+    // ==========================================
+
+    const sql = `
+        SELECT
+            r.id,
+            r.room_id,
+            r.room_name,
+            r.room_type,
+            r.capacity,
+            r.building,
+            r.floor_no
+
+        FROM rooms r
+
+        WHERE
+            (? IS NULL OR UPPER(r.building) = UPPER(?))
+
+            AND
+            (? IS NULL OR r.room_type = ?)
+
+            AND NOT EXISTS (
+
+                SELECT 1
+
+                FROM timetable_entry_rooms ter
+
+                INNER JOIN timetable_entries te
+                    ON te.id = ter.timetable_entry_id
+
+                WHERE ter.room_id = r.id
+
+                    AND LOWER(te.day) = LOWER(?)
+
+                    AND te.academic_session_id = ?
+
+                    AND te.start_time < ?
+
+                    AND te.end_time > ?
+
+            )
+
+        ORDER BY
+            r.building,
+            r.room_name
+    `;
+
+    const params = [
+        building,
+        building,
+
+        roomType,
+        roomType,
+
+        day,
+        academicSessionId,
+
+        timeRange.endTime,
+        timeRange.startTime
+    ];
+
+    const [rows] = await db.execute(sql, params);
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    return {
+
+        type: "FREE_ROOMS",
+
+        count: rows.length,
+
+        filters: {
+            building,
+            roomType,
+            day,
+            startTime: timeRange.startTime,
+            endTime: timeRange.endTime,
+            academicSessionId
+        },
+
+        data: rows,
+
+        message: rows.length
+            ? null
+            : `No free rooms found${building ? ` in ${building}` : ""} on ${day} from ${timeRange.startTime} to ${timeRange.endTime}.`
+
+    };
+}
 
 // ============================================================
 // 6. SUBJECT QUERY
@@ -1851,6 +2161,9 @@ async function executeQuery(userQuery) {
             case "TIMETABLE":
                 result = await executeTimetableQuery(text);
                 break;
+            case "FREE_ROOMS":
+                result = await executeFreeRoomQuery(text);
+                break;
 
             case "FREE_SLOTS":
                 result = await executeFreeSlotQuery(text);
@@ -1887,7 +2200,7 @@ async function executeQuery(userQuery) {
 // ============================================================
 
 module.exports = {
-    executeQuery,
+      executeQuery,
 
     detectIntent,
     detectBatchCode,
@@ -1901,6 +2214,7 @@ module.exports = {
 
     executeFacultyQuery,
     executeRoomQuery,
+    executeFreeRoomQuery,
     executeSubjectQuery,
     executeSemesterQuery,
     executeBatchQuery,
